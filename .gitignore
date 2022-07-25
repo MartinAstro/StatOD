@@ -1,0 +1,11 @@
+Plots/*
+Homework/*
+Scratch/*
+__pycache__/*
+*.pyc
+*.nbi
+*.nbc
+.vscode/*
+.eggs/*
+StatOD.egg-info/*
+cachedir/*
