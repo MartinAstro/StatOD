@@ -257,19 +257,24 @@ class KalmanFilter(FilterBase):
         self.phi_0 = np.eye(len(x0))
         self.phi_i_m1 = np.eye(len(x0))
         
-
     def propagate_forward(self, t_i, x_i_m1, phi_i_m1):
         if t_i == self.t_i_m1:
             # return x_hat_i_m1_plus, phi_i_m1
             return copy.deepcopy(x_i_m1), copy.deepcopy(phi_i_m1)
         N = len(x_i_m1)
         Z_i_m1 = np.hstack((x_i_m1, phi_i_m1.reshape((-1))))
-        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, method='RK45',events=self.events)
+        sol = solve_ivp(self.f_integrate, 
+                        [self.t_i_m1, t_i], 
+                        Z_i_m1, 
+                        args=(self.f, self.dfdx, self.f_args), 
+                        atol=1E-14,
+                        rtol=2.23E-14, 
+                        method='RK45',
+                        events=self.events)
         x_i = sol.y[:N,-1]
         phi_i = sol.y[N:,-1].reshape((N,N))
         self.gather_event_data(t_i,sol)
         return x_i, phi_i
-
 
     def time_update(self, dx_i_m1_plus, P_i_m1_plus, phi_i, Q_i_i_m1):
         dx_i_minus = phi_i@dx_i_m1_plus
@@ -363,7 +368,6 @@ class ExtendedKalmanFilter(FilterBase):
 
         self.phi_i_m1 = np.eye(len(x0))
         self.phi_0 = np.eye(len(x0))
-
 
     def propagate_forward(self, t_i, x_hat_i_m1_plus, phi_i_m1):
         if t_i == self.t_i_m1:
@@ -639,7 +643,6 @@ class SquareRootInformationFilter(FilterBase):
         P = R_inv@R_inv.T
         return dx, P
 
-
     def householder_transformation(self,A_input, N):
         A = copy.deepcopy(A_input)
         L = len(A) # Augmented Matrix = N + M
@@ -679,7 +682,6 @@ class SquareRootInformationFilter(FilterBase):
         self.gather_event_data(t_i,sol)
 
         return x_i, phi_i
-
 
     def get_process_noise(self, t_i, x_i):
         N = len(x_i)
@@ -772,8 +774,6 @@ class SquareRootInformationFilter(FilterBase):
 
         return r_tilde_i, H_tilde_i, eps_tilde_i
 
-
-
     def measurement_update(self, db_i_minus, R_i_minus, H_tilde_i, r_tilde_i):
         N = len(db_i_minus)
         db_i_minus_k = db_i_minus
@@ -819,7 +819,6 @@ class SquareRootInformationFilter(FilterBase):
             "phi_ti_ti_m1" : self.phi_i_m1,
         }
         return logger_data
-
         
     def update(self, t_i, y_i, R_i, f_args=None, h_args=None):
         fail = False
@@ -903,9 +902,6 @@ class UnscentedKalmanFilter(FilterBase):
 
         self.logger = logger
         self.phi_0 = np.eye(len(x0))
-
-
-
 
     def generate_sigma_weights(self):
         n = len(self.x_hat_i_m1_minus)
@@ -1109,9 +1105,7 @@ class ConsiderCovarianceFilter(FilterBase):
 
         self.phi_0 = np.eye(len(x0))
         self.phi_i_m1 = np.eye(len(x0))
-        
-        
-
+           
     def propagate_forward(self, t_i, x_i_m1, phi_i_m1):
         N = len(x_i_m1)
         Z_i_m1 = np.hstack((x_i_m1, phi_i_m1.reshape((-1))))
@@ -1121,7 +1115,6 @@ class ConsiderCovarianceFilter(FilterBase):
         self.gather_event_data(t_i,sol)
 
         return x_i, phi_i
-
 
     def time_update(self, dx_i_m1_plus, P_i_m1_plus, phi_i, Q_i_i_m1):
         dx_i_minus = phi_i@dx_i_m1_plus
@@ -1297,7 +1290,6 @@ class SequentialConsiderCovarianceFilter(FilterBase):
 
         return x_i, c_i, phi_i, theta_i
 
-
     def time_update(self, dx_i_m1_plus, dx_c_i_m1_plus, dc, P_i_m1_plus, S_xc_i_m1_plus, P_cc_i_minus, phi_i, theta_i, Q_i_i_m1):
         P_i_minus = phi_i@P_i_m1_plus@phi_i.T + Q_i_i_m1 # Covariance without knowledge of consider parameters
         S_xc_i_minus = phi_i@S_xc_i_m1_plus + theta_i # Sensitivity to measurements given consider parameters (?)
@@ -1457,7 +1449,6 @@ class ParticleFilter(FilterBase):
         self.x_i_m1 = x_0_k
         self.w_i_m1 = np.full((self.N,), 1.0/self.N)
         
-
     def propagate_forward(self, t_i, x_i_m1):
         N = len(x_i_m1)
         Z_i_m1 = x_i_m1.reshape((-1,))

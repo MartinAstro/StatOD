@@ -93,11 +93,14 @@ def latlon2cart(R,lat,lon):
 #     return NB
 
 def ECEF_2_ECI(t, X_ECEF, omega, theta_0):
-    rot_angle = omega*t + theta_0
+    rot_angle = np.array([omega*t + theta_0]).reshape((-1,))
     omega_vec = np.array([0,0,omega]) # WARNING: Assumes spin only about z-axis!
-    Z_rot = np.array([[np.cos(rot_angle), -np.sin(rot_angle), 0],
-                            [np.sin(rot_angle),  np.cos(rot_angle), 0],
-                            [0, 0, 1]])
+
+    Z_rot = np.array([ [[np.cos(rot_angle[i]), -np.sin(rot_angle[i]), 0],
+                        [np.sin(rot_angle[i]),  np.cos(rot_angle[i]), 0],
+                        [0,                   0,                      1]]
+                        for i in range(len(rot_angle))
+                      ])
 
     x_ECEF = X_ECEF[0:3]
 
@@ -105,4 +108,4 @@ def ECEF_2_ECI(t, X_ECEF, omega, theta_0):
     x_ECI = Z_rot@x_ECEF
     v_ECI = np.cross(omega_vec, x_ECI)
 
-    return np.hstack((x_ECI, v_ECI))
+    return np.hstack((x_ECI, v_ECI)).squeeze()

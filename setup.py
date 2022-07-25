@@ -21,7 +21,9 @@ setup(
                     'sigfig',
                     'matplotlib',
                     'numba',
-                    'joblib'],
+                    'joblib',
+                    'tqdm',
+                    'colorama'],
     tests_require=['pytest==4.4.1'],
     test_suite='tests',
 )

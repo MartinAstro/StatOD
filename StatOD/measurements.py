@@ -1,5 +1,6 @@
 from sympy import *
 import numpy as np
+from StatOD.constants import EarthParams
 from StatOD.utils import print_expression, latlon2cart, ECEF_2_ECI
 import numba
 from numba import njit
@@ -15,7 +16,7 @@ def h_rho_rhod(x, args):
     rho_dot = ((x_i - x_s)*(vx_i - vx_s) + (y_i - y_s)*(vy_i - vy_s) + (z_i - z_s)*(vz_i - vz_s))/rho
 
     h = np.array([rho, rho_dot])
-    return h
+    return h.tolist()
 
 
 #######################
@@ -44,7 +45,7 @@ def h_rho_rhod_scenario(x, args):
     rho_dot = ((x - x_s)*(vx - vx_s) + (y - y_s)*(vy - vy_s) + (z - z_s)*(vz - vz_s))/rho
 
     h = np.array([rho, rho_dot])
-    return h
+    return h.tolist()
 
 def h_rho(x, args):
     x, y, z, vx, vy, vz, mu, J2, Cd, R_0x, R_0y, R_0z, R_1x, R_1y, R_1z, R_2x, R_2y, R_2z = x
@@ -62,7 +63,7 @@ def h_rho(x, args):
     rho_dot = ((x - x_s)*(vx - vx_s) + (y - y_s)*(vy - vy_s) + (z - z_s)*(vz - vz_s))/rho
 
     h = np.array([rho])
-    return h
+    return h.tolist()
 
 def h_rhod(x, args):
     x, y, z, vx, vy, vz, mu, J2, Cd, R_0x, R_0y, R_0z, R_1x, R_1y, R_1z, R_2x, R_2y, R_2z = x
@@ -80,22 +81,22 @@ def h_rhod(x, args):
     rho_dot = ((x - x_s)*(vx - vx_s) + (y - y_s)*(vy - vy_s) + (z - z_s)*(vz - vz_s))/rho
 
     h = np.array([rho_dot])
-    return h
+    return h.tolist()
 
 
 
 ########################
-# Homework 8 Functions #
+# Example 8 Functions #
 ########################
 def spring_observation_1(x, args):
     x, vx = x[0], x[1]
     h = np.array([x,])
-    return h
+    return h.tolist()
     
 def spring_observation_2(x, args):
     x, vx = x[0], x[1]
     h = np.array([abs(x), ])
-    return h
+    return h.tolist()
 
 
 #####################
@@ -111,7 +112,7 @@ def dhdx(x, h, args):
             # dhdx[i,j] = simplify(diff(h[i], x[j]))
             dhdx[i,j] = diff(h[i], x[j])
 
-    return dhdx
+    return dhdx.tolist()
 
 def measurements(x, h, args, cse_func=cse, consider=None):
     n = len(x) # state [x, y, z, vx, vy, vz]
@@ -164,23 +165,24 @@ def get_rho_rhod_el(t, X, R, lat, lon, theta_0, elevation_mask):
     if len(np.shape(t)) == 0:
         t = np.array([t])
 
-    omega = 2*np.pi/(24*60*60) # spin rate of 24 hours
+    ep = EarthParams()   
+    omega = ep.omega # 2*np.pi/(24*60*60) # spin rate of 24 hours
 
     # (r, lat, lon) - > (x, y, z)
     x_obs_ECEF = latlon2cart(R, lat, lon) 
     X_obs_ECI = ECEF_2_ECI(t, x_obs_ECEF, omega, theta_0)
 
-    x_obs_ECI = X_obs_ECI[0:3]
-    v_obs_ECI = X_obs_ECI[3:6]
+    x_obs_ECI = X_obs_ECI[:,0:3]
+    v_obs_ECI = X_obs_ECI[:,3:6]
 
-    LOS_vec = X[:3].T - v_obs_ECI
+    LOS_vec = X[:3].T - x_obs_ECI
     LOS_dot_vec = X[3:6].T - v_obs_ECI
 
     LOS_norm = LOS_vec/np.linalg.norm(LOS_vec, axis=1).reshape((-1,1))
-    X_obs_ECI_norm = X_obs_ECI/np.linalg.norm(X_obs_ECI, axis=1).reshape((-1,1))
+    x_obs_ECI_norm = x_obs_ECI/np.linalg.norm(x_obs_ECI, axis=1).reshape((-1,1))
 
     # Theta [0, np.pi]
-    theta = np.arccos(np.sum(LOS_norm*X_obs_ECI_norm,axis=1))
+    theta = np.arccos(np.sum(LOS_norm*x_obs_ECI_norm,axis=1))
     el = np.pi/2 - theta # [-pi/2, pi/2]
     mask = (el < elevation_mask) 
 

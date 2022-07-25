@@ -3,15 +3,13 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import sigfig
-from StatOD.utils import ECEF_2_ECI, latlon2cart
+from StatOD.utils import ECEF_2_ECI
 import matplotlib.tri as mtri
-import matplotlib
 
 plt.rc('font', size= 11.0)
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 plt.rc('axes.formatter', limits=(-1,1))
-# plt.rc('figure', figsize=(6.4, 4.8))
 plt.rc('figure', figsize=(3.0*1.5, 2.25*1.5))
 plt.rc('axes.grid', axis='both')
 plt.rc('axes.grid', which='both')
@@ -20,11 +18,7 @@ plt.rc('grid', linestyle='--')
 plt.rc('grid', linewidth='0.1')
 plt.rc('grid', color='.25')
 plt.rc('figure',max_open_warning=30)
-# plt.rc('figure.subplot', hspace=0.4)
 plt.rc("figure", autolayout=True) # https://matplotlib.org/stable/tutorials/intermediate/tight_layout_guide.html
-# linewidth=0.1, color='.25', zorder=-10
-# plt.rc('axes.formatter', limits=(-1,1))
-t_day = 24*3600
 
 
 def reject_outliers(data, m = 3.):
@@ -109,8 +103,8 @@ class VisualizationBase():
         t = self.logger.t_i
         for i in range(M):
             self.__plot_residual(t, y[:,i], y_hat[:,i], y_labels[i])
-            plt.hlines(3*R[i,i], t[0], t[-1], colors='red')
-            plt.hlines(-3*R[i,i], t[0], t[-1], colors='red')
+            plt.plot(t, 3*np.sqrt(R[:,i,i]), color='red')
+            plt.plot(t, -3*np.sqrt(R[:,i,i]), color='red')
         
     def __plot_residual(self, t, y, y_hat, label):
         plt.figure()
@@ -143,6 +137,8 @@ class VisualizationBase():
 
 
 def plot_measurement_residuals(t, Y, x, station_list_ECEF, omega, theta_0, h, R0, logger):
+        t_day = 24*3600
+
         t_vec = []
         dy1_vec = []
         dy2_vec = []

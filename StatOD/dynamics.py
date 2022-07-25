@@ -2,7 +2,6 @@ from sympy import *
 import numba
 from numba import njit, jit, prange
 import numpy as np
-from sympy.vector import CoordSys3D, express, gradient
 from sympy import init_printing
 from StatOD.utils import print_expression
 from StatOD.data import get_earth_position
@@ -10,9 +9,9 @@ from StatOD.data import get_earth_position
 import os
 os.environ["NUMBA_CACHE_DIR"] = "./numba_cache_tmp"
 
-from joblib import Memory
-location = './cachedir'
-memory = Memory(location, verbose=1)
+# from joblib import Memory
+# location = './cachedir'
+# memory = Memory(location, verbose=1)
 
 ################
 # Noise Models #
@@ -54,7 +53,7 @@ def get_Q(dt, x, Q, DCM, args):
     Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
     Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
 
-    return Q_i_i_m1
+    return Q_i_i_m1.tolist()
 
 def get_Q_original(dt, x, Q, DCM, args):
     N = len(x)
@@ -92,7 +91,7 @@ def get_Q_original(dt, x, Q, DCM, args):
     Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
     Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
 
-    return Q_i_i_m1
+    return Q_i_i_m1.tolist()
 
 def get_Gamma_SRIF(dt, x, Q, DCM, args):
     N = len(x)
@@ -124,7 +123,7 @@ def get_Gamma_SRIF(dt, x, Q, DCM, args):
     Gamma_i_i_m1[np.where(Gamma_i_i_m1 == 0)] = 0.0
     Gamma_i_i_m1[np.where(Gamma_i_i_m1 == 1)] = 1.0
 
-    return Gamma_i_i_m1
+    return Gamma_i_i_m1.tolist()
 
 def get_Q_DMC(dt, x, Q, DCM, args):
     N = len(x)
@@ -205,7 +204,7 @@ def f_J2_DMC(x, args):
     w1_d = -1/tau * w1
     w2_d = -1/tau * w2
 
-    return np.array([vx, vy, vz, a_x, a_y, a_z, w0_d, w1_d, w2_d]) 
+    return np.array([vx, vy, vz, a_x, a_y, a_z, w0_d, w1_d, w2_d]).tolist() 
 
 
 ##########################
@@ -274,7 +273,7 @@ def f_J3(x, args):
     a_y = -(U0_y + U2_y + U3_y)
     a_z = -(U0_z + U2_z + U3_z)
 
-    return np.array([vx, vy, vz, a_x, a_y, a_z]) 
+    return np.array([vx, vy, vz, a_x, a_y, a_z]).tolist() 
 
 
 ############################
@@ -343,7 +342,7 @@ def f_aug_J3(x, args):
     a_y = -(U0_y + U2_y + U3_y)
     a_z = -(U0_z + U2_z + U3_z)
 
-    return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0, 0.0]) 
+    return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0, 0.0]).tolist() 
 
 
 ###########################
@@ -381,7 +380,7 @@ def f_consider_J3(x, args):
     a_y = -(U0_y + U2_y + U3_y)
     a_z = -(U0_z + U2_z + U3_z)
 
-    return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0]) 
+    return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0]).tolist() 
 
 
 ##########################
@@ -447,7 +446,7 @@ def f_scenario_1_J2(x, args):
                     mu_dot, J2_dot, Cd_dot, 
                     R_0x_d, R_0y_d, R_0z_d, 
                     R_1x_d, R_1y_d, R_1z_d, 
-                    R_2x_d, R_2y_d, R_2z_d]) 
+                    R_2x_d, R_2y_d, R_2z_d]).tolist() 
 
 def f_scenario_2(x, args):
     x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr = x
@@ -518,7 +517,7 @@ def f_scenario_2(x, args):
     return np.array([vx, vy, vz, 
                     a_x, a_y, a_z, 
                     Cr_dot, 
-                    ]) 
+                    ]).tolist() 
 
 def f_scenario_2_mu(x, args):
     x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, mu, mu_sun = x
@@ -592,7 +591,7 @@ def f_scenario_2_mu(x, args):
                     a_x, a_y, a_z, 
                     Cr_dot, 
                     mu_dot, mu_sun_dot
-                    ]) 
+                    ]).tolist() 
 
 def f_scenario_2_extra(x, args):
     x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, mu, mu_sun, A2M, flux = x
@@ -669,7 +668,7 @@ def f_scenario_2_extra(x, args):
                     Cr_dot, 
                     mu_dot, mu_sun_dot,
                     A2M_dot, flux_dot
-                    ]) 
+                    ]).tolist() 
 
 def f_scenario_2_DMC(x, args):
     x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, w0, w1, w2 = x
@@ -729,7 +728,7 @@ def f_scenario_2_DMC(x, args):
                     a_x, a_y, a_z, 
                     Cr_dot, 
                     w0_d, w1_d, w2_d
-                    ]) 
+                    ]).tolist() 
 
 def get_Q_DMC_scenario_2(dt, x, Q, DCM, args):
     N = len(x)
@@ -776,7 +775,7 @@ def get_Q_DMC_scenario_2(dt, x, Q, DCM, args):
     Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
     Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
 
-    return Q_i_i_m1
+    return Q_i_i_m1.tolist()
 
 def f_scenario_2_DMC_mu(x, args):
     x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, mu, mu_sun, w0, w1, w2 = x
@@ -839,7 +838,7 @@ def f_scenario_2_DMC_mu(x, args):
                     Cr_dot, 
                     mu_dot, mu_sun_dot,
                     w0_d, w1_d, w2_d
-                    ]) 
+                    ]).tolist() 
 
 def get_Q_DMC_scenario_2_mu(dt, x, Q, DCM, args):
     N = len(x)
@@ -888,7 +887,7 @@ def get_Q_DMC_scenario_2_mu(dt, x, Q, DCM, args):
     Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
     Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
 
-    return Q_i_i_m1
+    return Q_i_i_m1.tolist()
 
 
 
@@ -899,13 +898,13 @@ def f_spring(x, args):
     x, v_x = x
     k, eta = args
     a_x = -k*x
-    return np.array([v_x, a_x]) 
+    return np.array([v_x, a_x]).tolist() 
 
 def f_spring_duffing(x, args):
     x, v_x = x
     k, eta = args
     a_x = -k*x - eta*x**3
-    return np.array([v_x, a_x]) 
+    return np.array([v_x, a_x]).tolist() 
 
 
 #####################
@@ -925,7 +924,7 @@ def dfdx(x, f, args):
     # so just force sympy ints to be floats
     dfdx[np.where(dfdx == 0.0)] = 0.0
     dfdx[np.where(dfdx == 1.0)] = 1.0
-    return dfdx
+    return dfdx.tolist()
 
 def dynamics(x, f, args, cse_func=cse, use_numba=True, consider=None):
     n = len(x) # state
@@ -985,7 +984,7 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
     x_args = np.array(symbols('x:'+str(n))) # state
     Q_args = MatrixSymbol("Q", m, m) # Continuous Process Noise
     DCM_args = MatrixSymbol("DCM", m, m)
-    misc_args = np.array(symbols('arg:'+str(k)))
+    misc_args = np.array(symbols('arg:'+str(k)), dtype=np.object)
 
     Q_sym = Q_fcn(dt, x_args, Q_args, DCM_args, misc_args)
     lambdify_Q = lambdify([dt, x_args, Q_args, DCM_args, misc_args], Q_sym, cse=cse_func, modules='numpy')
@@ -1011,7 +1010,7 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
     return Q_func
 
 # dynamics = memory.cache(dynamics)
-process_noise = memory.cache(process_noise)
+# process_noise = memory.cache(process_noise)
 
 @njit(cache=False)
 def dynamics_ivp(t, Z, f, dfdx, f_args):
@@ -1080,23 +1079,23 @@ def dynamics_ivp_proj2(t, z, f_fcn, dfdx_fcn, f_args):
     z_dot = np.hstack((f, phi_dot.reshape((-1))))
     return z_dot
 
-# if __name__ == "__main__":
-#     import timeit
-#     R = 6378.0
-#     mu = 398600.4415 
-#     J2 = 0.00108263
-#     x = np.array([
-#         -3515.4903270335103, 8390.716310243395, 4127.627352553683,
-#         -4.357676322178153, -3.3565791387645487, 3.111892927869902
-#         ])
-#     f = f_J2
-#     args = np.array([R, mu, J2])
-#     f, dfdx = dynamics(x, f, args)
+if __name__ == "__main__":
+    import timeit
+    R = 6378.0
+    mu = 398600.4415 
+    J2 = 0.00108263
+    x = np.array([
+        -3515.4903270335103, 8390.716310243395, 4127.627352553683,
+        -4.357676322178153, -3.3565791387645487, 3.111892927869902
+        ])
+    f = f_J2
+    args = np.array([R, mu, J2])
+    f, dfdx = dynamics(x, f, args)
 
-#     f_i = f(x, args)
-#     dfdx_i = dfdx(x, f_i, args)
+    f_i = f(x, args)
+    dfdx_i = dfdx(x, f_i, args)
 
-#     print(np.mean(timeit.repeat(lambda : f(x,args), repeat=100, number=1000)))
-#     print(np.mean(timeit.repeat(lambda : dfdx(x, f_i, args), repeat=100, number=1000)))
+    print(np.mean(timeit.repeat(lambda : f(x,args), repeat=100, number=1000)))
+    print(np.mean(timeit.repeat(lambda : dfdx(x, f_i, args), repeat=100, number=1000)))
 
     
