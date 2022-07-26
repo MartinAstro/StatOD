@@ -147,7 +147,7 @@ def measurements(x, h, args, cse_func=cse, consider=None):
     return func_h, func_dhdx
 
 
-def get_rho_rhod_el(t, X, R, lat, lon, theta_0, elevation_mask):  
+def get_rho_rhod_el(t, X_ECI, X_obs_ECI, elevation_mask):  
     """Get range and range rate
 
     Args:
@@ -169,14 +169,12 @@ def get_rho_rhod_el(t, X, R, lat, lon, theta_0, elevation_mask):
     omega = ep.omega # 2*np.pi/(24*60*60) # spin rate of 24 hours
 
     # (r, lat, lon) - > (x, y, z)
-    x_obs_ECEF = latlon2cart(R, lat, lon) 
-    X_obs_ECI = ECEF_2_ECI(t, x_obs_ECEF, omega, theta_0)
 
     x_obs_ECI = X_obs_ECI[:,0:3]
     v_obs_ECI = X_obs_ECI[:,3:6]
 
-    LOS_vec = X[:3].T - x_obs_ECI
-    LOS_dot_vec = X[3:6].T - v_obs_ECI
+    LOS_vec = X_ECI[:,0:3] - x_obs_ECI
+    LOS_dot_vec = X_ECI[:,3:6] - v_obs_ECI
 
     LOS_norm = LOS_vec/np.linalg.norm(LOS_vec, axis=1).reshape((-1,1))
     x_obs_ECI_norm = x_obs_ECI/np.linalg.norm(x_obs_ECI, axis=1).reshape((-1,1))
