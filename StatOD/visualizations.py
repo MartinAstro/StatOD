@@ -90,9 +90,11 @@ class VisualizationBase():
         plt.ylabel(y_label)
 
         start_idx = len(state_error) // 10
-        y_lim = 10*np.median(sigma[start_idx:])
-        plt.ylim([-y_lim, y_lim])
+        y_lim = 10*np.nanmedian(sigma[start_idx:])
 
+        if np.isnan(y_lim):
+            y_lim = 10*np.median(np.abs(state_error))
+        plt.ylim([-y_lim, y_lim])
 
 
     ##########################

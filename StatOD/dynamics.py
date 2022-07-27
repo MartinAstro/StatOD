@@ -1,3 +1,6 @@
+import pickle
+import inspect
+import time
 from sympy import *
 import numba
 from numba import njit, jit, prange
@@ -9,9 +12,14 @@ from StatOD.data import get_earth_position
 import os
 os.environ["NUMBA_CACHE_DIR"] = "./numba_cache_tmp"
 
-# from joblib import Memory
-# location = './cachedir'
-# memory = Memory(location, verbose=1)
+from joblib.externals.loky import set_loky_pickler
+from joblib import parallel_backend
+from joblib import Parallel, delayed
+from joblib import wrap_non_picklable_objects, delayed
+
+from joblib import Memory
+location = './cachedir'
+memory = Memory(location, verbose=1)
 
 ################
 # Noise Models #
@@ -131,7 +139,7 @@ def get_Q_DMC(dt, x, Q, DCM, args):
     tau, = args
 
     A = zeros(N,N)
-    
+
     # velocities
     A[0,3] = 1
     A[1,4] = 1
@@ -168,7 +176,7 @@ def get_Q_DMC(dt, x, Q, DCM, args):
     Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
     Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
 
-    return Q_i_i_m1
+    return Q_i_i_m1.tolist()
 
 # DMC Models
 def f_J2_DMC(x, args):
@@ -239,7 +247,7 @@ def f_J2(x, args):
     a_y = -(U0_y + U2_y)
     a_z = -(U0_z + U2_z)
 
-    return np.array([vx, vy, vz, a_x, a_y, a_z]) 
+    return np.array([vx, vy, vz, a_x, a_y, a_z]).tolist()
 
 def f_J3(x, args):
     x, y, z, vx, vy, vz = x
@@ -308,7 +316,7 @@ def f_aug_J2(x, args):
     a_y = -(U0_y + U2_y)
     a_z = -(U0_z + U2_z)
 
-    return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0]) 
+    return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0]).tolist()
 
 def f_aug_J3(x, args):
     x, y, z, vx, vy, vz, mu, J2, J3 = x
@@ -986,10 +994,29 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
     DCM_args = MatrixSymbol("DCM", m, m)
     misc_args = np.array(symbols('arg:'+str(k)), dtype=np.object)
 
-    Q_sym = Q_fcn(dt, x_args, Q_args, DCM_args, misc_args)
+    # Load or rerun the symbolic expressions
+    fcn_name = Q_fcn.__name__
+    try:
+        # Look for a cached version of the sympy function 
+        os.makedirs("./cachedir/process_noise/", exist_ok=True)
+        with open(f"./cachedir/process_noise/{fcn_name}.data", "rb") as f:
+            Q_fcn_loaded_src = pickle.load(f)
+            Q_sym_loaded = pickle.load(f)
+
+        # Check that the code of the original function hasn't changed
+        if inspect.getsource(Q_fcn) == Q_fcn_loaded_src:
+            Q_sym = Q_sym_loaded
+        else:
+            raise ValueError()
+    except:
+        # If the code has changed, or there wasn't a cached symbolic expression, (re)generate one.
+        Q_sym = Q_fcn(dt, x_args, Q_args, DCM_args, misc_args)
+        with open(f"./cachedir/process_noise/{fcn_name}.data", "wb") as f:
+            pickle.dump(inspect.getsource(Q_fcn), f)
+            pickle.dump(Q_sym, f)
+
     lambdify_Q = lambdify([dt, x_args, Q_args, DCM_args, misc_args], Q_sym, cse=cse_func, modules='numpy')
 
-    # return func_Q
     if use_numba:
         Q_func = numba.njit(lambdify_Q, cache=False) # can't cache file b/c it exists within an .egg directory
     else:
@@ -1007,10 +1034,13 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
                 Q_tmp,
                 DCM_tmp,
                 misc_tmp)
+
     return Q_func
 
 # dynamics = memory.cache(dynamics)
-# process_noise = memory.cache(process_noise)
+
+# Use cached output regardless of the inputs
+# process_noise = memory.cache(process_noise)#, ignore=['x', 'f', 'args', 'cse_func', 'use_numba'])
 
 @njit(cache=False)
 def dynamics_ivp(t, Z, f, dfdx, f_args):
