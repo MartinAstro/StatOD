@@ -465,10 +465,16 @@ class NonLinearBatchFilter(FilterBase):
 
         self.i = 0
         self.k = 0 # major iteration
+
+        # Initial conditions
         self.t_0 = t0
         self.phi_0 = np.eye(len(x0))
         self.x_hat_0 = x0
         self.P_0 = P0
+
+        # full trajectory
+        self.x_hat = np.zeros((len(logger.t_i), len(x0)))
+        self.phi = np.zeros((len(logger.t_i), len(x0), len(x0)))
 
         # used only for speeding up dynamics propagation
         self.t_i = t0
@@ -485,19 +491,22 @@ class NonLinearBatchFilter(FilterBase):
 
     def init_matrices(self, P0, dx):
         if dx is not None and self.k != 0:
-            Gamma = invert(P0)
-            N = Gamma@dx
+            Lambda = invert(P0)
+            N = Lambda@dx
         else:
-            Gamma = np.zeros(np.shape(P0))
+            Lambda = np.zeros(np.shape(P0))
             N = np.zeros(np.shape(dx))
-        return Gamma, N
+        return Lambda, N
 
     def propagate_trajectory(self, t_vec, x_hat_0, phi_0):
         N = len(x_hat_0)
         Z_i_m1 = np.hstack((x_hat_0, phi_0.reshape((-1))))
         sol = solve_ivp(dynamics_ivp, [t_vec[0], t_vec[-1]], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, t_eval=t_vec, method='RK45')
-        self.x_hat_i_all = sol.y[:N].T.reshape((-1,N))
-        self.phi_i_all = sol.y[N:].T.reshape((-1,N,N))
+
+        x_hat = sol.y[:N].T.reshape((-1,N))
+        phi = sol.y[N:].T.reshape((-1,N,N))
+
+        return x_hat, phi
 
     def propagate_forward(self, t_i, x_hat_i_m1, phi_i_m1):
         pass
@@ -510,9 +519,9 @@ class NonLinearBatchFilter(FilterBase):
         if np.any(np.isnan(r_i)):
             return self.Lambda, self.N
         R_i_inv = np.linalg.inv(R_i)
-        Gamma_i = self.Lambda + (H_i@phi_i).T@R_i_inv@H_i@phi_i
+        Lambda_i = self.Lambda + (H_i@phi_i).T@R_i_inv@H_i@phi_i
         N_i = self.N + (H_i@phi_i).T@R_i_inv@r_i
-        return Gamma_i, N_i
+        return Lambda_i, N_i
 
     def time_update(self):
         pass
@@ -520,85 +529,88 @@ class NonLinearBatchFilter(FilterBase):
     def measurement_update(self):
         pass
 
-    def ingest_measurement(self, t_i, y_i, R_i, f_args=None, h_args=None):
+    def update(self, t_i, y_i, R_i, f_args=None, h_args=None):
         if f_args is not None:
             self.f_args = f_args
         if h_args is not None:
             self.h_args = h_args
 
-        x_hat_i = self.x_hat_i_all[self.i]
-        phi_i = self.phi_i_all[self.i]
-        Gamma, N = self.process_observations(x_hat_i, phi_i, R_i, y_i)
-
-        self.i += 1
+        # These attributes are needed for the logging
         self.t_i = t_i
-        self.x_hat_i = x_hat_i
-        self.phi_i = phi_i
-        self.Lambda = Gamma
-        self.N = N
+        self.x_hat_i = self.x_hat[self.i]
+        self.phi_i = self.phi[self.i]
+        self.Lambda, self.N = self.process_observations(self.x_hat_i, self.phi_i, R_i, y_i)
+        self.i += 1
+
+        if self.logger is not None:
+            data = self.get_logger_dict()
+            self.logger.log(data)
 
     def get_logger_dict(self):
         if np.any(np.diag(self.Lambda) == 0.0):
-            G_inv = np.full(np.shape(self.Lambda), np.nan)
+            P_i = np.full(np.shape(self.Lambda), np.nan)
         else:
             try:
-                G_inv = invert(self.Lambda)
+                P_i = invert(self.Lambda)
             except:
-                G_inv = np.full(np.shape(self.Lambda), np.nan)
+                P_i = np.full(np.shape(self.Lambda), np.nan)
         logger_data = {
             "i" : self.i,
             "t_i" : self.t_i,
-
-            "dx_i_plus" : self.dx_k,
             
+            # dx_i_plus is infused into propagated x_hat_i_plus
+            # i.e. no correction after the batch update
+            "dx_i_plus" : np.zeros_like(self.x_hat_i),
             "x_hat_i_plus" : self.x_hat_i,
-         
-            "P_i_plus" : G_inv,
-
+            "P_i_plus" : P_i,
             "phi_ti_t0" : self.phi_i,
         }
         return logger_data
 
     def run(self, t_vec, y_vec, R_vec, f_args_vec, h_args_vec, tol=1E-8):
-        x0_list = []
-        x0_list.append(self.x_hat_0)
         while (np.linalg.norm(self.dx_k) > tol or self.k == 0) and self.k < self.max_iterations:
             
-            self.propagate_trajectory(t_vec, self.x_hat_0, self.phi_0)
+            # Propagate the initial trajectory
+            self.t = t_vec
+            self.x_hat, self.phi = self.propagate_trajectory(t_vec, self.x_hat_0, self.phi_0)
+            
+            # Initialize information matrices
+            self.Lambda, self.N = self.init_matrices(self.P_0, self.dx_k)
+
+            # Add to the Lambda and N arguments by accumulating observations
             for i in range(len(t_vec)):
-                t_i = t_vec[i]
-                y_i = y_vec[i]
-                R_i = R_vec[i]
-                f_args = np.array(f_args_vec[i])
-                h_args = np.array(h_args_vec[i])
-                self.ingest_measurement(t_i, y_i, R_i, f_args, h_args)
+                self.update(
+                    t_vec[i], 
+                    y_vec[i], 
+                    R_vec[i], 
+                    np.array(f_args_vec[i]), 
+                    np.array(h_args_vec[i])
+                    )
 
-                if self.logger is not None:
-                    data = self.get_logger_dict()
-                    self.logger.log(data)
-
+            # Solve for the IC correction 
             Lambda_inv = invert(self.Lambda)
             dx_k_plus = Lambda_inv@self.N
-            self.x_hat_0 = self.x_hat_0 + self.update_gamma*dx_k_plus
+
+            # Apply the correction 
+            self.x_hat_0 += self.update_gamma*dx_k_plus
             self.dx_k = self.dx_k - dx_k_plus
-            self.dx_k = dx_k_plus
 
-            if self.logger is not None:
-                data = self.get_logger_dict()
-                self.logger.log(data)
-
-            self.k += 1
-            self.Lambda, self.N = self.init_matrices(self.P_0, self.dx_k)
-            self.i = 0
-            self.t_i = self.t_0
-            self.x_hat_i = self.x_hat_0
-            self.phi_i = self.phi_0
+            # Print state and update k
             print("Major Iteration: %d \t ||dx_k|| = %f" % (self.k, np.linalg.norm(self.dx_k)))
-            x0_list.append(self.x_hat_0)
+            self.k += 1
 
-        self.propagate_trajectory(t_vec, self.x_hat_i, self.phi_0)
-        print("x_k = " + str(self.x_hat_i))
-        return x0_list
+        # Once termination criteria is reached, propagate the updated IC and log
+        self.x_hat, self.phi = self.propagate_trajectory(self.t, self.x_hat_0, self.phi_0)
+        self.i = 0 # reset time index
+        for i in range(len(t_vec)):
+            self.update(
+                t_vec[i], 
+                y_vec[i], 
+                R_vec[i], 
+                np.array(f_args_vec[i]), 
+                np.array(h_args_vec[i])
+                )
+        return
 
 class SquareRootInformationFilter(FilterBase):
     def __init__(self, t0, x0, dx0, P0, f_dict, h_dict, logger=None, events=None):
@@ -1051,32 +1063,31 @@ class Smoother():
         self.logger = copy.deepcopy(logger)
 
     def update(self):
-        l = len(self.logger.t_i) - 1
-        i = l - 1
+        # https://arl.cs.utah.edu/resources/Kalman%20Smoothing.pdf or
+        # https://en.wikipedia.org/wiki/Kalman_filter#Rauch%E2%80%93Tung%E2%80%93Striebel 
+        i = len(self.logger.t_i) - 2 # total updates - 1 
 
         while i >= 0:
-            phi_i_i_m1 = self.logger.phi_ti_ti_m1[i] 
+            # (timestep = i, measurements = i) 
+            x_hat_i_plus = self.logger.x_hat_i_plus[i] 
+            P_i_plus = self.logger.P_i_plus[i]
+
+            # (timestep = i + 1, measurements = i) 
             phi_i_p1_i = self.logger.phi_ti_ti_m1[i+1] 
+            P_i_p1_minus = self.logger.P_i_minus[i+1] 
+            P_i_p1_plus = self.logger.P_i_plus[i+1] 
+            x_hat_i_p1_minus = self.logger.x_hat_i_minus[i+1] 
+            x_hat_i_p1_plus = self.logger.x_hat_i_plus[i+1] 
 
-            dx_i_m1_i = self.logger.dx_i_minus[i] 
-            dx_i_i = self.logger.dx_i_plus[i] 
-            dx_i_p1_i = self.logger.dx_i_minus[i+1]
+            S_i = P_i_plus@phi_i_p1_i.T@invert(P_i_p1_minus)
+            new_x_hat_i_plus = x_hat_i_plus + S_i@(x_hat_i_p1_plus - x_hat_i_p1_minus)
+            new_P_i_plus = P_i_plus + S_i@(P_i_p1_plus - P_i_p1_minus)@S_i.T
 
-            P_i_i_m1 = self.logger.P_i_minus[i] 
-            P_i_i = self.logger.P_i_plus[i] 
-            P_i_p1_i = self.logger.P_i_minus[i+1] 
-            
-            dx_i_p1_l = self.logger.dx_i_plus[i+1] 
-            P_i_p1_l = self.logger.P_i_plus[i+1] 
+            self.logger.P_i_plus[i] = new_P_i_plus
+            self.logger.x_hat_i_plus[i] = new_x_hat_i_plus
+            self.logger.dx_i_plus[i] = new_x_hat_i_plus - self.logger.x_i[i]
 
-            S_i = P_i_i@phi_i_p1_i.T@invert(P_i_p1_i)
-            dx_i_l = dx_i_i + S_i@(dx_i_p1_l - phi_i_p1_i@dx_i_i)
-            P_i_l = P_i_i + S_i@(P_i_p1_l - P_i_p1_i)@S_i.T
-
-            self.logger.dx_i_plus[i] = dx_i_l
-            self.logger.P_i_plus[i] = P_i_l
-
-            i = i - 1
+            i -= 1
 
 class ConsiderCovarianceFilter(FilterBase):
     def __init__(self, t0, x0, dx0, c0, dc0, P_xx_0, P_cc_0, f_dict, h_dict, logger=None, events=None):

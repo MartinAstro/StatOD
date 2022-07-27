@@ -1,13 +1,20 @@
-import time
+import os
 import pickle
-import numpy as np
+import sys
+import time
+import copy
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.integrate import solve_ivp
+from StatOD.constants import EarthParams
 from StatOD.data import get_measurements
-from StatOD.dynamics import dynamics, f_J2, get_Q, process_noise
-from StatOD.filters import FilterLogger, KalmanFilter
+from StatOD.dynamics import dynamics, f_J2, get_Q, process_noise, f_J3
+from StatOD.filters import FilterLogger, KalmanFilter, NonLinearBatchFilter, Smoother
 from StatOD.measurements import h_rho_rhod, measurements
 from StatOD.visualizations import *
-from StatOD.constants import *
+
+
+
 
 def main():
     ep = EarthParams()
@@ -23,7 +30,7 @@ def main():
 
     # Initialize state and filter parameters
     dx0 = np.array([0.1, 0.0, 0.0, 1E-4, 0.0, 0.0]) 
-    x0 = cart_state + dx0
+    x0 = cart_state + (dx0 / 10)
 
     P_diag = np.array([1, 1, 1, 1E-3, 1E-3, 1E-3])**2
     R_diag = np.array([1E-3, 1E-6])**2
@@ -34,7 +41,8 @@ def main():
     # Initialize Process Noise
     Q0 = np.eye(3) * 1e-7 ** 2
     Q_args = []
-    Q_fcn = process_noise(x0, Q0, get_Q, Q_args, use_numba=False)
+    # Q_fcn = process_noise(x0, Q0, get_Q, Q_args, use_numba=False)
+    Q_fcn = None
 
     # Initialize Dynamics and Measurements
     f_args = np.array([ep.R, ep.mu, ep.J2])
@@ -60,9 +68,6 @@ def main():
     h_args_vec = X_stations_ECI
     R_vec = np.repeat(np.array([R0]), len(t), axis=0)
 
-    ##############
-    # Run Filter #
-    ##############
 
     start_time = time.time()
     logger = FilterLogger(len(x0), len(t))
@@ -70,24 +75,52 @@ def main():
     filter.run(t, Y[:,1:], R_vec, f_args_vec, h_args_vec)
     print("Time Elapsed: " + str(time.time() - start_time))
 
-    ##################################
-    # Gather measurement predictions #
-    ##################################
-    
+    ################
+    # Run Smoother #
+    ################
+
+    # NOTE: The Smoother accounts for process noise
+
+    # Run smoother on the CKF output
+    smoother = Smoother(filter.logger)
+    smoother.update()
+
+    ############
+    # Run NLBF #
+    ############
+
+    # NOTE: The NLBF cannot account for process noise
+
+    logger = FilterLogger(len(x0), len(t))
+    NLBFilter = NonLinearBatchFilter(t0, x0, dx0, P0, f_dict, h_dict, logger, iterations=1)
+    start_time = time.time()
+    NLBFilter.run(t, Y[:,1:], R_vec, f_args_vec, h_args_vec, tol=1E-7)
+    print("Time Elapsed: " + str(time.time() - start_time))
+
+
+    ############
+    # Plotting #
+    ############
     with open('Data/Trajectories/trajectory_J2.data', 'rb') as f:
         traj_data = pickle.load(f)
 
     x_truth = traj_data['X'][:M_end]
-    y_hat_vec = np.zeros((len(t), 2))
-    for i in range(len(t)):
-        y_hat_vec[i] = filter.predict_measurement(logger.x_i[i], logger.dx_i_plus[i], h_args_vec[i])
 
-    directory = "Plots/" + filter.__class__.__name__ + "/"
-    y_labels = np.array([r'$\rho$', r'$\dot{\rho}$'])
-    vis = VisualizationBase(logger, directory, False)
+    # CKF State Errors
+    vis = VisualizationBase(filter.logger)
     vis.plot_state_errors(x_truth)
-    vis.plot_residuals(Y[:,1:], y_hat_vec, R_vec, y_labels)
+
+    # Smoother State Errors
+    vis = VisualizationBase(smoother.logger)
+    vis.plot_state_errors(x_truth)
+
+    # NLB Filter State Errors
+    vis = VisualizationBase(NLBFilter.logger)
+    vis.plot_state_errors(x_truth)
+
+
     plt.show()
+
 
 if __name__ == "__main__":
     main()

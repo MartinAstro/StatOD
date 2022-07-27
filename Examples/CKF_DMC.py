@@ -14,9 +14,11 @@ def compute_J3_accelerations(X, mu, R, J3):
      y = X[:,1]
      z = X[:,2]
      r_mag = np.linalg.norm(X[:,:3], axis=1)
-     a_J3 = 1/2*J3*(mu/r_mag**2)*(R/r_mag)**3*np.array([5*(7*(z/r_mag)**3 - 3*(z/r_mag))*x/r_mag, 
-                                                            5*(7*(z/r_mag)**3 - 3*(z/r_mag))*y/r_mag, 
-                                                            3*(1 - 10*(z/r_mag)**2 + 35/3*(z/r_mag)**4)])
+     a_J3 = 1/2*J3*(mu/r_mag**2)*(R/r_mag)**3*np.array([
+                                        5*(7*(z/r_mag)**3 - 3*(z/r_mag))*x/r_mag, 
+                                        5*(7*(z/r_mag)**3 - 3*(z/r_mag))*y/r_mag, 
+                                        3*(1 - 10*(z/r_mag)**2 + 35/3*(z/r_mag)**4)
+                                        ])
      return a_J3.T
 
 
