@@ -720,55 +720,48 @@ class SquareRootInformationFilter(FilterBase):
         n = len(db_i_m1_plus)
         q = len(mu_i_m1)
 
+        # If no change in time, then skip 
         if dt == 0.0:
             return db_i_m1_plus, R_i_m1_plus, None, None, None
 
 
+
+        # Check if there is process noise
         try:
             R_u_i_m1 = np.linalg.cholesky(invert(self.Q_0)).T
         except:
-            #w/o process noise
+            # If not, perform smaller householder transform.
 
+            # Time update for information covariance 
+            R_v_i = R_i_m1_plus@invert(phi_i) # TSB 5.10.69 (R_k_tilde) = Pre-transform R_i_minus
 
-            MM = np.hstack((R_i_m1_plus@invert(phi_i), db_i_m1_plus.reshape((-1,1))))
+            # Time update for information state through householder transform, T
+            MM = np.hstack((R_v_i, db_i_m1_plus.reshape((-1,1)))) # 5.10.88 second row
             TMM = self.householder_transformation(MM, n)
+
             R_i_minus = TMM[:n,:n]
             db_i_minus = TMM[:n,n]
-
-            # db_i_minus = db_i_m1_plus
-            # R_i_minus = R_i_m1_plus@invert(phi_i)
-            
             return db_i_minus, R_i_minus, None, None, None
 
+        
+        # convert control into information space 
         db_u_i_m1 = R_u_i_m1@mu_i_m1
-        R_hat_i_m1 = R_i_m1_plus
+        R_v_i = R_i_m1_plus@invert(phi_i) # TSB 5.10.69 (R_k_tilde) = Pre-transform R_i_minus
 
-        MM = np.hstack((R_hat_i_m1@invert(phi_i), db_i_m1_plus.reshape((-1,1))))
-        TMM = self.householder_transformation(MM, n)
-        R_v_i = TMM[:n,:n]
-        db_i_m1_plus_rot = TMM[:n,n]
-
-        # # Without rotation
-        # R_v_i = R_hat_i_m1@invert(phi_i)
-        # db_i_m1_plus_rot = db_i_m1_plus
-
-        # bottom_row = np.hstack((-R_v_i@Gamma_i_i_m1, R_v_i, db_i_m1_plus_rot.reshape((n,1))))
-        # zeros_q_x_n = np.zeros((q,len(bottom_row[0]) - len(R_u_i_m1[0]) - 1))
-        # top_row = np.hstack((R_u_i_m1, zeros_q_x_n, db_u_i_m1.reshape(q,1)))
-
-        # A = np.vstack([top_row, bottom_row])
-
+        #  pg 363 T.S.B.
         zeros_q_x_n = np.zeros((q,n))
         A = np.vstack([
             np.hstack((R_u_i_m1, zeros_q_x_n, db_u_i_m1.reshape(q,1))),
-            np.hstack((-R_v_i@Gamma_i_i_m1, R_v_i, db_i_m1_plus_rot.reshape((n,1))))
+            np.hstack((-R_v_i@Gamma_i_i_m1, R_v_i, db_i_m1_plus.reshape((n,1))))
         ])
         A_prime = self.householder_transformation(A,len(A[0])-1)
-        R_u_i_minus = A_prime[0:q, 0:q]
-        R_ux_i = A_prime[0:q, q:(q+n)]
-        db_tilde_u_i = A_prime[0:q, -1]
-        R_i_minus = A_prime[q:,q:(q+n)]
-        db_i_minus = A_prime[q:,-1]       
+
+        R_u_i_minus = A_prime[0:q, 0:q] # Time updated noise/control covariance 
+        R_ux_i = A_prime[0:q, q:(q+n)]  # Time updated state contribution to control state 
+        R_i_minus = A_prime[q:,q:(q+n)] # Time updated state covariance
+        
+        db_tilde_u_i = A_prime[0:q, -1] # Time updated noise state
+        db_i_minus = A_prime[q:,-1]     # Time updated state  
         
         return db_i_minus, R_i_minus, db_tilde_u_i, R_u_i_minus, R_ux_i
 
@@ -792,7 +785,8 @@ class SquareRootInformationFilter(FilterBase):
         R_i_minus_k = R_i_minus
         N = len(R_i_minus_k)
 
-        for k in range(len(r_tilde_i)): # for each observation within measurement (range, range_rate)
+        # each observation in Y_i must be processed separately (index k)
+        for k in range(len(r_tilde_i)): 
             G = np.vstack([
                 np.hstack([R_i_minus_k, db_i_minus_k.reshape((-1,1))]),
                 np.hstack([H_tilde_i[k], r_tilde_i[k]])]
@@ -801,11 +795,6 @@ class SquareRootInformationFilter(FilterBase):
             R_i_plus = G_new[:N,:N]
             db_i_plus = G_new[:N,N]
             e_tilde_i_k = G_new[N,N]
-
-            # MM = np.hstack((R_i_plus, db_i_plus.reshape((N,-1))))
-            # MM_new = self.householder_transformation(MM, N)
-            # R_i_plus = MM_new[:N,:N]
-            # db_i_plus = MM_new[:N,-1]
 
             R_i_minus_k = R_i_plus
             db_i_minus_k = db_i_plus
