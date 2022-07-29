@@ -161,7 +161,7 @@ class FilterBase(ABC):
         pass
 
     def get_process_noise(self, t_i, x_i):
-        N = len(x_i)
+        N = x_i.shape[-1]
 
         if self.Q_dt_fcn == None:
             Q_i_i_m1 = np.zeros((N,N))
@@ -891,6 +891,8 @@ class UnscentedKalmanFilter(FilterBase):
     def __init__(self, t0, x0, dx0, P0, alpha, kappa, beta, f_dict, h_dict, logger=None, events=None):
         super().__init__(f_dict, h_dict, logger, events)
 
+        self.f_integrate = f_dict.get('f_integrate', dynamics_ivp_unscented)
+
         self.i = 0
         self.t_i_m1 = t0
 
@@ -1025,6 +1027,10 @@ class UnscentedKalmanFilter(FilterBase):
             "phi_ti_ti_m1" : self.phi_i_m1,
         }
         return logger_data
+
+    def predict_measurement(self, x_hat_i, h_args):
+        y_hat_i = np.array(self.h(x_hat_i, h_args))
+        return y_hat_i 
 
     def update(self, t_i, y_i, R_i, f_args=None, h_args=None):
         if f_args is not None:
@@ -1528,7 +1534,7 @@ class ParticleFilter(FilterBase):
             self.h_args = h_args
 
         x_i = self.propagate_forward(t_i, self.x_i_m1)#self.phi_i_m1)
-        Q_i = self.get_process_noise(t_i, x_i)
+        Q_i = self.get_process_noise(t_i, x_i[0]) 
         x_i_minus = self.time_update(x_i, Q_i)
 
         if np.any(np.isnan(y_i)):
