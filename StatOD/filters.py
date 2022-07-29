@@ -722,9 +722,10 @@ class SquareRootInformationFilter(FilterBase):
 
         # If no change in time, then skip 
         if dt == 0.0:
-            return db_i_m1_plus, R_i_m1_plus, None, None, None
-
-
+            db_tilde_u_i = np.zeros_like(mu_i_m1).squeeze()
+            R_u_i_minus = np.eye(len(mu_i_m1))
+            R_ux_i = np.zeros((len(mu_i_m1), len(db_i_m1_plus)))
+            return db_i_m1_plus, R_i_m1_plus, db_tilde_u_i, R_u_i_minus, R_ux_i
 
         # Check if there is process noise
         try:
@@ -741,11 +742,16 @@ class SquareRootInformationFilter(FilterBase):
 
             R_i_minus = TMM[:n,:n]
             db_i_minus = TMM[:n,n]
-            return db_i_minus, R_i_minus, None, None, None
+
+            db_tilde_u_i = np.zeros_like(mu_i_m1)
+            R_u_i_minus = np.eye(len(mu_i_m1))
+            R_ux_i = np.zeros((len(mu_i_m1), len(db_i_m1_plus)))
+
+            return db_i_minus, R_i_minus, db_tilde_u_i, R_u_i_minus, R_ux_i
 
         
         # convert control into information space 
-        db_u_i_m1 = R_u_i_m1@mu_i_m1
+        db_u_i_m1 = R_u_i_m1@mu_i_m1 # Recall that mu is the average control, not the actual control. 
         R_v_i = R_i_m1_plus@invert(phi_i) # TSB 5.10.69 (R_k_tilde) = Pre-transform R_i_minus
 
         #  pg 363 T.S.B.
@@ -759,7 +765,7 @@ class SquareRootInformationFilter(FilterBase):
         R_u_i_minus = A_prime[0:q, 0:q] # Time updated noise/control covariance 
         R_ux_i = A_prime[0:q, q:(q+n)]  # Time updated state contribution to control state 
         R_i_minus = A_prime[q:,q:(q+n)] # Time updated state covariance
-        
+
         db_tilde_u_i = A_prime[0:q, -1] # Time updated noise state
         db_i_minus = A_prime[q:,-1]     # Time updated state  
         
@@ -821,12 +827,14 @@ class SquareRootInformationFilter(FilterBase):
         }
         return logger_data
         
-    def update(self, t_i, y_i, R_i, f_args=None, h_args=None):
+    def update(self, t_i, y_i, R_i, f_args=None, h_args=None, mu_i=None):
         fail = False
         if f_args is not None:
             self.f_args = f_args
         if h_args is not None:
             self.h_args = h_args
+        if mu_i is None:
+            self.mu_i = np.zeros((3,1)) # no control input
 
         x_i, phi_i = self.propagate_forward(t_i, self.x_i_m1, self.phi_0)#self.phi_i_m1)
         Gamma_i = self.get_process_noise(t_i, x_i)
@@ -837,7 +845,7 @@ class SquareRootInformationFilter(FilterBase):
             self.R_i_m1_plus, 
             phi_i,
             Gamma_i,
-            self.mu_i_m1_plus
+            self.mu_i
             )
         fail = self.test_failure([db_i_minus, R_i_minus])
         dx_i_minus, P_i_minus = self.info_2_state(db_i_minus, R_i_minus)
@@ -849,14 +857,14 @@ class SquareRootInformationFilter(FilterBase):
             db_i_plus, R_i_plus, e_tilde_i_k = self.measurement_update(db_i_minus, R_i_minus, H_tilde_i, r_tilde_i)
             fail = self.test_failure([db_i_plus, R_i_plus])
 
+        dx_i_plus, P_i_plus = self.info_2_state(db_i_plus, R_i_plus)
+
+        # measurement updated past control value (that isn't used in the next time update (?))  
+        mu_i_m1_plus = invert(R_u_i_minus)@(db_tilde_u_i - R_ux_i@dx_i_plus) 
+        
         self.i += 1
         self.t_i_m1 = t_i
         self.x_i_m1 = x_i
-
-        dx_i_plus, P_i_plus = self.info_2_state(db_i_plus, R_i_plus)
-        mu_i_m1_plus = np.zeros((3,1))
-        # mu_i_m1_plus = None
-        # mu_i_m1_plus = invert(R_u_i_minus)@(db_tilde_u_i - R_ux_i@dx_i_plus)
 
         self.dx_i_m1_minus = dx_i_minus
         self.dx_i_m1_plus = dx_i_plus
@@ -868,12 +876,16 @@ class SquareRootInformationFilter(FilterBase):
 
         self.db_i_m1_plus = db_i_plus
         self.R_i_m1_plus = R_i_plus
-        self.mu_i_m1_plus = mu_i_m1_plus
         
         if self.logger is not None:
             data = self.get_logger_dict()
             self.logger.log(data) 
         return fail
+
+    
+    # def smooth(self):
+        # TSB 5.10.105 -- Smoothed Covariance
+        # TSB 5.10.96 -- Smoothed State 
 
 class UnscentedKalmanFilter(FilterBase):
     def __init__(self, t0, x0, dx0, P0, alpha, kappa, beta, f_dict, h_dict, logger=None, events=None):
