@@ -3,23 +3,16 @@ import inspect
 import time
 from sympy import *
 import numba
+import sys
 from numba import njit, jit, prange
 import numpy as np
 from sympy import init_printing
 from StatOD.utils import print_expression
 from StatOD.data import get_earth_position
+import StatOD
 
 import os
 os.environ["NUMBA_CACHE_DIR"] = "./numba_cache_tmp"
-
-from joblib.externals.loky import set_loky_pickler
-from joblib import parallel_backend
-from joblib import Parallel, delayed
-from joblib import wrap_non_picklable_objects, delayed
-
-from joblib import Memory
-location = './cachedir'
-memory = Memory(location, verbose=1)
 
 ################
 # Noise Models #
@@ -283,6 +276,31 @@ def f_J3(x, args):
 
     return np.array([vx, vy, vz, a_x, a_y, a_z]).tolist() 
 
+def f_C22(x, args):
+    x, y, z, vx, vy, vz = x
+    R, mu, C20, S20, C21, S21, C22, S22 = args
+    
+    def differentiate(U, arg):
+        u_arg = diff(U, arg)
+        return simplify(u_arg)
+    
+    r_mag = sqrt(x**2 + y**2 + z**2)
+    
+    longitude = atan2(y,x)
+    sin_phi = z/r_mag
+    P_20 = assoc_legendre(2, 0, sin_phi)*(C20*cos(0*longitude) + S20*sin(0*longitude))
+    P_21 = assoc_legendre(2, 1, sin_phi)*(C21*cos(1*longitude) + S21*sin(1*longitude))
+    P_22 = assoc_legendre(2, 2, sin_phi)*(C22*cos(2*longitude) + S22*sin(2*longitude))
+
+    U_0 = -(mu/r_mag)
+    U_2 = -(mu/r_mag)*(R/r_mag)**2*(P_20 + P_21 + P_22)
+    U = U_0 + U_2
+
+    a_x = -differentiate(U, x)
+    a_y = -differentiate(U, y)
+    a_z = -differentiate(U, z)
+
+    return np.array([vx, vy, vz, a_x, a_y, a_z]).tolist()  
 
 ############################
 # Augmented State Dynamics #
@@ -995,11 +1013,12 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
     misc_args = np.array(symbols('arg:'+str(k)), dtype=np.object)
 
     # Load or rerun the symbolic expressions
-    fcn_name = Q_fcn.__name__
+    fcn_name = f"{Q_fcn.__name__}_{m}" 
+    dir_name = os.path.dirname(StatOD.__file__) + "/.."
     try:
         # Look for a cached version of the sympy function 
-        os.makedirs("./cachedir/process_noise/", exist_ok=True)
-        with open(f"./cachedir/process_noise/{fcn_name}.data", "rb") as f:
+        os.makedirs(f"{dir_name}/.cachedir/process_noise/", exist_ok=True)
+        with open(f"{dir_name}/.cachedir/process_noise/{fcn_name}.data", "rb") as f:
             Q_fcn_loaded_src = pickle.load(f)
             Q_sym_loaded = pickle.load(f)
 
@@ -1011,7 +1030,7 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
     except:
         # If the code has changed, or there wasn't a cached symbolic expression, (re)generate one.
         Q_sym = Q_fcn(dt, x_args, Q_args, DCM_args, misc_args)
-        with open(f"./cachedir/process_noise/{fcn_name}.data", "wb") as f:
+        with open(f"{dir_name}/.cachedir/process_noise/{fcn_name}.data", "wb") as f:
             pickle.dump(inspect.getsource(Q_fcn), f)
             pickle.dump(Q_sym, f)
 

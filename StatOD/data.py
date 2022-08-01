@@ -5,7 +5,8 @@ import StatOD
 from numba import njit
 
 def get_measurements(filepath, t_gap=10):
-    with open(filepath, 'rb') as f:
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + filepath, 'rb') as f:
         measurements = pickle.load(f)
 
     time = measurements['time']
