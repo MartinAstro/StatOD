@@ -1,12 +1,20 @@
+"""
+Unscented Kalman Filter Example
+=================================
+
+"""
+
 import time
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
+import StatOD
 from StatOD.data import get_measurements
 from StatOD.dynamics import *
 from StatOD.filters import * 
 from StatOD.measurements import *
 from StatOD.visualizations import *
+from StatOD.constants import * 
 
 def main():
 
@@ -77,8 +85,8 @@ def main():
     ##################################
     # Gather measurement predictions #
     ##################################
-    
-    with open('Data/Trajectories/trajectory_J2.data', 'rb') as f:
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + 'Data/Trajectories/trajectory_J2.data', 'rb') as f:
         traj_data = pickle.load(f)
 
     x_truth = traj_data['X'][:M_end]

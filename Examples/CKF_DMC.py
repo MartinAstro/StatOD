@@ -1,7 +1,14 @@
+"""
+Kalman Filter with Dynamic Model Compensation Example
+============================================================
+
+"""
+
 import time
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+import StatOD
 from StatOD.data import get_measurements
 from StatOD.dynamics import dynamics, f_J2, f_J2_DMC, get_Q, get_Q_DMC, process_noise, f_J3
 from StatOD.filters import FilterLogger, KalmanFilter
@@ -113,7 +120,9 @@ def main():
     ############
     # Plotting #
     ############
-    with open('Data/Trajectories/trajectory_J3.data', 'rb') as f:
+
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + 'Data/Trajectories/trajectory_J3.data', 'rb') as f:
         traj_data = pickle.load(f)
 
     x_truth = traj_data['X'][:M_end]

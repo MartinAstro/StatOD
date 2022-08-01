@@ -23,7 +23,10 @@ setup(
                     'numba',
                     'joblib',
                     'tqdm',
-                    'colorama'],
+                    'colorama',
+                    'sphinx',
+                    "sphinx_rtd_theme",
+                    "sphinx-gallery"],
     tests_require=['pytest==4.4.1'],
     test_suite='tests',
 )

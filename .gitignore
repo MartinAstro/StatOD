@@ -8,5 +8,10 @@ __pycache__/*
 .vscode/*
 .eggs/*
 StatOD.egg-info/*
+.cachedir/*
 cachedir/*
 .venv/*
+docs/build/*
+docs/source/auto_examples
+docs/source/Tutorials
+Scripts/Archived/

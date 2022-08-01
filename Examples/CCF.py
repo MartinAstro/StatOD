@@ -1,3 +1,8 @@
+"""
+Consider Covariance Filter Example
+====================================
+
+"""
 import os
 import sys
 import time
@@ -12,6 +17,7 @@ from StatOD.measurements import *
 from StatOD.rotations import ECI_2_RCI
 from StatOD.utils import ECEF_2_ECI, latlon2cart
 from StatOD.visualizations import *
+from StatOD.constants import * 
 
 
 def get_true_trajectory(t, mu, R, cart_state, include_J3=False):

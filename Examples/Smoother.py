@@ -1,3 +1,9 @@
+"""
+Kalman Filter with Smoother Example
+=====================================
+
+"""
+
 import os
 import pickle
 import sys
@@ -6,6 +12,7 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
+import StatOD
 from StatOD.constants import EarthParams
 from StatOD.data import get_measurements
 from StatOD.dynamics import dynamics, f_J2, get_Q, process_noise, f_J3
@@ -101,7 +108,8 @@ def main():
     ############
     # Plotting #
     ############
-    with open('Data/Trajectories/trajectory_J2.data', 'rb') as f:
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + 'Data/Trajectories/trajectory_J2.data', 'rb') as f:
         traj_data = pickle.load(f)
 
     x_truth = traj_data['X'][:M_end]
