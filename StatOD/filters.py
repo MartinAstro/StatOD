@@ -228,14 +228,21 @@ class FilterBase(ABC):
         pass
 
     
-    def run(self, t_vec, y_vec, R_vec, f_arg_vec, h_arg_vec):
+    def run(self, t_vec, y_vec, R_vec, f_arg_vec, h_arg_vec, h_args_append=None):
         pbar = ProgressBar(len(t_vec)-1, enable=True)
+
+
         for i in range(len(t_vec)):
             t_i = t_vec[i]
             y_i = y_vec[i]
             R_i = R_vec[i]
             f_args_i = f_arg_vec[i] # could be fcn
             h_args_i = h_arg_vec[i] # could be fcn
+
+            # Necessary for CCF
+            if h_args_append is not None:
+                h_args_i = np.append(h_args_i, h_args_append)
+
             fail = self.update(t_i, y_i, R_i, f_args_i, h_args_i)
             pbar.update(i)
         pbar.close()
@@ -1304,7 +1311,7 @@ class SequentialConsiderCovarianceFilter(FilterBase):
 
         phi_i = sol.y[N+M:(N+M + N**2),-1].reshape((N,N))
         theta_i = sol.y[(N+M + N**2):,-1].reshape((N,M))
-        self.gather_event_data(t_i,sol)
+        # self.gather_event_data(t_i,sol)
 
         return x_i, c_i, phi_i, theta_i
 

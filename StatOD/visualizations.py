@@ -40,8 +40,9 @@ def annotate_residual(values, variable_str='x', xy=(0.3, 1.05), start_idx=0):
 
 
 class VisualizationBase():
-    def __init__(self, logger, save_dir, save):
-        os.makedirs(save_dir, exist_ok=True)
+    def __init__(self, logger, save_dir=None, save=None):
+        if save_dir is not None:
+            os.makedirs(save_dir, exist_ok=True)
         self.save_dir = save_dir
         self.logger = logger
         pass
