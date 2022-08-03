@@ -23,6 +23,7 @@ extensions = [
     'sphinx_rtd_theme',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'sphinx.ext.githubpages', # Produces .nojekyll file for GH pages
     'sphinx_gallery.gen_gallery',
     ]
 templates_path = ['_templates']
