@@ -3,7 +3,7 @@
 import sys, os 
 curdir = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(curdir+'/../../StatOD/'))
-import StatOD
+# import StatOD
 
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
