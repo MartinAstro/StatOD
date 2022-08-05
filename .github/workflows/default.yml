@@ -29,7 +29,6 @@ jobs:
     # ===============================
     - name: Commit documentation changes
       run: |
-        tree ./docs
         cp -r docs/source/build/* gh-pages/
         cd gh-pages
         touch .nojekyll
