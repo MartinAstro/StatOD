@@ -21,7 +21,7 @@ jobs:
       with:
         pre-build-command: python -m pip install -e . 
         build-command: "sphinx-build . build"
-        docs-folder: "docs/"
+        docs-folder: "docs/source/"
     # Great extra actions to compose with:
     # Create an artifact of the html output.
     - uses: actions/upload-artifact@v1
