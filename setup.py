@@ -7,7 +7,7 @@ setup(
     description='Statistical Orbit Determination Package',
     author='John M',
     license='MIT',
-    install_requires=['pytest-runner', 
+    setup_requires=['pytest-runner', 
                     'sympy >= 1.9',
                     'numpy <= 1.22',
                     'scipy',
