@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Locate Directory
+      run : |
+        pwd
 
     - uses: actions/checkout@v1
     - uses: ammaraskar/sphinx-action@master
