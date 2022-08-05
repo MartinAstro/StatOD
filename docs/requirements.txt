@@ -1,0 +1,13 @@
+pytest-runner
+sympy >= 1.9
+numpy
+scipy
+sigfig
+matplotlib
+numba
+joblib
+tqdm
+colorama
+sphinx
+sphinx_rtd_theme
+sphinx-gallery
