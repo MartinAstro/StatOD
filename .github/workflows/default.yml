@@ -24,7 +24,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: DocumentationHTML
-        path: docs/build/html/
+        path: docs/build/
     # Publish built docs to gh-pages branch.
     # ===============================
     - name: Commit documentation changes
