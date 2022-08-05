@@ -15,11 +15,11 @@ jobs:
     - name: Locate Directory
       run : |
         pwd
-        ls
 
     - uses: actions/checkout@v1
     - uses: ammaraskar/sphinx-action@master
       with:
+        pre-build-command: python -m pip install -e . 
         build-command: "sphinx-build . build"
         docs-folder: "docs/"
     # Great extra actions to compose with:
