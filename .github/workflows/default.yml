@@ -15,6 +15,7 @@ jobs:
     - name: Locate Directory
       run : |
         pwd
+        ls
 
     - uses: actions/checkout@v1
     - uses: ammaraskar/sphinx-action@master

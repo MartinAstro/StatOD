@@ -1,8 +1,9 @@
 # Configuration file for the Sphinx documentation builder.
 #
 import sys, os 
-sys.path.insert(0, os.path.abspath('./../../StatOD/'))
-print(os.path.abspath('./../../'))
+curdir = os.path.dirname(__file__)
+sys.path.insert(0, os.path.abspath(curdir+'/../../StatOD/'))
+import StatOD
 
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
