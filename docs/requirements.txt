@@ -1,6 +1,6 @@
 pytest-runner
 sympy >= 1.9
-numpy
+numpy < 1.23
 scipy
 sigfig
 matplotlib
@@ -11,4 +11,4 @@ colorama
 sphinx
 sphinx_rtd_theme
 sphinx-gallery
--e . 
+# -e . 
