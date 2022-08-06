@@ -25,8 +25,10 @@ jobs:
     - name: Commit documentation changes
       run: |
         git clone https://github.com/joma5012/StatOD.git --branch gh-pages --single-branch gh-pages
-        touch docs/.nojekyll
-        mkdir -p docs/gh-pages
+        cd docs
+        touch .nojekyll
+        mkdir -p gh-pages
+        cd ..
         cp -r docs/source/build/* docs/gh-pages/
         cd docs/gh-pages
         touch .nojekyll
