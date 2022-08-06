@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest # 20.04 (despite there being later ironically)
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
     # Standard drop-in approach that should work for most people.
     # Example of using a custom build-command.
@@ -46,5 +46,5 @@ jobs:
       uses: ad-m/github-push-action@master
       with:
         branch: gh-pages
-        directory: gh-pages
+        directory: docs/gh-pages
         github_token: ${{ secrets.GITHUB_TOKEN }}

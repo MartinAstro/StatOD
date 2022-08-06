@@ -25,20 +25,20 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages', # Produces .nojekyll file for GH pages
-    'sphinx_gallery.gen_gallery',
+    #'sphinx_gallery.gen_gallery',
     ]
 templates_path = ['_templates']
 exclude_patterns = []
 
 
-sphinx_gallery_conf = {
-    'examples_dirs':[ '../../Examples', '../../Tutorials'],   # path to your example scripts
-    'gallery_dirs': ['auto_examples', 'tutorials'],  # path to where to save gallery generated output,
-    'run_stale_examples': True, # Change to True when working on the underlying library. Forces examples to be rerun
-    'line_numbers': True,
-    'filename_pattern': '/', # Execute all of the examples
-    # 'sphinx_gallery_thumbnail_number' : -1,
-}
+# sphinx_gallery_conf = {
+#     'examples_dirs':[ '../../Examples', '../../Tutorials'],   # path to your example scripts
+#     'gallery_dirs': ['auto_examples', 'tutorials'],  # path to where to save gallery generated output,
+#     'run_stale_examples': True, # Change to True when working on the underlying library. Forces examples to be rerun
+#     'line_numbers': True,
+#     'filename_pattern': '/', # Execute all of the examples
+#     # 'sphinx_gallery_thumbnail_number' : -1,
+# }
 
 
 
