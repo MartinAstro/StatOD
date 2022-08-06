@@ -29,6 +29,7 @@ jobs:
         touch gh-pages/docs/.nojekyll
         mkdir -p gh-pages/docs/build
         cp -r docs/source/build/* gh-pages/docs/build/
+        cd gh-pages/docs
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
