@@ -27,10 +27,10 @@ jobs:
       run: |
         git clone https://github.com/joma5012/StatOD.git --branch gh-pages --single-branch gh-pages 
         touch gh-pages/docs/.nojekyll
-        mkdir -p gh-pages/docs/build
-        cp -r -v docs/source/build/* gh-pages/docs/build/
+        mkdir -p gh-pages/docs/gh-pages
+        cp -r -v docs/source/build/* gh-pages/docs/gh-pages/
         tree .
-        cd gh-pages/docs/build
+        cd gh-pages/docs/gh-pages
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add -A -v 
