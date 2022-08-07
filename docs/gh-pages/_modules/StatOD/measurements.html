@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StatOD.measurements &mdash; StatOD  documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> StatOD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">StatOD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>StatOD.measurements</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for StatOD.measurements</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">StatOD.constants</span> <span class="kn">import</span> <span class="n">EarthParams</span>
+<span class="kn">from</span> <span class="nn">StatOD.utils</span> <span class="kn">import</span> <span class="n">print_expression</span><span class="p">,</span> <span class="n">latlon2cart</span><span class="p">,</span> <span class="n">ECEF_2_ECI</span>
+<span class="kn">import</span> <span class="nn">numba</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">njit</span>
+
+<span class="c1">#########################</span>
+<span class="c1"># Measurement Functions #</span>
+<span class="c1">#########################</span>
+<span class="k">def</span> <span class="nf">h_rho_rhod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">x_i</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="n">z_i</span><span class="p">,</span> <span class="n">vx_i</span><span class="p">,</span> <span class="n">vy_i</span><span class="p">,</span> <span class="n">vz_i</span>  <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+    <span class="n">x_s</span><span class="p">,</span> <span class="n">y_s</span><span class="p">,</span> <span class="n">z_s</span><span class="p">,</span> <span class="n">vx_s</span><span class="p">,</span> <span class="n">vy_s</span><span class="p">,</span> <span class="n">vz_s</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">((</span><span class="n">x_i</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y_i</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z_i</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">rho_dot</span> <span class="o">=</span> <span class="p">((</span><span class="n">x_i</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vx_i</span> <span class="o">-</span> <span class="n">vx_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y_i</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vy_i</span> <span class="o">-</span> <span class="n">vy_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">z_i</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vz_i</span> <span class="o">-</span> <span class="n">vz_s</span><span class="p">))</span><span class="o">/</span><span class="n">rho</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_dot</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+
+<span class="c1">#######################</span>
+<span class="c1"># scenario 1 Functions #</span>
+<span class="c1">#######################</span>
+<span class="nd">@njit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">custom_DiracDelta</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+
+<span class="k">def</span> <span class="nf">h_rho_rhod_scenario</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">vz</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">J2</span><span class="p">,</span> <span class="n">Cd</span><span class="p">,</span> <span class="n">R_0x</span><span class="p">,</span> <span class="n">R_0y</span><span class="p">,</span> <span class="n">R_0z</span><span class="p">,</span> <span class="n">R_1x</span><span class="p">,</span> <span class="n">R_1y</span><span class="p">,</span> <span class="n">R_1z</span><span class="p">,</span> <span class="n">R_2x</span><span class="p">,</span> <span class="n">R_2y</span><span class="p">,</span> <span class="n">R_2z</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="n">station_idx</span><span class="p">,</span> <span class="n">omega</span> <span class="o">=</span> <span class="n">args</span>
+
+    <span class="n">x_s</span> <span class="o">=</span> <span class="n">R_0x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">y_s</span> <span class="o">=</span> <span class="n">R_0y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">z_s</span> <span class="o">=</span> <span class="n">R_0z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">vx_s</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">y_s</span>
+    <span class="n">vy_s</span> <span class="o">=</span> <span class="n">omega</span><span class="o">*</span><span class="n">x_s</span>
+    <span class="n">vz_s</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">rho_dot</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vx</span> <span class="o">-</span> <span class="n">vx_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vy</span> <span class="o">-</span> <span class="n">vy_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vz</span> <span class="o">-</span> <span class="n">vz_s</span><span class="p">))</span><span class="o">/</span><span class="n">rho</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rho</span><span class="p">,</span> <span class="n">rho_dot</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">h_rho</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">vz</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">J2</span><span class="p">,</span> <span class="n">Cd</span><span class="p">,</span> <span class="n">R_0x</span><span class="p">,</span> <span class="n">R_0y</span><span class="p">,</span> <span class="n">R_0z</span><span class="p">,</span> <span class="n">R_1x</span><span class="p">,</span> <span class="n">R_1y</span><span class="p">,</span> <span class="n">R_1z</span><span class="p">,</span> <span class="n">R_2x</span><span class="p">,</span> <span class="n">R_2y</span><span class="p">,</span> <span class="n">R_2z</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="n">station_idx</span><span class="p">,</span> <span class="n">omega</span> <span class="o">=</span> <span class="n">args</span>
+
+    <span class="n">x_s</span> <span class="o">=</span> <span class="n">R_0x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">y_s</span> <span class="o">=</span> <span class="n">R_0y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">z_s</span> <span class="o">=</span> <span class="n">R_0z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">vx_s</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">y_s</span>
+    <span class="n">vy_s</span> <span class="o">=</span> <span class="n">omega</span><span class="o">*</span><span class="n">x_s</span>
+    <span class="n">vz_s</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">rho_dot</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vx</span> <span class="o">-</span> <span class="n">vx_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vy</span> <span class="o">-</span> <span class="n">vy_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vz</span> <span class="o">-</span> <span class="n">vz_s</span><span class="p">))</span><span class="o">/</span><span class="n">rho</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rho</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">h_rhod</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vx</span><span class="p">,</span> <span class="n">vy</span><span class="p">,</span> <span class="n">vz</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">J2</span><span class="p">,</span> <span class="n">Cd</span><span class="p">,</span> <span class="n">R_0x</span><span class="p">,</span> <span class="n">R_0y</span><span class="p">,</span> <span class="n">R_0z</span><span class="p">,</span> <span class="n">R_1x</span><span class="p">,</span> <span class="n">R_1y</span><span class="p">,</span> <span class="n">R_1z</span><span class="p">,</span> <span class="n">R_2x</span><span class="p">,</span> <span class="n">R_2y</span><span class="p">,</span> <span class="n">R_2z</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="n">station_idx</span><span class="p">,</span> <span class="n">omega</span> <span class="o">=</span> <span class="n">args</span>
+
+    <span class="n">x_s</span> <span class="o">=</span> <span class="n">R_0x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2x</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">y_s</span> <span class="o">=</span> <span class="n">R_0y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2y</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">z_s</span> <span class="o">=</span> <span class="n">R_0z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_1z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_2z</span><span class="o">*</span><span class="n">DiracDelta</span><span class="p">(</span><span class="n">station_idx</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">vx_s</span> <span class="o">=</span> <span class="o">-</span><span class="n">omega</span><span class="o">*</span><span class="n">y_s</span>
+    <span class="n">vy_s</span> <span class="o">=</span> <span class="n">omega</span><span class="o">*</span><span class="n">x_s</span>
+    <span class="n">vz_s</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">rho_dot</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vx</span> <span class="o">-</span> <span class="n">vx_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vy</span> <span class="o">-</span> <span class="n">vy_s</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="n">z_s</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">vz</span> <span class="o">-</span> <span class="n">vz_s</span><span class="p">))</span><span class="o">/</span><span class="n">rho</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">rho_dot</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+
+
+<span class="c1">########################</span>
+<span class="c1"># Example 8 Functions #</span>
+<span class="c1">########################</span>
+<span class="k">def</span> <span class="nf">spring_observation_1</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">vx</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,])</span>
+    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    
+<span class="k">def</span> <span class="nf">spring_observation_2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">vx</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="p">])</span>
+    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+
+<span class="c1">#####################</span>
+<span class="c1"># Function Wrappers #</span>
+<span class="c1">#####################</span>
+<span class="k">def</span> <span class="nf">dhdx</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">dhdx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">object</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span> <span class="c1"># h[i] differentiated</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span> <span class="c1"># w.r.t. X[j]</span>
+            <span class="c1"># dhdx[i,j] = simplify(diff(h[i], x[j]))</span>
+            <span class="n">dhdx</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">diff</span><span class="p">(</span><span class="n">h</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">dhdx</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">measurements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">cse_func</span><span class="o">=</span><span class="n">cse</span><span class="p">,</span> <span class="n">consider</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># state [x, y, z, vx, vy, vz]</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="c1"># non-state arguments [xs, ys, zs, R, mu]</span>
+
+    <span class="c1"># symbolic arguments</span>
+    <span class="n">x_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">symbols</span><span class="p">(</span><span class="s1">&#39;x:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span>
+    <span class="n">c_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">symbols</span><span class="p">(</span><span class="s1">&#39;arg:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
+
+    <span class="n">h_sym</span> <span class="o">=</span> <span class="n">h</span><span class="p">(</span><span class="n">x_args</span><span class="p">,</span> <span class="n">c_args</span><span class="p">)</span>
+    <span class="n">dhdx_sym</span> <span class="o">=</span> <span class="n">dhdx</span><span class="p">(</span><span class="n">x_args</span><span class="p">,</span> <span class="n">h_sym</span><span class="p">,</span> <span class="n">c_args</span><span class="p">)</span>
+
+    <span class="c1"># Can&#39;t resolve length until function has been called</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h_sym</span><span class="p">)</span> <span class="c1"># measurement [rho, rhod]</span>
+    <span class="n">h_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">symbols</span><span class="p">(</span><span class="s1">&#39;h:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">m</span><span class="p">)))</span>
+
+    <span class="c1"># Define X, R as the inputs to expression</span>
+    <span class="n">func_h</span> <span class="o">=</span> <span class="n">lambdify</span><span class="p">([</span><span class="n">x_args</span><span class="p">,</span> <span class="n">c_args</span><span class="p">],</span> <span class="n">h_sym</span><span class="p">,</span> <span class="n">cse</span><span class="o">=</span><span class="n">cse_func</span><span class="p">,</span> <span class="n">modules</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;numpy&#39;</span> <span class="p">,</span> <span class="p">{</span><span class="s1">&#39;DiracDelta&#39;</span><span class="p">:</span> <span class="n">custom_DiracDelta</span><span class="p">}])</span>
+    <span class="n">func_dhdx</span> <span class="o">=</span> <span class="n">lambdify</span><span class="p">([</span><span class="n">x_args</span><span class="p">,</span> <span class="n">h_args</span><span class="p">,</span> <span class="n">c_args</span><span class="p">],</span> <span class="n">dhdx_sym</span><span class="p">,</span> <span class="n">cse</span><span class="o">=</span><span class="n">cse_func</span><span class="p">,</span> <span class="n">modules</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;numpy&#39;</span> <span class="p">,</span> <span class="p">{</span><span class="s1">&#39;DiracDelta&#39;</span><span class="p">:</span> <span class="n">custom_DiracDelta</span><span class="p">}])</span>
+
+    <span class="c1"># Generate consider dynamics if requested</span>
+    <span class="k">if</span> <span class="n">consider</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">consider</span><span class="p">)</span> <span class="o">==</span> <span class="n">k</span> <span class="c1"># ensure that consider variable is of length args</span>
+        <span class="n">consider</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">consider</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">c_arg_subset</span> <span class="o">=</span> <span class="n">c_args</span><span class="p">[</span><span class="n">consider</span><span class="p">]</span>
+        <span class="n">required_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x_args</span><span class="p">,</span> <span class="n">c_args</span><span class="p">[</span><span class="o">~</span><span class="n">consider</span><span class="p">])</span>
+        <span class="n">dhdc_sym</span> <span class="o">=</span> <span class="n">dhdx</span><span class="p">(</span><span class="n">c_arg_subset</span><span class="p">,</span> <span class="n">h_sym</span><span class="p">,</span> <span class="n">required_args</span><span class="p">)</span>
+        <span class="n">lambdify_dhdc</span> <span class="o">=</span> <span class="n">lambdify</span><span class="p">([</span><span class="n">c_arg_subset</span><span class="p">,</span> <span class="n">h_args</span><span class="p">,</span> <span class="n">required_args</span><span class="p">],</span> <span class="n">dhdc_sym</span><span class="p">,</span> <span class="n">cse</span><span class="o">=</span><span class="n">cse_func</span><span class="p">,</span> <span class="n">modules</span><span class="o">=</span><span class="s1">&#39;numpy&#39;</span><span class="p">)</span>
+        <span class="n">func_dhdc</span> <span class="o">=</span> <span class="n">lambdify_dhdc</span>
+        <span class="k">return</span> <span class="n">func_h</span><span class="p">,</span> <span class="n">func_dhdx</span><span class="p">,</span> <span class="n">func_dhdc</span>
+
+    <span class="k">return</span> <span class="n">func_h</span><span class="p">,</span> <span class="n">func_dhdx</span>
+
+
+<div class="viewcode-block" id="get_rho_rhod_el"><a class="viewcode-back" href="../../api_reference.html#StatOD.measurements.get_rho_rhod_el">[docs]</a><span class="k">def</span> <span class="nf">get_rho_rhod_el</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">X_ECI</span><span class="p">,</span> <span class="n">X_obs_ECI</span><span class="p">,</span> <span class="n">elevation_mask</span><span class="p">):</span>  
+    <span class="sd">&quot;&quot;&quot;Get range and range rate</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        t (np.array or int): epoch in seconds</span>
+<span class="sd">        X (np.array): spacecraft state</span>
+<span class="sd">        R (float): radius of body</span>
+<span class="sd">        lat (float): latitude in radians [0, pi]</span>
+<span class="sd">        lon (float): longitude in radians [0, 2*pi]</span>
+<span class="sd">        theta_0 (float): rotation of Earth at epoch 0 in radians [0, 2*pi]</span>
+<span class="sd">        elevation_mask (float): elevation below which there are no measurements in radians [0, n]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        [tuple]: (rho, rho_dot, el)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">t</span><span class="p">])</span>
+
+    <span class="n">ep</span> <span class="o">=</span> <span class="n">EarthParams</span><span class="p">()</span>   
+    <span class="n">omega</span> <span class="o">=</span> <span class="n">ep</span><span class="o">.</span><span class="n">omega</span> <span class="c1"># 2*np.pi/(24*60*60) # spin rate of 24 hours</span>
+
+    <span class="c1"># (r, lat, lon) - &gt; (x, y, z)</span>
+
+    <span class="n">x_obs_ECI</span> <span class="o">=</span> <span class="n">X_obs_ECI</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">v_obs_ECI</span> <span class="o">=</span> <span class="n">X_obs_ECI</span><span class="p">[:,</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="n">LOS_vec</span> <span class="o">=</span> <span class="n">X_ECI</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_obs_ECI</span>
+    <span class="n">LOS_dot_vec</span> <span class="o">=</span> <span class="n">X_ECI</span><span class="p">[:,</span><span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">-</span> <span class="n">v_obs_ECI</span>
+
+    <span class="n">LOS_norm</span> <span class="o">=</span> <span class="n">LOS_vec</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">LOS_vec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">x_obs_ECI_norm</span> <span class="o">=</span> <span class="n">x_obs_ECI</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_obs_ECI</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Theta [0, np.pi]</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">LOS_norm</span><span class="o">*</span><span class="n">x_obs_ECI_norm</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">el</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">theta</span> <span class="c1"># [-pi/2, pi/2]</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">el</span> <span class="o">&lt;</span> <span class="n">elevation_mask</span><span class="p">)</span> 
+
+    <span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">LOS_vec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">rho_dot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">LOS_vec</span><span class="o">*</span><span class="n">LOS_dot_vec</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">rho</span>
+
+    <span class="n">rho</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">rho_dot</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="k">return</span> <span class="n">rho</span><span class="p">,</span> <span class="n">rho_dot</span><span class="p">,</span> <span class="n">el</span></div>
+
+<span class="k">def</span> <span class="nf">test_simple</span><span class="p">():</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="mf">6378.0</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="mf">398600.4415</span> 
+    <span class="n">J2</span> <span class="o">=</span> <span class="mf">0.00108263</span>
+    <span class="n">theta_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span> <span class="c1"># spin rate of 24 hours</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="o">-</span><span class="mf">3515.4903270335103</span><span class="p">,</span> <span class="mf">8390.716310243395</span><span class="p">,</span> <span class="mf">4127.627352553683</span><span class="p">,</span>
+        <span class="o">-</span><span class="mf">4.357676322178153</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.3565791387645487</span><span class="p">,</span> <span class="mf">3.111892927869902</span>
+        <span class="p">])</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">h_rho_rhod</span>
+
+
+    <span class="n">lat_1</span><span class="p">,</span> <span class="n">lon_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="o">-</span><span class="mf">35.398333</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mf">148.981944</span><span class="p">)</span>
+    <span class="n">X_obs_ECEF</span> <span class="o">=</span> <span class="n">latlon2cart</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">lat_1</span><span class="p">,</span> <span class="n">lon_1</span><span class="p">)</span> 
+    <span class="n">X_obs_ECI</span> <span class="o">=</span> <span class="n">ECEF_2_ECI</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">X_obs_ECEF</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">theta_0</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">X_obs_ECI</span>
+    <span class="n">h</span><span class="p">,</span> <span class="n">dhdx</span> <span class="o">=</span> <span class="n">measurements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="n">h_i</span> <span class="o">=</span> <span class="n">h</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">dhdx_i</span> <span class="o">=</span> <span class="n">dhdx</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h_i</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">h_i</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">dhdx_i</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">test_scenario</span><span class="p">():</span>
+    <span class="n">mu</span> <span class="o">=</span> <span class="mf">398600.4415</span> 
+    <span class="n">R</span> <span class="o">=</span> <span class="mf">6378.1363</span><span class="c1">#*1000.0</span>
+    <span class="n">J2</span> <span class="o">=</span> <span class="mf">0.001082626925638815</span>
+    <span class="n">Cd_0</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">area</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1E3</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> 
+    <span class="n">mass</span> <span class="o">=</span> <span class="mf">970.0</span>
+    <span class="n">rho_0</span> <span class="o">=</span> <span class="mf">3.614E-13</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1E3</span><span class="p">)</span><span class="o">**</span><span class="mi">3</span> <span class="c1"># convert kg/m^3 to kg/km^3</span>
+    <span class="n">r_0</span> <span class="o">=</span> <span class="p">(</span><span class="mi">700000</span><span class="o">*</span><span class="mf">1E-3</span> <span class="o">+</span> <span class="n">R</span><span class="p">)</span> <span class="c1"># km</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">88667.0</span><span class="o">*</span><span class="mf">1E-3</span> <span class="c1"># m</span>
+    <span class="n">omega</span> <span class="o">=</span> <span class="mf">7.2921158553E-5</span> <span class="c1">#2*np.pi/(24*60*60) # spin rate of 24 hours</span>
+
+    <span class="c1"># t_0 = datetime.datetime(1999, 10, 3, 23, 11, 9.1814)</span>
+    <span class="n">theta_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># (r, lat, lon) - &gt; (x, y, z)</span>
+    <span class="n">X_obs_1_ECEF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">5127510.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">3794160.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1E3</span>
+    <span class="n">X_obs_2_ECEF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">3860910.0</span><span class="p">,</span> <span class="mf">3238490.0</span><span class="p">,</span> <span class="mf">3898094.0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1E3</span>
+    <span class="n">X_obs_3_ECEF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">549505.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1380872.0</span><span class="p">,</span> <span class="mf">6182197.0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1E3</span>
+
+    <span class="n">X_obs_1_ECI</span> <span class="o">=</span> <span class="n">ECEF_2_ECI</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">X_obs_1_ECEF</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">theta_0</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">X_obs_2_ECI</span> <span class="o">=</span> <span class="n">ECEF_2_ECI</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">X_obs_2_ECEF</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">theta_0</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">X_obs_3_ECI</span> <span class="o">=</span> <span class="n">ECEF_2_ECI</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">X_obs_3_ECEF</span><span class="p">,</span> <span class="n">omega</span><span class="p">,</span> <span class="n">theta_0</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+
+
+    <span class="n">cart_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">757700.0</span><span class="p">,</span> <span class="mf">5222607.0</span><span class="p">,</span> <span class="mf">4851500.0</span><span class="p">,</span>
+                           <span class="o">-</span><span class="mf">2213.21</span><span class="p">,</span> <span class="o">-</span><span class="mf">4678.34</span><span class="p">,</span> <span class="mf">5371.30</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1E3</span>
+
+
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">cart_state</span><span class="p">,</span> <span class="p">[</span><span class="n">mu</span><span class="p">,</span> <span class="n">J2</span><span class="p">,</span> <span class="n">Cd_0</span><span class="p">],</span> <span class="n">X_obs_1_ECI</span><span class="p">,</span> <span class="n">X_obs_2_ECI</span><span class="p">,</span> <span class="n">X_obs_3_ECI</span><span class="p">))</span>
+    
+    <span class="n">h</span> <span class="o">=</span> <span class="n">h_rho_rhod_scenario</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">omega</span><span class="p">]</span>
+    <span class="n">h</span><span class="p">,</span> <span class="n">dhdx</span> <span class="o">=</span> <span class="n">measurements</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="n">h_i</span> <span class="o">=</span> <span class="n">h</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">dhdx_i</span> <span class="o">=</span> <span class="n">dhdx</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">h_i</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">h_i</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">dhdx_i</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># test_simple()</span>
+    <span class="n">test_scenario</span><span class="p">()</span>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, John M.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

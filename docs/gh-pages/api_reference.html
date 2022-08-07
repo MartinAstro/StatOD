@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; StatOD  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to StatOD’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> StatOD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul class="simple">
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">StatOD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api_reference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<span class="target" id="module-StatOD.filters"></span><dl class="class">
+<dt id="StatOD.filters.ConsiderCovarianceFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">ConsiderCovarianceFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">c0</em>, <em class="sig-param">dc0</em>, <em class="sig-param">P_xx_0</em>, <em class="sig-param">P_cc_0</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#ConsiderCovarianceFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.ConsiderCovarianceFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.ExtendedKalmanFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">ExtendedKalmanFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">P0</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#ExtendedKalmanFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.ExtendedKalmanFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.FilterBase">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">FilterBase</code><span class="sig-paren">(</span><em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger</em>, <em class="sig-param">events</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#FilterBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.FilterBase" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.KalmanFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">KalmanFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">P0</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#KalmanFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.KalmanFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.NonLinearBatchFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">NonLinearBatchFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">P0</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em>, <em class="sig-param">iterations=3</em>, <em class="sig-param">update_gamma=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#NonLinearBatchFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.NonLinearBatchFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.ParticleFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">ParticleFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x_0_k</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#ParticleFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.ParticleFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.SequentialConsiderCovarianceFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">SequentialConsiderCovarianceFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">c0</em>, <em class="sig-param">dc0</em>, <em class="sig-param">P_xx_0</em>, <em class="sig-param">P_cc_0</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#SequentialConsiderCovarianceFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.SequentialConsiderCovarianceFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.SquareRootInformationFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">SquareRootInformationFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">P0</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#SquareRootInformationFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.SquareRootInformationFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="StatOD.filters.UnscentedKalmanFilter">
+<em class="property">class </em><code class="sig-prename descclassname">StatOD.filters.</code><code class="sig-name descname">UnscentedKalmanFilter</code><span class="sig-paren">(</span><em class="sig-param">t0</em>, <em class="sig-param">x0</em>, <em class="sig-param">dx0</em>, <em class="sig-param">P0</em>, <em class="sig-param">alpha</em>, <em class="sig-param">kappa</em>, <em class="sig-param">beta</em>, <em class="sig-param">f_dict</em>, <em class="sig-param">h_dict</em>, <em class="sig-param">logger=None</em>, <em class="sig-param">events=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/filters.html#UnscentedKalmanFilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.filters.UnscentedKalmanFilter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<span class="target" id="module-StatOD.dynamics"></span><span class="target" id="module-StatOD.measurements"></span><dl class="function">
+<dt id="StatOD.measurements.get_rho_rhod_el">
+<code class="sig-prename descclassname">StatOD.measurements.</code><code class="sig-name descname">get_rho_rhod_el</code><span class="sig-paren">(</span><em class="sig-param">t</em>, <em class="sig-param">X_ECI</em>, <em class="sig-param">X_obs_ECI</em>, <em class="sig-param">elevation_mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/StatOD/measurements.html#get_rho_rhod_el"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#StatOD.measurements.get_rho_rhod_el" title="Permalink to this definition"></a></dt>
+<dd><p>Get range and range rate</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>np.array</em><em> or </em><em>int</em>) – epoch in seconds</p></li>
+<li><p><strong>X</strong> (<em>np.array</em>) – spacecraft state</p></li>
+<li><p><strong>R</strong> (<em>float</em>) – radius of body</p></li>
+<li><p><strong>lat</strong> (<em>float</em>) – latitude in radians [0, pi]</p></li>
+<li><p><strong>lon</strong> (<em>float</em>) – longitude in radians [0, 2*pi]</p></li>
+<li><p><strong>theta_0</strong> (<em>float</em>) – rotation of Earth at epoch 0 in radians [0, 2*pi]</p></li>
+<li><p><strong>elevation_mask</strong> (<em>float</em>) – elevation below which there are no measurements in radians [0, n]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(rho, rho_dot, el)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[tuple]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-StatOD.constants"></span></div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to StatOD’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, John M.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
