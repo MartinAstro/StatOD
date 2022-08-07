@@ -27,8 +27,7 @@ jobs:
       run: |
         git clone https://github.com/joma5012/StatOD.git --branch gh-pages --single-branch gh-pages 
         rm gh-pages/README.md
-        cd gh-pages
-        touch .nojekyll
+        touch gh-pages/docs/.nojekyll
         mkdir -p gh-pages/docs/gh-pages
         touch gh-pages/docs/gh-pages/.nojekyll
         cp -r -v docs/source/build/* gh-pages/docs/gh-pages/
