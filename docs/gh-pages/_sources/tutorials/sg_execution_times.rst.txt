@@ -1,0 +1,12 @@
+
+:orphan:
+
+.. _sphx_glr_tutorials_sg_execution_times:
+
+Computation times
+=================
+**00:20.499** total execution time for **tutorials** files:
+
++-------------------------------------------------------+-----------+--------+
+| :ref:`sphx_glr_tutorials_CKF_SNC.py` (``CKF_SNC.py``) | 00:20.499 | 0.0 MB |
++-------------------------------------------------------+-----------+--------+

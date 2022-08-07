@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalman Filter with Stochastic Noise Compensation Example &mdash; StatOD  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="StatOD Examples Gallery" href="../auto_examples/index.html" />
+    <link rel="prev" title="Getting Started" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> StatOD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api_reference.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Getting Started</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Kalman Filter with Stochastic Noise Compensation Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">StatOD Examples Gallery</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">StatOD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Getting Started</a> &raquo;</li>
+      <li>Kalman Filter with Stochastic Noise Compensation Example</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tutorials/CKF_SNC.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-tutorials-ckf-snc-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
+</div>
+<div class="sphx-glr-example-title section" id="kalman-filter-with-stochastic-noise-compensation-example">
+<span id="sphx-glr-tutorials-ckf-snc-py"></span><h1>Kalman Filter with Stochastic Noise Compensation Example<a class="headerlink" href="#kalman-filter-with-stochastic-noise-compensation-example" title="Permalink to this headline"></a></h1>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="kn">import</span> <span class="nn">time</span>
+ <span class="kn">import</span> <span class="nn">pickle</span>
+ <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+ <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+ <span class="kn">import</span> <span class="nn">StatOD</span>
+ <span class="kn">from</span> <span class="nn">StatOD.data</span> <span class="kn">import</span> <span class="n">get_measurements</span>
+ <span class="kn">from</span> <span class="nn">StatOD.dynamics</span> <span class="kn">import</span> <span class="n">dynamics</span><span class="p">,</span> <span class="n">f_J2</span><span class="p">,</span> <span class="n">get_Q</span><span class="p">,</span> <span class="n">process_noise</span>
+ <span class="kn">from</span> <span class="nn">StatOD.filters</span> <span class="kn">import</span> <span class="n">FilterLogger</span><span class="p">,</span> <span class="n">KalmanFilter</span>
+ <span class="kn">from</span> <span class="nn">StatOD.measurements</span> <span class="kn">import</span> <span class="n">h_rho_rhod</span><span class="p">,</span> <span class="n">measurements</span>
+ <span class="kn">from</span> <span class="nn">StatOD.visualizations</span> <span class="kn">import</span> <span class="o">*</span>
+ <span class="kn">from</span> <span class="nn">StatOD.constants</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</td></tr></table></div>
+<p>To begin, gather the telemetry / measurements
+that will be used by the filter to update the state. In this example, the
+telemetry is the range and range-rate in kilometers of spacecraft in orbit
+whose dynamics include a point mass and $J_2$ gravity contribution.</p>
+<p>Note that the telemetry is measured by three stations on the surface of Earth.
+The <cite>get_measurements</cite> function evolves the location of these stations in the
+Earth-Centered Inertial (ECI) frame and returns it alongside the time and
+range/range-rate measurements (<cite>t, Y</cite>).</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>30
+31
+32
+33
+34
+35</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">t</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">X_stations_ECI</span> <span class="o">=</span> <span class="n">get_measurements</span><span class="p">(</span><span class="s2">&quot;Data/Measurements/range_rangerate_w_J2_w_noise.data&quot;</span><span class="p">)</span>
+
+ <span class="c1"># Reduce the simulation length for faster evaluation.</span>
+ <span class="n">M_end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">//</span> <span class="mi">5</span>
+ <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[:</span><span class="n">M_end</span><span class="p">]</span>
+ <span class="n">Y</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[:</span><span class="n">M_end</span><span class="p">]</span>
+</pre></div>
+</td></tr></table></div>
+<p>Initialize the starting state $(x, y, z, v_x, v_y, v_z)$
+in [km] and [km/s] respectively and then add an initial perturbation (<cite>dx0</cite>).
+Also initialize the initial state and measurement covariance (<cite>P0</cite> and <cite>R0</cite>).
+The measurements included gaussian noise on the order of 1 meter in range and
+1 mm/s in range rate, hence the choice of diagonals for the measurement covariance <cite>R0</cite>.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>43
+44
+45
+46
+47
+48
+49
+50
+51
+52</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">ep</span> <span class="o">=</span> <span class="n">EarthParams</span><span class="p">()</span>
+ <span class="n">cart_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">3515.4903270335103</span><span class="p">,</span> <span class="mf">8390.716310243395</span><span class="p">,</span> <span class="mf">4127.627352553683</span><span class="p">,</span>
+                         <span class="o">-</span><span class="mf">4.357676322178153</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.3565791387645487</span><span class="p">,</span> <span class="mf">3.111892927869902</span><span class="p">])</span>
+
+ <span class="n">dx0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1E-4</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+ <span class="n">x0</span> <span class="o">=</span> <span class="n">cart_state</span> <span class="o">+</span> <span class="n">dx0</span>
+
+ <span class="n">P0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1E-3</span><span class="p">,</span> <span class="mf">1E-3</span><span class="p">,</span> <span class="mf">1E-3</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+ <span class="n">R0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mf">1E-3</span><span class="p">,</span> <span class="mf">1E-6</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+ <span class="n">t0</span> <span class="o">=</span> <span class="mf">0.0</span>
+</pre></div>
+</td></tr></table></div>
+<p>In this example, stochastic noise compensation is used. The process noise matrix
+$Q_0$ is defined below.</p>
+<p>Because the continuous time process noise is different than the discrete process noise matrix
+a process noise function must be defined (<cite>Q_fcn</cite>). This function is computed using <cite>sympy</cite> to
+compute an exact symbolic expression on the fly to accommodate any arbitrary estimation scenario.
+This symbolic expression is then lambdified to be used within the filter. This process is repeated
+for the dynamics and measurement functions.</p>
+<p>As such, users must pass representative values of the state and any auxillary arguments to the generating
+function <cite>process_noise</cite>.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>67
+68
+69</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">Q0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-7</span> <span class="o">**</span> <span class="mi">2</span>
+ <span class="n">Q_args</span> <span class="o">=</span> <span class="p">[]</span>
+ <span class="n">Q_fcn</span> <span class="o">=</span> <span class="n">process_noise</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">Q0</span><span class="p">,</span> <span class="n">get_Q</span><span class="p">,</span> <span class="n">Q_args</span><span class="p">,</span> <span class="n">use_numba</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</td></tr></table></div>
+<p>Likewise, the dynamics and measurement functions must be computed symbolically and then lambdified.
+A collection of dynamics function are provided within the <cite>StatOD.Dynamics</cite> file. In this example
+the spacecraft’s dynamics are influenced only by point mass gravity and $J_2$. Therefore, the
+<cite>f_J2</cite> symbolic expression is selected, and passed to the generating function <cite>dynamics</cite> alongside
+the additional arguments not included in the state that are needed for the dynamics function (<cite>f_args</cite>).</p>
+<p>The measurement functions are generated the same way, passing in a representative state and
+additional arguments into the generating function such that a lambdified symbolic expression
+can be produced and passed to the filter.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">f_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ep</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">ep</span><span class="o">.</span><span class="n">mu</span><span class="p">,</span> <span class="n">ep</span><span class="o">.</span><span class="n">J2</span><span class="p">])</span>
+ <span class="n">f</span><span class="p">,</span> <span class="n">dfdx</span> <span class="o">=</span> <span class="n">dynamics</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">f_J2</span><span class="p">,</span> <span class="n">f_args</span><span class="p">)</span>
+ <span class="n">f_dict</span> <span class="o">=</span> <span class="p">{</span>
+     <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="n">f</span><span class="p">,</span>
+     <span class="s2">&quot;dfdx&quot;</span><span class="p">:</span> <span class="n">dfdx</span><span class="p">,</span>
+     <span class="s2">&quot;f_args&quot;</span><span class="p">:</span> <span class="n">f_args</span><span class="p">,</span>
+     <span class="s2">&quot;Q_fcn&quot;</span><span class="p">:</span> <span class="n">Q_fcn</span><span class="p">,</span>
+     <span class="s2">&quot;Q&quot;</span><span class="p">:</span> <span class="n">Q0</span><span class="p">,</span>
+     <span class="s2">&quot;Q_args&quot;</span><span class="p">:</span> <span class="n">Q_args</span><span class="p">,</span>
+ <span class="p">}</span>
+
+ <span class="n">h_args</span> <span class="o">=</span> <span class="n">X_stations_ECI</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+ <span class="n">h</span><span class="p">,</span> <span class="n">dhdx</span> <span class="o">=</span> <span class="n">measurements</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">h_rho_rhod</span><span class="p">,</span> <span class="n">h_args</span><span class="p">)</span>
+ <span class="n">h_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;h&#39;</span><span class="p">:</span> <span class="n">h</span><span class="p">,</span> <span class="s1">&#39;dhdx&#39;</span><span class="p">:</span> <span class="n">dhdx</span><span class="p">,</span> <span class="s1">&#39;h_args&#39;</span><span class="p">:</span> <span class="n">h_args</span><span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Now that the lambdified symbolic measurement and dynamics functions are produced,
+the auxiallary arguments not included in the state should be gathered for each measurement.
+For the dynamics model, this means passing in the fixed parameters $(R, mu, J_2)$ at each
+time step. For the measurement function, this includes the stations position in the ECI frame.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>103
+104
+105</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">f_args_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">f_args</span><span class="p">)),</span> <span class="n">f_args</span><span class="p">)</span>
+ <span class="n">h_args_vec</span> <span class="o">=</span> <span class="n">X_stations_ECI</span>
+ <span class="n">R_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">R0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</td></tr></table></div>
+<p>To initialize the filter, pass in the initial parameters and corresponding generating functions.
+With the filter initialized, call the <cite>.run()</cite> command with the vectors of time, measurements,
+measurement covariances, dynamics and measurement auxillary arguments.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>112
+113
+114
+115
+116</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+ <span class="n">logger</span> <span class="o">=</span> <span class="n">FilterLogger</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+ <span class="nb">filter</span> <span class="o">=</span> <span class="n">KalmanFilter</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dx0</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">f_dict</span><span class="p">,</span> <span class="n">h_dict</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+ <span class="nb">filter</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:],</span> <span class="n">R_vec</span><span class="p">,</span> <span class="n">f_args_vec</span><span class="p">,</span> <span class="n">h_args_vec</span><span class="p">)</span>
+ <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time Elapsed: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))</span>
+</pre></div>
+</td></tr></table></div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Progress:   0%|          | 0/2862 [00:00&lt;?, ?it/s]
+Progress:   0%|          | 1/2862 [00:03&lt;2:38:59,  3.33s/it]
+Progress:   1%|          | 22/2862 [00:03&lt;05:19,  8.90it/s]
+Progress:   2%|1         | 45/2862 [00:03&lt;02:13, 21.09it/s]
+Progress:   2%|2         | 67/2862 [00:03&lt;01:18, 35.58it/s]
+Progress:   3%|3         | 89/2862 [00:03&lt;00:52, 52.74it/s]
+Progress:   4%|3         | 112/2862 [00:03&lt;00:37, 73.47it/s]
+Progress:   5%|4         | 137/2862 [00:03&lt;00:27, 98.71it/s]
+Progress:   6%|5         | 162/2862 [00:04&lt;00:21, 124.24it/s]
+Progress:   7%|6         | 188/2862 [00:04&lt;00:17, 150.60it/s]
+Progress:   7%|7         | 213/2862 [00:04&lt;00:15, 171.99it/s]
+Progress:   8%|8         | 238/2862 [00:04&lt;00:14, 185.99it/s]
+Progress:   9%|9         | 262/2862 [00:04&lt;00:13, 196.44it/s]
+Progress:  10%|9         | 286/2862 [00:04&lt;00:12, 206.43it/s]
+Progress:  11%|#         | 310/2862 [00:04&lt;00:11, 214.38it/s]
+Progress:  12%|#1        | 334/2862 [00:04&lt;00:11, 221.33it/s]
+Progress:  13%|#2        | 358/2862 [00:04&lt;00:11, 225.15it/s]
+Progress:  13%|#3        | 382/2862 [00:04&lt;00:11, 221.53it/s]
+Progress:  14%|#4        | 405/2862 [00:05&lt;00:11, 219.13it/s]
+Progress:  15%|#4        | 428/2862 [00:05&lt;00:11, 220.31it/s]
+Progress:  16%|#5        | 451/2862 [00:05&lt;00:10, 221.51it/s]
+Progress:  17%|#6        | 474/2862 [00:05&lt;00:11, 215.25it/s]
+Progress:  17%|#7        | 496/2862 [00:05&lt;00:11, 209.15it/s]
+Progress:  18%|#8        | 518/2862 [00:05&lt;00:11, 210.71it/s]
+Progress:  19%|#8        | 540/2862 [00:05&lt;00:10, 212.87it/s]
+Progress:  20%|#9        | 563/2862 [00:05&lt;00:10, 215.40it/s]
+Progress:  20%|##        | 585/2862 [00:05&lt;00:10, 216.12it/s]
+Progress:  21%|##1       | 608/2862 [00:06&lt;00:10, 217.66it/s]
+Progress:  22%|##2       | 632/2862 [00:06&lt;00:09, 224.02it/s]
+Progress:  23%|##2       | 658/2862 [00:06&lt;00:09, 233.92it/s]
+Progress:  24%|##3       | 685/2862 [00:06&lt;00:09, 241.56it/s]
+Progress:  25%|##4       | 711/2862 [00:06&lt;00:08, 245.53it/s]
+Progress:  26%|##5       | 736/2862 [00:06&lt;00:08, 243.87it/s]
+Progress:  27%|##6       | 761/2862 [00:06&lt;00:08, 241.64it/s]
+Progress:  27%|##7       | 786/2862 [00:06&lt;00:08, 241.93it/s]
+Progress:  28%|##8       | 811/2862 [00:06&lt;00:08, 239.11it/s]
+Progress:  29%|##9       | 835/2862 [00:06&lt;00:08, 235.60it/s]
+Progress:  30%|###       | 859/2862 [00:07&lt;00:08, 225.27it/s]
+Progress:  31%|###       | 883/2862 [00:07&lt;00:08, 227.09it/s]
+Progress:  32%|###1      | 907/2862 [00:07&lt;00:08, 230.03it/s]
+Progress:  33%|###2      | 931/2862 [00:07&lt;00:08, 225.33it/s]
+Progress:  33%|###3      | 955/2862 [00:07&lt;00:08, 229.48it/s]
+Progress:  34%|###4      | 979/2862 [00:07&lt;00:08, 229.04it/s]
+Progress:  35%|###5      | 1003/2862 [00:07&lt;00:08, 231.38it/s]
+Progress:  36%|###5      | 1027/2862 [00:07&lt;00:08, 227.39it/s]
+Progress:  37%|###6      | 1050/2862 [00:07&lt;00:08, 226.09it/s]
+Progress:  37%|###7      | 1073/2862 [00:08&lt;00:07, 224.97it/s]
+Progress:  38%|###8      | 1096/2862 [00:08&lt;00:07, 226.25it/s]
+Progress:  39%|###9      | 1120/2862 [00:08&lt;00:07, 227.71it/s]
+Progress:  40%|####      | 1146/2862 [00:08&lt;00:07, 234.36it/s]
+Progress:  41%|####      | 1171/2862 [00:08&lt;00:07, 238.22it/s]
+Progress:  42%|####1     | 1196/2862 [00:08&lt;00:06, 240.16it/s]
+Progress:  43%|####2     | 1221/2862 [00:08&lt;00:06, 236.00it/s]
+Progress:  44%|####3     | 1245/2862 [00:08&lt;00:07, 229.38it/s]
+Progress:  44%|####4     | 1269/2862 [00:08&lt;00:06, 232.29it/s]
+Progress:  45%|####5     | 1293/2862 [00:08&lt;00:06, 232.91it/s]
+Progress:  46%|####6     | 1317/2862 [00:09&lt;00:06, 232.98it/s]
+Progress:  47%|####6     | 1341/2862 [00:09&lt;00:06, 230.04it/s]
+Progress:  48%|####7     | 1365/2862 [00:09&lt;00:06, 228.55it/s]
+Progress:  49%|####8     | 1389/2862 [00:09&lt;00:06, 229.29it/s]
+Progress:  49%|####9     | 1412/2862 [00:09&lt;00:06, 226.19it/s]
+Progress:  50%|#####     | 1436/2862 [00:09&lt;00:06, 227.48it/s]
+Progress:  51%|#####1    | 1460/2862 [00:09&lt;00:06, 229.14it/s]
+Progress:  52%|#####1    | 1484/2862 [00:09&lt;00:05, 230.38it/s]
+Progress:  53%|#####2    | 1508/2862 [00:09&lt;00:05, 227.51it/s]
+Progress:  53%|#####3    | 1531/2862 [00:10&lt;00:05, 228.04it/s]
+Progress:  54%|#####4    | 1554/2862 [00:10&lt;00:05, 226.90it/s]
+Progress:  55%|#####5    | 1577/2862 [00:10&lt;00:05, 225.68it/s]
+Progress:  56%|#####5    | 1600/2862 [00:10&lt;00:05, 217.63it/s]
+Progress:  57%|#####6    | 1624/2862 [00:10&lt;00:05, 223.71it/s]
+Progress:  58%|#####7    | 1650/2862 [00:10&lt;00:05, 232.05it/s]
+Progress:  59%|#####8    | 1675/2862 [00:10&lt;00:05, 234.68it/s]
+Progress:  59%|#####9    | 1700/2862 [00:10&lt;00:04, 237.19it/s]
+Progress:  60%|######    | 1724/2862 [00:10&lt;00:04, 230.51it/s]
+Progress:  61%|######1   | 1748/2862 [00:10&lt;00:04, 231.49it/s]
+Progress:  62%|######1   | 1772/2862 [00:11&lt;00:04, 232.79it/s]
+Progress:  63%|######2   | 1796/2862 [00:11&lt;00:04, 233.94it/s]
+Progress:  64%|######3   | 1820/2862 [00:11&lt;00:04, 226.58it/s]
+Progress:  64%|######4   | 1843/2862 [00:11&lt;00:04, 221.50it/s]
+Progress:  65%|######5   | 1866/2862 [00:11&lt;00:04, 223.09it/s]
+Progress:  66%|######6   | 1889/2862 [00:11&lt;00:04, 220.75it/s]
+Progress:  67%|######6   | 1912/2862 [00:11&lt;00:04, 221.19it/s]
+Progress:  68%|######7   | 1935/2862 [00:11&lt;00:04, 221.37it/s]
+Progress:  68%|######8   | 1958/2862 [00:11&lt;00:04, 221.72it/s]
+Progress:  69%|######9   | 1981/2862 [00:12&lt;00:03, 220.80it/s]
+Progress:  70%|#######   | 2004/2862 [00:12&lt;00:03, 220.81it/s]
+Progress:  71%|#######   | 2027/2862 [00:12&lt;00:03, 220.66it/s]
+Progress:  72%|#######1  | 2050/2862 [00:12&lt;00:03, 221.09it/s]
+Progress:  72%|#######2  | 2073/2862 [00:12&lt;00:03, 220.93it/s]
+Progress:  73%|#######3  | 2096/2862 [00:12&lt;00:03, 223.51it/s]
+Progress:  74%|#######4  | 2121/2862 [00:12&lt;00:03, 230.23it/s]
+Progress:  75%|#######4  | 2146/2862 [00:12&lt;00:03, 234.79it/s]
+Progress:  76%|#######5  | 2171/2862 [00:12&lt;00:02, 237.71it/s]
+Progress:  77%|#######6  | 2195/2862 [00:12&lt;00:02, 236.98it/s]
+Progress:  78%|#######7  | 2219/2862 [00:13&lt;00:02, 232.76it/s]
+Progress:  78%|#######8  | 2243/2862 [00:13&lt;00:02, 229.65it/s]
+Progress:  79%|#######9  | 2266/2862 [00:13&lt;00:02, 227.72it/s]
+Progress:  80%|#######9  | 2289/2862 [00:13&lt;00:02, 221.20it/s]
+Progress:  81%|########  | 2312/2862 [00:13&lt;00:02, 220.69it/s]
+Progress:  82%|########1 | 2336/2862 [00:13&lt;00:02, 223.84it/s]
+Progress:  82%|########2 | 2361/2862 [00:13&lt;00:02, 229.45it/s]
+Progress:  83%|########3 | 2386/2862 [00:13&lt;00:02, 233.12it/s]
+Progress:  84%|########4 | 2410/2862 [00:13&lt;00:01, 235.00it/s]
+Progress:  85%|########5 | 2434/2862 [00:13&lt;00:01, 234.96it/s]
+Progress:  86%|########5 | 2458/2862 [00:14&lt;00:01, 235.06it/s]
+Progress:  87%|########6 | 2482/2862 [00:14&lt;00:01, 236.08it/s]
+Progress:  88%|########7 | 2506/2862 [00:14&lt;00:01, 235.51it/s]
+Progress:  88%|########8 | 2530/2862 [00:14&lt;00:01, 234.69it/s]
+Progress:  89%|########9 | 2554/2862 [00:14&lt;00:01, 231.49it/s]
+Progress:  90%|######### | 2578/2862 [00:14&lt;00:01, 229.24it/s]
+Progress:  91%|######### | 2601/2862 [00:14&lt;00:01, 222.25it/s]
+Progress:  92%|#########1| 2624/2862 [00:14&lt;00:01, 222.97it/s]
+Progress:  93%|#########2| 2649/2862 [00:14&lt;00:00, 228.99it/s]
+Progress:  93%|#########3| 2674/2862 [00:15&lt;00:00, 233.97it/s]
+Progress:  94%|#########4| 2698/2862 [00:15&lt;00:00, 233.94it/s]
+Progress:  95%|#########5| 2722/2862 [00:15&lt;00:00, 233.10it/s]
+Progress:  96%|#########5| 2746/2862 [00:15&lt;00:00, 233.94it/s]
+Progress:  97%|#########6| 2770/2862 [00:15&lt;00:00, 224.35it/s]
+Progress:  98%|#########7| 2793/2862 [00:15&lt;00:00, 218.03it/s]
+Progress:  98%|#########8| 2816/2862 [00:15&lt;00:00, 219.67it/s]
+Progress:  99%|#########9| 2840/2862 [00:15&lt;00:00, 223.34it/s]
+Progress: 100%|##########| 2862/2862 [00:15&lt;00:00, 180.31it/s]
+Time Elapsed: 15.875252485275269
+</pre></div>
+</div>
+<p>After the filter finishes, the corresponding state pre- and post- measurement updates are saved
+in the <cite>filter.logger</cite> attribute. These can be used to produce the measurement residuals which
+can then be plotted.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">package_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">StatOD</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/../&quot;</span>
+ <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">package_dir</span> <span class="o">+</span> <span class="s1">&#39;Data/Trajectories/trajectory_J2.data&#39;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+     <span class="n">traj_data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+ <span class="n">x_truth</span> <span class="o">=</span> <span class="n">traj_data</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">][:</span><span class="n">M_end</span><span class="p">]</span>
+ <span class="n">y_hat_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+ <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)):</span>
+     <span class="n">y_hat_vec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">predict_measurement</span><span class="p">(</span><span class="n">logger</span><span class="o">.</span><span class="n">x_i</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">logger</span><span class="o">.</span><span class="n">dx_i_plus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">h_args_vec</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+ <span class="n">directory</span> <span class="o">=</span> <span class="s2">&quot;Plots/&quot;</span> <span class="o">+</span> <span class="nb">filter</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+ <span class="n">y_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="sa">r</span><span class="s1">&#39;$\rho$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$\dot{\rho}$&#39;</span><span class="p">])</span>
+ <span class="n">vis</span> <span class="o">=</span> <span class="n">VisualizationBase</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+ <span class="n">vis</span><span class="o">.</span><span class="n">plot_state_errors</span><span class="p">(</span><span class="n">x_truth</span><span class="p">)</span>
+ <span class="n">vis</span><span class="o">.</span><span class="n">plot_residuals</span><span class="p">(</span><span class="n">Y</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:],</span> <span class="n">y_hat_vec</span><span class="p">,</span> <span class="n">R_vec</span><span class="p">,</span> <span class="n">y_labels</span><span class="p">)</span>
+ <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</td></tr></table></div>
+<ul class="sphx-glr-horizontal">
+<li><img src="../_images/sphx_glr_CKF_SNC_001.png" srcset="../_images/sphx_glr_CKF_SNC_001.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_002.png" srcset="../_images/sphx_glr_CKF_SNC_002.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_003.png" srcset="../_images/sphx_glr_CKF_SNC_003.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_004.png" srcset="../_images/sphx_glr_CKF_SNC_004.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_005.png" srcset="../_images/sphx_glr_CKF_SNC_005.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_006.png" srcset="../_images/sphx_glr_CKF_SNC_006.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_007.png" srcset="../_images/sphx_glr_CKF_SNC_007.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+<li><img src="../_images/sphx_glr_CKF_SNC_008.png" srcset="../_images/sphx_glr_CKF_SNC_008.png" alt="CKF SNC" class = "sphx-glr-multi-img"/></li>
+</ul>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  20.499 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-tutorials-ckf-snc-py">
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/df18951135d2ab435eddf7be7c2e0709/CKF_SNC.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">CKF_SNC.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/7c747a421b5362a088af097f32e00ddc/CKF_SNC.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">CKF_SNC.ipynb</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../auto_examples/index.html" class="btn btn-neutral float-right" title="StatOD Examples Gallery" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, John M.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

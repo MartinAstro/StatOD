@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Particle Filter Example &mdash; StatOD  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Kalman Filter with Stochastic Noise Compensation Example" href="CKF_SNC.html" />
+    <link rel="prev" title="StatOD Examples Gallery" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> StatOD
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">StatOD Examples Gallery</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Particle Filter Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CKF_SNC.html">Kalman Filter with Stochastic Noise Compensation Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UKF.html">Unscented Kalman Filter Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SRIF.html">Square Root Information Filter Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Smoother.html">Kalman Filter with Smoother Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CKF_DMC.html">Kalman Filter with Dynamic Model Compensation Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CCF.html">Consider Covariance Filter Example</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">StatOD</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">StatOD Examples Gallery</a> &raquo;</li>
+      <li>Particle Filter Example</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/auto_examples/PF.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-auto-examples-pf-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
+</div>
+<div class="sphx-glr-example-title section" id="particle-filter-example">
+<span id="sphx-glr-auto-examples-pf-py"></span><h1>Particle Filter Example<a class="headerlink" href="#particle-filter-example" title="Permalink to this headline"></a></h1>
+<img src="../_images/sphx_glr_PF_001.png" srcset="../_images/sphx_glr_PF_001.png" alt="PF" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Progress:   0%|          | 0/9 [00:00&lt;?, ?it/s]
+Progress:   0%|          | 0/9 [00:01&lt;?, ?it/s]
+Progress:  11%|#1        | 1/9 [00:03&lt;00:20,  2.61s/it]
+Progress:  33%|###3      | 3/9 [00:03&lt;00:04,  1.33it/s]
+Progress:  56%|#####5    | 5/9 [00:04&lt;00:01,  2.49it/s]
+Progress:  78%|#######7  | 7/9 [00:04&lt;00:00,  3.70it/s]
+Progress: 100%|##########| 9/9 [00:04&lt;00:00,  5.11it/s]
+Progress: 100%|##########| 9/9 [00:04&lt;00:00,  2.03it/s]
+Time Elapsed: 4.430014610290527
+
+Progress:   0%|          | 0/9 [00:00&lt;?, ?it/s]
+Progress:   0%|          | 0/9 [00:00&lt;?, ?it/s]
+Progress:  11%|#1        | 1/9 [00:06&lt;00:45,  5.69s/it]
+Progress:  22%|##2       | 2/9 [00:11&lt;00:37,  5.29s/it]
+Progress:  33%|###3      | 3/9 [00:17&lt;00:33,  5.52s/it]
+Progress:  44%|####4     | 4/9 [00:20&lt;00:23,  4.76s/it]
+Progress:  56%|#####5    | 5/9 [00:25&lt;00:18,  4.75s/it]
+Progress:  67%|######6   | 6/9 [00:30&lt;00:14,  4.87s/it]
+Progress:  78%|#######7  | 7/9 [00:35&lt;00:09,  4.75s/it]
+Progress:  89%|########8 | 8/9 [00:39&lt;00:04,  4.50s/it]
+Progress: 100%|##########| 9/9 [00:42&lt;00:00,  4.10s/it]
+Progress: 100%|##########| 9/9 [00:42&lt;00:00,  4.72s/it]
+Time Elapsed: 42.493728160858154
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>  7
+  8
+  9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+ 22
+ 23
+ 24
+ 25
+ 26
+ 27
+ 28
+ 29
+ 30
+ 31
+ 32
+ 33
+ 34
+ 35
+ 36
+ 37
+ 38
+ 39
+ 40
+ 41
+ 42
+ 43
+ 44
+ 45
+ 46
+ 47
+ 48
+ 49
+ 50
+ 51
+ 52
+ 53
+ 54
+ 55
+ 56
+ 57
+ 58
+ 59
+ 60
+ 61
+ 62
+ 63
+ 64
+ 65
+ 66
+ 67
+ 68
+ 69
+ 70
+ 71
+ 72
+ 73
+ 74
+ 75
+ 76
+ 77
+ 78
+ 79
+ 80
+ 81
+ 82
+ 83
+ 84
+ 85
+ 86
+ 87
+ 88
+ 89
+ 90
+ 91
+ 92
+ 93
+ 94
+ 95
+ 96
+ 97
+ 98
+ 99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="kn">import</span> <span class="nn">os</span>
+ <span class="kn">import</span> <span class="nn">sys</span>
+ <span class="kn">import</span> <span class="nn">time</span>
+ <span class="kn">import</span> <span class="nn">copy</span>
+ <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+ <span class="kn">import</span> <span class="nn">matplotlib</span>
+ <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+ <span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>
+ <span class="kn">from</span> <span class="nn">StatOD.data</span> <span class="kn">import</span> <span class="n">get_example8_measurements</span><span class="p">,</span> <span class="n">get_measurements</span>
+ <span class="kn">from</span> <span class="nn">StatOD.dynamics</span> <span class="kn">import</span> <span class="o">*</span>
+ <span class="kn">from</span> <span class="nn">StatOD.filters</span> <span class="kn">import</span> <span class="o">*</span>
+ <span class="kn">from</span> <span class="nn">StatOD.measurements</span> <span class="kn">import</span> <span class="o">*</span>
+ <span class="kn">from</span> <span class="nn">StatOD.rotations</span> <span class="kn">import</span> <span class="n">ECI_2_RCI</span>
+ <span class="kn">from</span> <span class="nn">StatOD.utils</span> <span class="kn">import</span> <span class="n">ECEF_2_ECI</span><span class="p">,</span> <span class="n">latlon2cart</span>
+ <span class="kn">from</span> <span class="nn">StatOD.visualizations</span> <span class="kn">import</span> <span class="o">*</span>
+ <span class="kn">from</span> <span class="nn">StatOD.constants</span> <span class="kn">import</span> <span class="o">*</span>
+
+ <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1234</span><span class="p">)</span>
+
+
+
+ <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+     <span class="c1">######################</span>
+     <span class="c1">## Get Measurements ##</span>
+     <span class="c1">######################</span>
+     <span class="n">numba</span> <span class="o">=</span> <span class="kc">True</span>
+     <span class="n">t</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">x_truth</span><span class="p">,</span> <span class="n">y_truth</span> <span class="o">=</span> <span class="n">get_example8_measurements</span><span class="p">(</span><span class="n">case</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+     <span class="n">t0</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+     <span class="n">M_end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">//</span> <span class="mi">5</span>
+
+     <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[:</span><span class="n">M_end</span><span class="p">]</span>
+     <span class="n">Y</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[:</span><span class="n">M_end</span><span class="p">]</span>
+
+     <span class="c1">######################</span>
+     <span class="c1">## Set Parameters   ##</span>
+     <span class="c1">######################</span>
+     <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span>
+     <span class="n">eta</span> <span class="o">=</span> <span class="mi">1000</span>
+     <span class="n">L</span> <span class="o">=</span> <span class="mi">5000</span> <span class="c1"># particles</span>
+
+     <span class="c1">##############################</span>
+     <span class="c1">## Set State and Covariance ##</span>
+     <span class="c1">##############################</span>
+
+     <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+     <span class="n">dx0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+     <span class="n">x0</span> <span class="o">+=</span> <span class="n">dx0</span>
+
+     <span class="n">P_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+         <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]</span>
+     <span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+     <span class="n">R_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+
+     <span class="n">P_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">P_diag</span><span class="p">)</span>
+     <span class="n">R0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">R_diag</span><span class="p">)</span>
+
+     <span class="n">R_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">R0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">R0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">R0</span><span class="p">)</span>
+
+     <span class="c1">########################</span>
+     <span class="c1">## Configure Dynamics ##</span>
+     <span class="c1">########################</span>
+
+     <span class="n">c_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="n">eta</span><span class="p">])</span>
+     <span class="n">f</span><span class="p">,</span> <span class="n">dfdx</span> <span class="o">=</span> <span class="n">dynamics</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">f_spring_duffing</span><span class="p">,</span> <span class="n">c_args</span><span class="p">,</span> <span class="n">use_numba</span><span class="o">=</span><span class="n">numba</span><span class="p">)</span>
+
+     <span class="n">h_args</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+     <span class="n">h</span><span class="p">,</span> <span class="n">dhdx</span> <span class="o">=</span> <span class="n">measurements</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">spring_observation_1</span><span class="p">,</span> <span class="n">h_args</span><span class="p">)</span>
+
+     <span class="n">Q_args</span> <span class="o">=</span> <span class="p">[]</span>
+     <span class="n">Q0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-1</span> <span class="o">**</span> <span class="mi">2</span>
+     <span class="n">Q_fcn</span> <span class="o">=</span> <span class="n">process_noise</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">Q0</span><span class="p">,</span> <span class="n">get_Q</span><span class="p">,</span> <span class="n">Q_args</span><span class="p">,</span> <span class="n">use_numba</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+     <span class="c1">######################</span>
+     <span class="c1">## Configure Filter ##</span>
+     <span class="c1">######################</span>
+
+     <span class="c1"># Initialize</span>
+     <span class="n">f_dict</span> <span class="o">=</span> <span class="p">{</span>
+         <span class="s2">&quot;f&quot;</span><span class="p">:</span> <span class="n">f</span><span class="p">,</span>
+         <span class="s2">&quot;dfdx&quot;</span><span class="p">:</span> <span class="n">dfdx</span><span class="p">,</span>
+         <span class="s2">&quot;f_args&quot;</span><span class="p">:</span> <span class="n">c_args</span><span class="p">,</span>
+         <span class="s2">&quot;Q_fcn&quot;</span><span class="p">:</span> <span class="n">Q_fcn</span><span class="p">,</span>
+         <span class="s2">&quot;Q&quot;</span><span class="p">:</span> <span class="n">Q0</span><span class="p">,</span>
+         <span class="s2">&quot;Q_args&quot;</span><span class="p">:</span> <span class="n">Q_args</span><span class="p">,</span>
+     <span class="p">}</span>
+
+     <span class="n">h_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;h&quot;</span><span class="p">:</span> <span class="n">h</span><span class="p">,</span>
+               <span class="s2">&quot;dhdx&quot;</span><span class="p">:</span> <span class="n">dhdx</span><span class="p">,</span>
+               <span class="s2">&quot;h_args&quot;</span><span class="p">:</span> <span class="n">h_args</span><span class="p">,</span>
+               <span class="p">}</span>
+
+     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+     <span class="n">logger</span> <span class="o">=</span> <span class="n">FilterLogger</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+     <span class="nb">filter</span> <span class="o">=</span> <span class="n">ExtendedKalmanFilter</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dx0</span><span class="p">,</span> <span class="n">P_0</span><span class="p">,</span> <span class="n">f_dict</span><span class="p">,</span> <span class="n">h_dict</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+     <span class="nb">filter</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">R_vec</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="kc">None</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="mi">0</span><span class="p">)))</span>
+
+     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time Elapsed: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))</span>
+
+
+     <span class="c1">###############################</span>
+     <span class="c1">## Configure Particle Filter ##</span>
+     <span class="c1">###############################</span>
+     <span class="n">x_0_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+
+     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+     <span class="n">logger</span> <span class="o">=</span> <span class="n">FilterLogger</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+     <span class="nb">filter</span> <span class="o">=</span> <span class="n">ParticleFilter</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">x_0_k</span><span class="p">,</span> <span class="n">f_dict</span><span class="p">,</span> <span class="n">h_dict</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+     <span class="nb">filter</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">R_vec</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="kc">None</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span><span class="mi">0</span><span class="p">)))</span>
+
+     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time Elapsed: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))</span>
+
+     <span class="c1">##############</span>
+     <span class="c1">## Plotting ##</span>
+     <span class="c1">##############</span>
+
+
+     <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+     <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="nb">filter</span><span class="o">.</span><span class="n">x_i_m1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="nb">filter</span><span class="o">.</span><span class="n">x_i_m1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+     <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\dot</span><span class="si">{x}</span><span class="s2">$&quot;</span><span class="p">)</span>
+     <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$x$&quot;</span><span class="p">)</span>
+     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+ <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+     <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</td></tr></table></div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  50.090 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-pf-py">
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/548a68f3f058925ffe58e34498e11716/PF.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">PF.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/7253e644edd7daddac49800440224c17/PF.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">PF.ipynb</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="StatOD Examples Gallery" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="CKF_SNC.html" class="btn btn-neutral float-right" title="Kalman Filter with Stochastic Noise Compensation Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, John M.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
