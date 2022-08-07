@@ -30,7 +30,7 @@ jobs:
         mkdir -p gh-pages/docs/build
         cp -r -v docs/source/build/* gh-pages/docs/build/
         tree .
-        cd gh-pages/docs
+        cd gh-pages/docs/build
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
