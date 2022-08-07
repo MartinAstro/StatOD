@@ -17,7 +17,7 @@ jobs:
     # Example of using a custom build-command.
     - uses: ammaraskar/sphinx-action@master
       with:
-        pre-build-command: "apt-get update -y --allow-releaseinfo-change \n apt-get upgrade -y \n apt-get install -y -f tree \n apt-get update -y --fix-missing --allow-releaseinfo-change \n python3 -m pip install -e ."
+        pre-build-command: "apt-get update -y --allow-releaseinfo-change \n apt-get upgrade -y \n apt-get install -y -f latexmk texlive texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended dvipng cm-super tree \n apt-get update -y --fix-missing --allow-releaseinfo-change \n python3 -m pip install -e ."
         build-command: "sphinx-build -b html . build"
         docs-folder: "docs/source/"
     # Publish built docs to gh-pages branch.
