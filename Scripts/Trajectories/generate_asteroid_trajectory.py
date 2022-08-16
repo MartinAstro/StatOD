@@ -19,7 +19,8 @@ def generate_asteroid_trajectory():
     gravity_model = Polyhedral(eros, eros.obj_8k)
 
     # Generate State
-    X0 = np.array([2.40000000e+04, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 4.70033081e+00, 4.71606150e-01])/1E3
+    X0 = np.array([2.40000000e+04, 0.0, 0.0, 
+                   0.0, 4.70033081e+00, 4.71606150e-01])/1E3
     N = len(X0)
 
     pbar = ProgressBar(t_f, enable=True)

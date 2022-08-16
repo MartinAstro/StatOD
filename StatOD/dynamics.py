@@ -211,6 +211,27 @@ def f_J2_DMC(x, args):
 ##########################
 # Simple Cartesian State #
 ##########################
+def f_point_mass(x, args):
+    x, y, z, vx, vy, vz = x
+    mu, = args
+
+    r_mag = sqrt(x**2 + y**2 + z**2)
+
+    U0 = -mu/r_mag
+    
+    def differentiate(U, arg):
+        u_arg = diff(U, arg)
+        return simplify(u_arg)
+
+    U0_x, U0_y, U0_z = differentiate(U0, x), differentiate(U0, y), differentiate(U0, z)
+
+    a_x = -U0_x
+    a_y = -U0_y
+    a_z = -U0_z
+
+    return np.array([vx, vy, vz, a_x, a_y, a_z]).tolist()
+
+
 def f_J2(x, args):
     x, y, z, vx, vy, vz = x
     R, mu, J2 = args

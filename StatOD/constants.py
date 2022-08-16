@@ -21,3 +21,10 @@ class EarthParams:
 
         self.C22 = 0.243914352398E-05
         self.S22 = -0.140016683654E-05
+
+class ErosParams:
+    def __init__(self):
+        G = 6.67430 * 10 ** -11
+        self.mu = G * 6.687 * 10 ** 15 / (1E3)**3
+        self.R = 16.000 # km
+        self.X_BE_E = np.array([1.995636E7,0,0,0,0,0]) # Assume Eros is 0.1334 AU from Earth

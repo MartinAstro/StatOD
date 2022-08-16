@@ -17,24 +17,29 @@ def get_measurements(filepath, t_gap=10):
     idx_3 = np.zeros((len(time),)) + 2
 
     # each station Y vector [(1+1+1+1+6) x len(t)]
+    filler_array = np.full((len(time), ), np.array([np.nan]))
+    filler_obs_array = np.full(
+                            (len(time), 6), 
+                            np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+                            )
     Y_station_1 = np.vstack((
         time, 
         idx_1, 
-        measurements['rho_1'],
-        measurements['rho_dot_1'],
-        measurements['X_obs_1_ECI'].T)).T
+        measurements.get('rho_1', filler_array),
+        measurements.get('rho_dot_1', filler_array),
+        measurements.get('X_obs_1_ECI', filler_obs_array).T)).T
     Y_station_2 = np.vstack((
         time, 
         idx_2, 
-        measurements['rho_2'],
-        measurements['rho_dot_2'],
-        measurements['X_obs_2_ECI'].T)).T
+        measurements.get('rho_2', filler_array),
+        measurements.get('rho_dot_2', filler_array),
+        measurements.get('X_obs_2_ECI', filler_obs_array).T)).T
     Y_station_3 = np.vstack((
         time, 
         idx_3, 
-        measurements['rho_3'],
-        measurements['rho_dot_3'],
-        measurements['X_obs_3_ECI'].T)).T
+        measurements.get('rho_3', filler_array),
+        measurements.get('rho_dot_3', filler_array),
+        measurements.get('X_obs_3_ECI', filler_obs_array).T)).T
 
     # Y vector [len(t)*3 x M] but time isn't chronological
     Y = np.vstack((Y_station_1, Y_station_2, Y_station_3))    
