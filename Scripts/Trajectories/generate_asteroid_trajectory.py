@@ -18,9 +18,9 @@ def generate_asteroid_trajectory():
     eros = Eros()
     gravity_model = Polyhedral(eros, eros.obj_8k)
 
-    # Generate State
+    # Generate State in km and km/s
     X0 = np.array([2.40000000e+04, 0.0, 0.0, 
-                   0.0, 4.70033081e+00, 4.71606150e-01])/1E3
+                   0.0, 4.70033081e+00, 4.71606150e-01])/1E3 
     N = len(X0)
 
     pbar = ProgressBar(t_f, enable=True)
@@ -36,7 +36,7 @@ def generate_asteroid_trajectory():
 
     data = {
         "t" : sol.t,
-        "X" : sol.y[:N, :].T,
+        "X" : sol.y[:N, :].T, # in km and km/s
     }
     with open('Data/Trajectories/trajectory_asteroid.data', 'wb') as f:
         pickle.dump(data, f)

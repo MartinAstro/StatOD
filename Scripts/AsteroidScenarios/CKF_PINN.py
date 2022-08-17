@@ -20,8 +20,9 @@ import GravNN
 
 def main():
     ep = ErosParams()
-    cart_state = np.array([2.40000000e+04, 0.0, 0.0, 
-                           0.0, 4.70033081e+00, 4.71606150e-01]) + ep.X_BE_E
+    X_SB_E = np.array([2.40000000e+04, 0.0, 0.0, 
+                           0.0, 4.70033081e+00, 4.71606150e-01]) / 1E3 # SC to Asteroid in km
+    cart_state = X_SB_E + ep.X_BE_E
                            
     model = pinnGravityModel(os.path.dirname(GravNN.__file__) + \
         "/../Data/Dataframes/eros_BVP_PINN_III.data")
@@ -43,7 +44,7 @@ def main():
     t0 = 0.0
 
     # Initialize Process Noise
-    Q0 = np.eye(3) * 1e-6 ** 2
+    Q0 = np.eye(3) * 1e-7 ** 2
     Q_args = []
     Q_fcn = process_noise(x0, Q0, get_Q, Q_args, use_numba=False)
 
@@ -81,6 +82,8 @@ def main():
     logger = FilterLogger(len(x0), len(t))
     filter = KalmanFilter(t0, x0, dx0, P0, f_dict, h_dict, logger=logger)
     filter.f_integrate = dynamics_ivp_no_jit # can't pass the model into the numba JIT function
+    filter.atol = 1E-7
+    filter.rtol = 1E-7
     filter.run(t, Y[:,1:], R_vec, f_args_vec, h_args_vec)
     print("Time Elapsed: " + str(time.time() - start_time))
 
