@@ -165,9 +165,6 @@ def get_rho_rhod_el(t, X_ECI, X_obs_ECI, elevation_mask):
     if len(np.shape(t)) == 0:
         t = np.array([t])
 
-    ep = EarthParams()   
-    omega = ep.omega # 2*np.pi/(24*60*60) # spin rate of 24 hours
-
     # (r, lat, lon) - > (x, y, z)
 
     x_obs_ECI = X_obs_ECI[:,0:3]
