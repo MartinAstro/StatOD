@@ -173,3 +173,95 @@ class pinnGravityModel():
             U_pm = np.zeros((len(R), 1))
             U_pm[:,0] = -self.planet.mu/r
             return (U_pm + U_model).squeeze()
+
+def get_jac_sparsity_matrix():
+    jac_sparsity = np.zeros((42,42))
+
+    xd_x = np.zeros((3,3))
+    xd_xd = np.eye(3)
+    xd_phi = np.zeros((3,36))
+
+    xdd_x = np.full((3,3), 1)
+    xdd_xd = np.zeros((3,3))
+    xdd_phi = np.zeros((3,36))
+
+    phid_x = np.zeros((36, 3))
+
+
+    phid_x[18:21,:] = np.full((3,3), 1)
+    phid_x[24:27,:] = np.full((3,3), 1)
+    phid_x[30:33,:] = np.full((3,3), 1)
+
+    # This won't be true for non-conservative systems 
+    phid_xd = np.zeros((36,3))
+
+    phid_phi = np.zeros((36,36))
+    phid_phi[3, 0] = 1
+    phid_phi[4, 1] = 1
+    phid_phi[5, 2] = 1
+
+    phid_phi[9, 6+0] = 1
+    phid_phi[10, 6+1] = 1
+    phid_phi[11, 6+2] = 1
+
+    phid_phi[15, 12+0] = 1
+    phid_phi[16, 12+1] = 1
+    phid_phi[17, 12+2] = 1
+
+
+    def idx(i,j,N):
+        # convert 2d matrix idx to flat idx
+        idx = i*N + j
+        return idx
+
+    N = 6
+    # phid_phi[phid_idx, phi_idx]
+
+    # d/d_phi (d/dx (a) phi[3:6,0:3])
+    phid_phi[idx(3,0,N), idx(3,0,N)] = 1
+    phid_phi[idx(3,0,N), idx(4,0,N)] = 1
+    phid_phi[idx(3,0,N), idx(5,0,N)] = 1
+
+    phid_phi[idx(3,1,N), idx(3,1,N)] = 1
+    phid_phi[idx(3,1,N), idx(4,1,N)] = 1
+    phid_phi[idx(3,1,N), idx(5,1,N)] = 1
+
+    phid_phi[idx(3,2,N), idx(3,2,N)] = 1
+    phid_phi[idx(3,2,N), idx(4,2,N)] = 1
+    phid_phi[idx(3,2,N), idx(5,2,N)] = 1
+
+
+    phid_phi[idx(4,0,N), idx(3,0,N)] = 1
+    phid_phi[idx(4,0,N), idx(4,0,N)] = 1
+    phid_phi[idx(4,0,N), idx(5,0,N)] = 1
+
+    phid_phi[idx(4,1,N), idx(3,1,N)] = 1
+    phid_phi[idx(4,1,N), idx(4,1,N)] = 1
+    phid_phi[idx(4,1,N), idx(5,1,N)] = 1
+    
+    phid_phi[idx(4,2,N), idx(3,2,N)] = 1
+    phid_phi[idx(4,2,N), idx(4,2,N)] = 1
+    phid_phi[idx(4,2,N), idx(5,2,N)] = 1
+
+
+    phid_phi[idx(5,0,N), idx(3,0,N)] = 1
+    phid_phi[idx(5,0,N), idx(4,0,N)] = 1
+    phid_phi[idx(5,0,N), idx(5,0,N)] = 1
+
+    phid_phi[idx(5,1,N), idx(3,1,N)] = 1
+    phid_phi[idx(5,1,N), idx(4,1,N)] = 1
+    phid_phi[idx(5,1,N), idx(5,1,N)] = 1
+    
+    phid_phi[idx(5,2,N), idx(3,2,N)] = 1
+    phid_phi[idx(5,2,N), idx(4,2,N)] = 1
+    phid_phi[idx(5,2,N), idx(5,2,N)] = 1
+
+
+
+    jac_sparsity = np.block([
+        [xd_x,  xd_xd,   xd_phi],
+        [xdd_x, xdd_xd,  xdd_phi],
+        [phid_x,phid_xd, phid_phi]
+    ])
+
+    return jac_sparsity
