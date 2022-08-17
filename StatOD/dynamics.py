@@ -213,9 +213,9 @@ def f_J2_DMC(x, args):
 ##########################
 def f_point_mass(x, args):
     x, y, z, vx, vy, vz = x
-    mu, = args
+    mu, x_body, y_body, z_body = args
 
-    r_mag = sqrt(x**2 + y**2 + z**2)
+    r_mag = sqrt((x - x_body)**2 + (y - y_body)**2 + (z - z_body)**2)
 
     U0 = -mu/r_mag
     
@@ -230,7 +230,6 @@ def f_point_mass(x, args):
     a_z = -U0_z
 
     return np.array([vx, vy, vz, a_x, a_y, a_z]).tolist()
-
 
 def f_J2(x, args):
     x, y, z, vx, vy, vz = x
@@ -391,7 +390,6 @@ def f_aug_J3(x, args):
 
     return np.array([vx, vy, vz, a_x, a_y, a_z, 0.0, 0.0, 0.0]).tolist() 
 
-
 ###########################
 # Consider State Dynamics #
 ###########################
@@ -431,7 +429,7 @@ def f_consider_J3(x, args):
 
 
 ##########################
-# scenario State Dynamics #
+# Scenario State Dynamics #
 ##########################
 def f_scenario_1_J2(x, args):
     x, y, z, vx, vy, vz, mu, J2, Cd, R_0x, R_0y, R_0z, R_1x, R_1y, R_1z, R_2x, R_2y, R_2z = x
@@ -936,11 +934,37 @@ def get_Q_DMC_scenario_2_mu(dt, x, Q, DCM, args):
 
     return Q_i_i_m1.tolist()
 
+#################
+# PINN Dynamics #
+#################
 
+def f_PINN(x, args):
+    X_sc_ECI = x
+    model = args[0]
+    X_body_ECI = args[1:].astype(float)
+    x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]
+    x_vel = X_sc_ECI[3:6] - X_body_ECI[3:6]
 
-#######################
-# Homework 8 Dynamics #
-#######################
+    x_acc = model.generate_acceleration(x_pos).reshape((-1,))
+    return np.hstack((x_vel, x_acc))
+
+def dfdx_PINN(x, f, args):
+    # f argument is needed to make interface standard 
+    X_sc_ECI = x
+    model = args[0]
+    X_body_ECI = args[1:].astype(float)
+
+    x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]
+
+    dfdx_acc = model.generate_dadx(x_pos).reshape((3,3))
+    dfdx_vel = np.eye(3)
+    zero_3x3 = np.zeros((3,3))
+    dfdx = np.block([[zero_3x3, dfdx_vel],[dfdx_acc, zero_3x3]])
+    return dfdx
+
+########################
+# UKF Example Dynamics #
+########################
 def f_spring(x, args):
     x, v_x = x
     k, eta = args
@@ -1084,6 +1108,19 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
 
 @njit(cache=False)
 def dynamics_ivp(t, Z, f, dfdx, f_args):
+    N = int(1/2 * (np.sqrt(4*len(Z) + 1) - 1))
+    X_inst = Z[0:N]
+    phi_inst = Z[N:].reshape((N,N))
+
+    f_inst = np.array(f(X_inst, f_args)).reshape((N))
+    dfdx_inst = np.array(dfdx(X_inst, f_inst, f_args)).reshape((N,N))
+
+    phi_dot = dfdx_inst@phi_inst
+    Zd = np.hstack((f_inst, phi_dot.reshape((-1))))
+    return Zd
+
+# @njit(cache=False)
+def dynamics_ivp_no_jit(t, Z, f, dfdx, f_args):
     N = int(1/2 * (np.sqrt(4*len(Z) + 1) - 1))
     X_inst = Z[0:N]
     phi_inst = Z[N:].reshape((N,N))
