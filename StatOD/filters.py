@@ -7,7 +7,7 @@ import time
 import copy
 from abc import ABC, abstractmethod
 
-from StatOD.utils import ProgressBar
+from StatOD.utils import ProgressBar, get_jac_sparsity_matrix
 
 @njit(cache=True)
 def numba_inv(A):
@@ -158,6 +158,11 @@ class FilterBase(ABC):
         self.t_events = None
         self.y_events = None
 
+        self.atol = 1E-14
+        self.rtol = 2.23E-14
+
+        self.jac_sparsity = get_jac_sparsity_matrix()
+
         pass
 
     def get_process_noise(self, t_i, x_i):
@@ -274,10 +279,11 @@ class KalmanFilter(FilterBase):
                         [self.t_i_m1, t_i], 
                         Z_i_m1, 
                         args=(self.f, self.dfdx, self.f_args), 
-                        atol=1E-14,
-                        rtol=2.23E-14, 
+                        atol=self.atol,
+                        rtol=self.rtol, 
                         method='RK45',
-                        events=self.events)
+                        events=self.events,
+                        jac_sparsity=self.jac_sparsity)
         x_i = sol.y[:N,-1]
         phi_i = sol.y[N:,-1].reshape((N,N))
         self.gather_event_data(t_i,sol)
@@ -384,7 +390,7 @@ class ExtendedKalmanFilter(FilterBase):
         N = len(x_hat_i_m1_plus)
         Z_i_m1 = np.hstack((x_hat_i_m1_plus, phi_i_m1.reshape((-1))))
         event_fcn = self.events
-        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, events=event_fcn)
+        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=self.atol, rtol=self.rtol, events=event_fcn)
         x_i = sol.y[:N,-1]
         phi_i = sol.y[N:,-1].reshape((N,N))
 
@@ -508,7 +514,7 @@ class NonLinearBatchFilter(FilterBase):
     def propagate_trajectory(self, t_vec, x_hat_0, phi_0):
         N = len(x_hat_0)
         Z_i_m1 = np.hstack((x_hat_0, phi_0.reshape((-1))))
-        sol = solve_ivp(dynamics_ivp, [t_vec[0], t_vec[-1]], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, t_eval=t_vec, method='RK45')
+        sol = solve_ivp(dynamics_ivp, [t_vec[0], t_vec[-1]], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=self.atol, rtol=self.rtol, t_eval=t_vec, method='RK45')
 
         x_hat = sol.y[:N].T.reshape((-1,N))
         phi = sol.y[N:].T.reshape((-1,N,N))
@@ -694,7 +700,7 @@ class SquareRootInformationFilter(FilterBase):
         N = len(x_i_m1)
         Z_i_m1 = np.hstack((x_i_m1, phi_i_m1.reshape((-1))))
         event_fcn = self.events
-        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, method='RK45',events=event_fcn)
+        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=self.atol, rtol=self.rtol, method='RK45',events=event_fcn)
         x_i = sol.y[:N,-1]
         phi_i = sol.y[N:,-1].reshape((N,N))
 
@@ -968,7 +974,7 @@ class UnscentedKalmanFilter(FilterBase):
             else:
                 sigma_i_m1_plus[k] = x_hat_i_m1_plus - self.gamma[(k-1)-N]*sigma_vecs[:,(k-1)-(N)]
 
-        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], sigma_i_m1_plus.reshape((-1,)), args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, events=event_fcn)
+        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], sigma_i_m1_plus.reshape((-1,)), args=(self.f, self.dfdx, self.f_args), atol=self.atol, rtol=self.rtol, events=event_fcn)
         x_i = sol.y[:,-1].reshape((2*N+1,N))
         self.gather_event_data(t_i,sol)
 
@@ -1134,7 +1140,7 @@ class ConsiderCovarianceFilter(FilterBase):
     def propagate_forward(self, t_i, x_i_m1, phi_i_m1):
         N = len(x_i_m1)
         Z_i_m1 = np.hstack((x_i_m1, phi_i_m1.reshape((-1))))
-        sol = solve_ivp(dynamics_ivp, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=1E-14, rtol=2.23E-14, method='RK45')
+        sol = solve_ivp(dynamics_ivp, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=self.atol, rtol=self.rtol, method='RK45')
         x_i = sol.y[:N,-1]
         phi_i = sol.y[N:,-1].reshape((N,N))
         self.gather_event_data(t_i,sol)
@@ -1303,8 +1309,8 @@ class SequentialConsiderCovarianceFilter(FilterBase):
         Z_i_m1 = np.hstack((x_i_m1, c_i_m1, phi_i_m1.reshape((-1)), theta_i_m1.reshape((-1))))
         sol = solve_ivp(consider_dynamics_ivp, [self.t_i_m1, t_i], Z_i_m1, 
                         args=(self.f, self.dfdx, self.dfdc, self.f_args, N, M, self.f_consider_mask), 
-                        atol=1E-14, 
-                        rtol=2.23E-14, 
+                        atol=self.atol, 
+                        rtol=self.rtol, 
                         method='RK45')
         x_i = sol.y[:N,-1]
         c_i = sol.y[N:N+M,-1]
@@ -1477,7 +1483,7 @@ class ParticleFilter(FilterBase):
     def propagate_forward(self, t_i, x_i_m1):
         N = len(x_i_m1)
         Z_i_m1 = x_i_m1.reshape((-1,))
-        sol = solve_ivp(dynamics_ivp_particle, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, N, self.f_args), atol=1E-14, rtol=2.23E-14, method='RK45')
+        sol = solve_ivp(dynamics_ivp_particle, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, N, self.f_args), atol=self.atol, rtol=self.rtol, method='RK45')
         x_i = sol.y[:,-1].reshape((N,-1))
         self.gather_event_data(t_i,sol)
 
