@@ -970,6 +970,54 @@ def dfdx_PINN(x, f, args):
     dfdx = np.block([[zero_3x3, dfdx_vel],[dfdx_acc_m, zero_3x3]])
     return dfdx
 
+def f_PINN_DMC(x, args):
+    X_sc_ECI = x[0:6]
+    w_vec = x[6:]
+
+    model = args[0]
+    X_body_ECI = args[1:-1].astype(float)
+    tau = float(args[-1])
+
+    x_pos_km = (X_sc_ECI[0:3] - X_body_ECI[0:3])
+    x_vel_km = (X_sc_ECI[3:6] - X_body_ECI[3:6])
+
+    # gravity model requires meters so convert km -> m
+    x_pos_m = x_pos_km*1E3
+    x_acc_m = model.generate_acceleration(x_pos_m).reshape((-1,))
+
+    #convert acceleration to km/s^2
+    x_acc_km = x_acc_m/1E3
+    
+    w_d = -1.0/tau*w_vec
+
+    return np.hstack((x_vel_km, x_acc_km, w_d))
+
+def dfdx_PINN_DMC(x, f, args):
+    # f argument is needed to make interface standard 
+    X_sc_ECI = x
+    model = args[0]
+    X_body_ECI = args[1:-1].astype(float)
+    tau = float(args[-1])
+    
+    x_pos_km = X_sc_ECI[0:3] - X_body_ECI[0:3]
+    x_pos_m = x_pos_km*1E3
+
+    dfdx_acc_m = model.generate_dadx(x_pos_m).reshape((3,3)) #[(m/s^2) / m] = [1/s^2]
+
+    dfdx_vel = np.eye(3)
+    zero_3x3 = np.zeros((3,3))
+    dfdx = np.block([[zero_3x3, dfdx_vel],[dfdx_acc_m, zero_3x3]])
+
+    dfdw = np.eye(3) * -1.0/tau
+    zeros_6x3 = np.zeros((6,3))
+    dfdz = np.block(
+        [
+            [dfdx, zeros_6x3],
+            [zeros_6x3.T, dfdw]
+        ]
+    )
+    return dfdz
+
 ########################
 # UKF Example Dynamics #
 ########################
