@@ -135,12 +135,17 @@ class pinnGravityModel():
         # configure preprocessing layers
         x_transformer = config['x_transformer'][0]
         u_transformer = config['u_transformer'][0]
+        a_transformer = config['a_transformer'][0]
 
         x_preprocessor = PreprocessingLayer(x_transformer.min_, x_transformer.scale_, tf.float64)
         u_postprocessor = PostprocessingLayer(u_transformer.min_, u_transformer.scale_, tf.float64)
+        a_preprocessor = PreprocessingLayer(a_transformer.min_, a_transformer.scale_, tf.float64)
+        a_postprocessor = PostprocessingLayer(a_transformer.min_, a_transformer.scale_, tf.float64)
 
         self.gravity_model.x_preprocessor = x_preprocessor
         self.gravity_model.u_postprocessor = u_postprocessor
+        self.gravity_model.a_preprocessor = a_preprocessor
+        self.gravity_model.a_postprocessor = a_postprocessor
 
     def generate_acceleration(self, X):
         R = np.array(X).reshape((-1,3)).astype(np.float32)
@@ -173,6 +178,25 @@ class pinnGravityModel():
             U_pm = np.zeros((len(R), 1))
             U_pm[:,0] = -self.planet.mu/r
             return (U_pm + U_model).squeeze()
+
+    def train(self, X, Y, **kwargs):
+        A = Y + self.generate_acceleration(X)
+        X_process = self.gravity_model.x_preprocessor(X)
+        Y_process = self.gravity_model.a_preprocessor(A)
+        if self.config['PINN_constraint_fcn'][0] == "pinn_alc":
+            Y_LC = np.full((len(Y_process), 4))
+            Y_process = np.hstack((Y_process, Y_LC))
+        self.gravity_model.fit(
+            X_process, Y_process,
+            batch_size=kwargs.get("batch_size", 1),
+            epochs=kwargs.get("epochs", 10),
+
+        )
+
+    def save(self, df_file, data_dir):
+        # save the network and config data using PINN-GM API
+        self.gravity_model.save(df_file, data_dir)
+
 
 def get_jac_sparsity_matrix():
     jac_sparsity = np.zeros((42,42))

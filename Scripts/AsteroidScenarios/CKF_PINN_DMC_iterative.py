@@ -3,7 +3,7 @@ Kalman Filter with Dynamic Model Compensation Example
 ============================================================
 
 """
-
+import os
 import time
 import pickle
 import numpy as np
@@ -25,7 +25,8 @@ def main():
     cart_state = X_SB_E + ep.X_BE_E
                            
     model = pinnGravityModel(os.path.dirname(GravNN.__file__) + \
-        "/../Data/Dataframes/eros_BVP_PINN_III.data")
+        "/../Data/Dataframes/eros_point_mass.data")
+        # "/../Data/Dataframes/eros_BVP_PINN_III.data")
     t, Y, X_stations_ECI = get_measurements("Data/Measurements/range_rangerate_asteroid_wo_noise.data", t_gap=60)
 
     # Decrease scenario length
@@ -88,7 +89,32 @@ def main():
     filter.f_integrate = dynamics_ivp_no_jit # can't pass the model into the numba JIT function
     filter.atol = 1E-7
     filter.rtol = 1E-7
-    filter.run(t, Y[:,1:], R_vec, f_args_vec, h_args_vec)
+
+    batch_size = 32
+    total_batches = len(Y) // batch_size
+    for k in range(total_batches):
+
+        # Gather measurements in batch
+        start_idx = k*batch_size
+        end_idx = (k+1)*batch_size
+        t_batch = t[start_idx:end_idx]
+        Y_batch = Y[start_idx:end_idx,1:]
+        R_batch = R_vec[start_idx:end_idx]
+        f_args_batch = f_args_vec[start_idx:end_idx]
+        h_args_batch = h_args_vec[start_idx:end_idx]
+
+        # run the filter on the batch of measurements
+        filter.run(t_batch, Y_batch, R_batch, f_args_batch, h_args_batch)
+
+        # collect network training data
+        X_train = filter.logger.x_hat_i_plus[start_idx:end_idx,0:3] # position estimates
+        Y_train = filter.logger.x_hat_i_plus[start_idx:end_idx,6:9] # high-order accel est
+        model.train(X_train, Y_train)
+
+    # save the updated network in a custom network directory
+    data_dir = os.path.dirname(StatOD.__file__) + "/../Data/"
+    model.save("trained_networks.data", custom_data_dir=data_dir)
+
     print("Time Elapsed: " + str(time.time() - start_time))
 
     ##################################
