@@ -119,8 +119,8 @@ import pandas as pd
 import tensorflow as tf
 
 class pinnGravityModel():
-    def __init__(self, df_file):
-        df = pd.read_pickle(df_file)
+    def __init__(self, df_file, custom_data_dir=""):
+        df = pd.read_pickle(custom_data_dir + df_file)
         config, gravity_model = load_config_and_model(df.iloc[-1]['id'], df)
         self.config = config
         self.gravity_model = gravity_model
