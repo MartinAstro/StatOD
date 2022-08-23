@@ -235,8 +235,6 @@ class FilterBase(ABC):
     
     def run(self, t_vec, y_vec, R_vec, f_arg_vec, h_arg_vec, h_args_append=None):
         pbar = ProgressBar(len(t_vec)-1, enable=True)
-
-
         for i in range(len(t_vec)):
             t_i = t_vec[i]
             y_i = y_vec[i]

@@ -115,8 +115,11 @@ from GravNN.Support.transformations import cart2sph, invert_projection, project_
 from GravNN.GravityModels.Polyhedral import Polyhedral
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Networks.Layers import PreprocessingLayer, PostprocessingLayer
+from GravNN.Networks.Data import generate_dataset
+from GravNN.Networks.utils import configure_optimizer
 import pandas as pd
 import tensorflow as tf
+# tf.config.run_functions_eagerly(True)
 
 class pinnGravityModel():
     def __init__(self, df_file, custom_data_dir=""):
@@ -125,6 +128,8 @@ class pinnGravityModel():
         self.config = config
         self.gravity_model = gravity_model
         self.planet = config['planet'][0]
+        # self.config['learning_rate'][0] = 1E-8
+        self.optimizer = configure_optimizer(self.config, None)
         removed_pm = config.get('remove_point_mass', [False])[0]
         deg_removed = config.get('deg_removed', [-1])[0]
         if removed_pm or deg_removed > -1:
@@ -137,10 +142,11 @@ class pinnGravityModel():
         u_transformer = config['u_transformer'][0]
         a_transformer = config['a_transformer'][0]
 
-        x_preprocessor = PreprocessingLayer(x_transformer.min_, x_transformer.scale_, tf.float64)
-        u_postprocessor = PostprocessingLayer(u_transformer.min_, u_transformer.scale_, tf.float64)
-        a_preprocessor = PreprocessingLayer(a_transformer.min_, a_transformer.scale_, tf.float64)
-        a_postprocessor = PostprocessingLayer(a_transformer.min_, a_transformer.scale_, tf.float64)
+        # TODO: Fix this, it's very counter intuitive. 
+        x_preprocessor = PostprocessingLayer(x_transformer.data_min_, x_transformer.data_range_, tf.float64) # normalizing layer
+        u_postprocessor = PreprocessingLayer(u_transformer.data_min_, u_transformer.data_range_, tf.float64) # unnormalize layer
+        a_preprocessor = PostprocessingLayer(a_transformer.data_min_, a_transformer.data_range_, tf.float64) # normalizing layer
+        a_postprocessor = PreprocessingLayer(a_transformer.data_min_, a_transformer.data_range_, tf.float64) # unormalizing layer
 
         self.gravity_model.x_preprocessor = x_preprocessor
         self.gravity_model.u_postprocessor = u_postprocessor
@@ -180,17 +186,23 @@ class pinnGravityModel():
             return (U_pm + U_model).squeeze()
 
     def train(self, X, Y, **kwargs):
-        A = Y + self.generate_acceleration(X)
-        X_process = self.gravity_model.x_preprocessor(X)
-        Y_process = self.gravity_model.a_preprocessor(A)
+        X_m = X*1E3
+        A_DMC = Y*1E3 # convert to m/s^2
+        A = A_DMC + self.generate_acceleration(X_m)
+        X_process = self.gravity_model.x_preprocessor(X_m).numpy()
+        Y_process = self.gravity_model.a_preprocessor(A).numpy()
         if self.config['PINN_constraint_fcn'][0] == "pinn_alc":
             Y_LC = np.full((len(Y_process), 4))
             Y_process = np.hstack((Y_process, Y_LC))
-        self.gravity_model.fit(
-            X_process, Y_process,
-            batch_size=kwargs.get("batch_size", 1),
-            epochs=kwargs.get("epochs", 10),
 
+        batch_size = kwargs.get("batch_size", 32)
+        dataset = generate_dataset(X_process, Y_process, batch_size)
+        self.gravity_model.compile(optimizer=self.optimizer, loss='mse')
+        self.gravity_model.fit(
+            dataset,
+            batch_size=batch_size,
+            epochs=kwargs.get("epochs", 5),
+            use_multiprocessing=True,
         )
 
     def save(self, df_file, data_dir):
