@@ -128,7 +128,7 @@ class pinnGravityModel():
         self.config = config
         self.gravity_model = gravity_model
         self.planet = config['planet'][0]
-        # self.config['learning_rate'][0] = 1E-8
+        self.config['learning_rate'][0] = 1E-7
         self.optimizer = configure_optimizer(self.config, None)
         removed_pm = config.get('remove_point_mass', [False])[0]
         deg_removed = config.get('deg_removed', [-1])[0]

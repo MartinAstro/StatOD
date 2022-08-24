@@ -15,3 +15,5 @@ docs/build/*
 docs/source/auto_examples
 docs/source/Tutorials
 Scripts/Archived/
+Data/Networks
+Data/Dataframes

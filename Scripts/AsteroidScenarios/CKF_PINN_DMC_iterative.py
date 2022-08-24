@@ -25,8 +25,8 @@ def main():
     cart_state = X_SB_E + ep.X_BE_E
                            
     model = pinnGravityModel(os.path.dirname(GravNN.__file__) + \
-        # "/../Data/Dataframes/eros_point_mass.data")
-        "/../Data/Dataframes/eros_BVP_PINN_III.data")
+        "/../Data/Dataframes/eros_point_mass_v2.data")
+        # "/../Data/Dataframes/eros_BVP_PINN_III.data")
     t, Y, X_stations_ECI = get_measurements("Data/Measurements/range_rangerate_asteroid_wo_noise.data", t_gap=60)
 
     # Decrease scenario length
@@ -112,11 +112,11 @@ def main():
         # collect network training data
         X_train = filter.logger.x_hat_i_plus[start_idx:end_idx,0:3] - ep.X_BE_E[0:3]# position estimates
         Y_train = filter.logger.x_hat_i_plus[start_idx:end_idx,6:9] # high-order accel est
-        model.train(X_train, Y_train)
+        model.train(X_train, Y_train, epochs=10, batch_size=8)
 
     # save the updated network in a custom network directory
-    data_dir = os.path.dirname(StatOD.__file__) + "/../Data/"
-    model.save("trained_networks.data", data_dir)
+    data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
+    model.save("trained_networks_pm.data", data_dir)
 
     print("Time Elapsed: " + str(time.time() - start_time))
 
