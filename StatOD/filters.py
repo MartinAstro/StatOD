@@ -122,6 +122,14 @@ class FilterLogger():
 
             self.theta_ti_ti_m1[idx] = data.get('theta_ti_ti_m1', empty_mat)
             self.theta_ti_t0[idx] = data.get('theta_ti_t0', empty_mat)
+
+    def save(self, name=None):
+        save_path = os.path.dirname(StatOD.__file__) + "/../Data/FilterLogs"
+        os.makedirs(save_path, exist_ok=True)
+        if name is None:
+            name = time.time()
+        with open(f"{save_path}/{name}.data", 'wb') as f:
+            pickle.dump(self, f)
             
 
     def clear(self):

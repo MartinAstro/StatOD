@@ -26,6 +26,7 @@ def main():
                            
     model = pinnGravityModel(os.path.dirname(GravNN.__file__) + \
         "/../Data/Dataframes/eros_point_mass_v2.data")
+    model.set_PINN_training_fcn("pinn_alc")
         # "/../Data/Dataframes/eros_BVP_PINN_III.data")
     t, Y, X_stations_ECI = get_measurements("Data/Measurements/range_rangerate_asteroid_wo_noise.data", t_gap=60)
 
@@ -41,15 +42,19 @@ def main():
     dz0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) 
     z0 = z0 + dz0
 
-    P_diag = np.array([1E3, 1E3, 1E3, 10, 10, 10, 1E-7, 1E-7, 1E-7])**2
+    P_diag = np.array([1E1, 1E1, 1E1, 1E-1, 1E-1, 1E-1, 1E-7, 1E-7, 1E-7])**2
     R_diag = np.array([1E-3, 1E-6])**2
     P0 = np.diag(P_diag) 
     R0 = np.diag(R_diag)
     t0 = 0.0
 
     # Initialize Process Noise
-    tau = 100.0
-    Q0 = np.eye(3) * 1e-10 ** 2
+    # tau = 140.0 # Larger values mean longer time correlation
+    tau = 100.0 # Larger values mean longer time correlation
+    Q0 = np.eye(3) * 5e-8 ** 2
+    # tau = 100.0 # Larger values mean longer time correlation
+    # Q0 = np.eye(3) * 1e-8 ** 2
+    # Q0 = np.eye(3) * 1e-10 ** 2
     Q_args = [tau,]
     Q_fcn = process_noise(z0, Q0, get_Q_DMC, Q_args, use_numba=False)
 
@@ -112,11 +117,15 @@ def main():
         # collect network training data
         X_train = filter.logger.x_hat_i_plus[start_idx:end_idx,0:3] - ep.X_BE_E[0:3]# position estimates
         Y_train = filter.logger.x_hat_i_plus[start_idx:end_idx,6:9] # high-order accel est
-        model.train(X_train, Y_train, epochs=10, batch_size=8)
+        model.train(X_train, Y_train, epochs=0, batch_size=batch_size)
 
     # save the updated network in a custom network directory
     data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
     model.save("trained_networks_pm.data", data_dir)
+
+    # (optional): save the log
+    q = np.sqrt(np.diag(Q0)[0])
+    filter.logger.save(f"DMC_{q}_{tau}")
 
     print("Time Elapsed: " + str(time.time() - start_time))
 
