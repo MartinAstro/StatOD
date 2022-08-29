@@ -116,10 +116,9 @@ from GravNN.GravityModels.Polyhedral import Polyhedral
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Networks.Layers import PreprocessingLayer, PostprocessingLayer
 from GravNN.Networks.Data import generate_dataset
-from GravNN.Networks.utils import configure_optimizer
+from GravNN.Networks.utils import configure_optimizer, _get_loss_fcn, _get_PI_constraint
 import pandas as pd
 import tensorflow as tf
-# tf.config.run_functions_eagerly(True)
 
 class pinnGravityModel():
     def __init__(self, df_file, custom_data_dir=""):
@@ -128,7 +127,7 @@ class pinnGravityModel():
         self.config = config
         self.gravity_model = gravity_model
         self.planet = config['planet'][0]
-        self.config['learning_rate'][0] = 1E-7
+        self.config['learning_rate'][0] = 1E-6
         self.optimizer = configure_optimizer(self.config, None)
         removed_pm = config.get('remove_point_mass', [False])[0]
         deg_removed = config.get('deg_removed', [-1])[0]
@@ -185,18 +184,28 @@ class pinnGravityModel():
             U_pm[:,0] = -self.planet.mu/r
             return (U_pm + U_model).squeeze()
 
+    def set_PINN_training_fcn(self, PINN_constraint_fcn):
+        PINN_variables = _get_PI_constraint(PINN_constraint_fcn)
+        self.gravity_model.eval = PINN_variables[0]
+        self.gravity_model.scale_loss = PINN_variables[1]
+        self.gravity_model.adaptive_constant = tf.Variable(PINN_variables[2], dtype=tf.float32)
+        self.config['PINN_constraint_fcn'] = [PINN_constraint_fcn]
+
     def train(self, X, Y, **kwargs):
+        # tf.config.run_functions_eagerly(True)
+
         X_m = X*1E3
         A_DMC = Y*1E3 # convert to m/s^2
         A = A_DMC + self.generate_acceleration(X_m)
         X_process = self.gravity_model.x_preprocessor(X_m).numpy()
         Y_process = self.gravity_model.a_preprocessor(A).numpy()
         if self.config['PINN_constraint_fcn'][0] == "pinn_alc":
-            Y_LC = np.full((len(Y_process), 4))
+            Y_LC = np.full((len(Y_process), 4), 0.0)
             Y_process = np.hstack((Y_process, Y_LC))
 
         batch_size = kwargs.get("batch_size", 32)
         dataset = generate_dataset(X_process, Y_process, batch_size)
+        dataset.shuffle(buffer_size=batch_size)
         self.gravity_model.compile(optimizer=self.optimizer, loss='mse')
         self.gravity_model.fit(
             dataset,
