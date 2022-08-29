@@ -6,6 +6,7 @@ import os
 from GravNN.Visualization.VisualizationBase import VisualizationBase
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.ticker as mticker
+import StatOD
 
 from GravNN.CelestialBodies.Asteroids import Eros
 
@@ -115,11 +116,13 @@ def plot_cartesian_state_3d(X, obj_file=None, **kwargs):
 
 def main():
 
-    vis = VisualizationBase()
+    vis = VisualizationBase(save_directory=StatOD.__path__[0] + "/../Plots/")
     with open("Data/Trajectories/trajectory_asteroid.data", 'rb') as f:
         data = pickle.load(f)
     
-    plot_cartesian_state_3d(data['X']*1E3, Eros().obj_8k)        
+    plot_cartesian_state_3d(data['X']*1E3, Eros().obj_8k)     
+
+    vis.save(plt.gcf(), "spacecraft_trajectory.pdf")   
     plt.show()
     
 if __name__ == "__main__":
