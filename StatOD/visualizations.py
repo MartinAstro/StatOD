@@ -76,10 +76,10 @@ class VisualizationBase():
         P = self.logger.P_i_plus
         labels = self.logger.state_labels
         for i in range(N):
-            self.__plot_state_error(x_hat[:,i], x_true[:,i], np.sqrt(P[:,i,i]), labels[i])
+            self.plot_state_error(x_hat[:,i], x_true[:,i], np.sqrt(P[:,i,i]), labels[i])
 
 
-    def __plot_state_error(self, x_hat, x_true, sigma, y_label):
+    def plot_state_error(self, x_hat, x_true, sigma, y_label):
         state_error = x_hat - x_true
         cov_upper = 3*sigma
         cov_lower = -3*sigma
