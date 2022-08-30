@@ -121,13 +121,14 @@ import pandas as pd
 import tensorflow as tf
 
 class pinnGravityModel():
-    def __init__(self, df_file, custom_data_dir=""):
+    def __init__(self, df_file, custom_data_dir="", learning_rate=None):
         df = pd.read_pickle(custom_data_dir + df_file)
         config, gravity_model = load_config_and_model(df.iloc[-1]['id'], df)
         self.config = config
         self.gravity_model = gravity_model
         self.planet = config['planet'][0]
-        self.config['learning_rate'][0] = 1E-6
+        if learning_rate is not None:
+            self.config['learning_rate'][0] = learning_rate
         self.optimizer = configure_optimizer(self.config, None)
         removed_pm = config.get('remove_point_mass', [False])[0]
         deg_removed = config.get('deg_removed', [-1])[0]
