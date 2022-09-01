@@ -61,7 +61,8 @@ def main():
 
     # PINN trained using DMC
     df = pd.read_pickle(os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/trained_networks_pm.data")
-    model_id = df["id"].values[32] # ALC without extra
+    # model_id = df["id"].values[32] # ALC without extra
+    model_id = df["id"].values[83] 
     config, model = load_config_and_model(model_id, df, custom_data_dir=os.path.dirname(StatOD.__file__)+"/../Data")
     fig_list = generate_plot(model, config, radius, density, max_percent)
     for idx, fig in enumerate(fig_list):
