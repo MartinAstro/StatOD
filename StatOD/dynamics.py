@@ -151,6 +151,7 @@ def get_Q_DMC(dt, x, Q, DCM, args):
     phi = exp(A*dt)
     
     B = zeros(N,M)
+
     B[6,0] = 1
     B[7,1] = 1
     B[8,2] = 1
@@ -986,7 +987,7 @@ def f_PINN_DMC(x, args):
     x_acc_m = model.generate_acceleration(x_pos_m).reshape((-1,))
 
     #convert acceleration to km/s^2
-    x_acc_km = x_acc_m/1E3
+    x_acc_km = x_acc_m/1E3 + w_vec
     
     w_d = -1.0/tau*w_vec
 
@@ -1010,9 +1011,12 @@ def dfdx_PINN_DMC(x, f, args):
 
     dfdw = np.eye(3) * -1.0/tau
     zeros_6x3 = np.zeros((6,3))
+    intermediate_6x3 = np.zeros((6,3))
+    intermediate_6x3[3:] = np.eye(3)
+
     dfdz = np.block(
         [
-            [dfdx, zeros_6x3],
+            [dfdx, intermediate_6x3],
             [zeros_6x3.T, dfdw]
         ]
     )
