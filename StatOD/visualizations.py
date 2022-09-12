@@ -130,6 +130,12 @@ class VisualizationBase():
 
 
 
+    def plot_vlines(self, idx_list):
+        for i in plt.get_fignums():
+            plt.figure(i)
+            ylim = plt.gca().get_ylim()
+            for idx in idx_list:
+                plt.vlines(self.logger.t_i[idx], ylim[0], ylim[1], colors='black', zorder=-10, linewidths=0.5, alpha=0.3)
 
 
 
