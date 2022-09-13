@@ -143,9 +143,13 @@ def get_Q_DMC(dt, x, Q, DCM, args):
     A[4,7] = 1
     A[5,8] = 1
 
-    A[6,6] = -1/tau
-    A[7,7] = -1/tau
-    A[8,8] = -1/tau
+    # TODO: Revisit this. If not commented, it causes the Q
+    # matrix to shrink the covariance instead of increase it. 
+    # For now, make the linear approximation used in SNC instead.
+    
+    # A[6,6] = -1/tau
+    # A[7,7] = -1/tau
+    # A[8,8] = -1/tau
 
     # phi = eye(N) + A*dt
     phi = exp(A*dt)
@@ -160,10 +164,11 @@ def get_Q_DMC(dt, x, Q, DCM, args):
 
     Q_i_i_m1 = np.zeros((N,N), dtype=np.object)
     for i in range(N): # f[i] differentiated
-        for j in range(i, N): # w.r.t. X[j]
+        for j in range(i,N): # w.r.t. X[j]
             integrated = integrate(integrand[i,j], dt)
             Q_i_i_m1[i,j] = integrated
             Q_i_i_m1[j,i] = integrated
+
             
     # numba can't work with arrays of sympy ints and floats in same matrix
     # so just force sympy ints to be floats
@@ -979,19 +984,17 @@ def f_PINN_DMC(x, args):
     X_body_ECI = args[1:-1].astype(float)
     tau = float(args[-1])
 
-    x_pos_km = (X_sc_ECI[0:3] - X_body_ECI[0:3])
-    x_vel_km = (X_sc_ECI[3:6] - X_body_ECI[3:6])
+    x_pos = (X_sc_ECI[0:3] - X_body_ECI[0:3]) # either km or [-]
+    x_vel = (X_sc_ECI[3:6] - X_body_ECI[3:6])
 
-    # gravity model requires meters so convert km -> m
-    x_pos_m = x_pos_km*1E3
-    x_acc_m = model.generate_acceleration(x_pos_m).reshape((-1,))
+    # scaling occurs within the gravity model 
+    x_acc_m = model.generate_acceleration(x_pos).reshape((-1,))
 
-    #convert acceleration to km/s^2
-    x_acc_km = x_acc_m/1E3 + w_vec
+    x_acc = x_acc_m + w_vec
     
     w_d = -1.0/tau*w_vec
 
-    return np.hstack((x_vel_km, x_acc_km, w_d))
+    return np.hstack((x_vel, x_acc, w_d))
 
 def dfdx_PINN_DMC(x, f, args):
     # f argument is needed to make interface standard 
@@ -1000,10 +1003,9 @@ def dfdx_PINN_DMC(x, f, args):
     X_body_ECI = args[1:-1].astype(float)
     tau = float(args[-1])
     
-    x_pos_km = X_sc_ECI[0:3] - X_body_ECI[0:3]
-    x_pos_m = x_pos_km*1E3
+    x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]# either km or [-]
 
-    dfdx_acc_m = model.generate_dadx(x_pos_m).reshape((3,3)) #[(m/s^2) / m] = [1/s^2]
+    dfdx_acc_m = model.generate_dadx(x_pos).reshape((3,3)) #[(m/s^2) / m] = [1/s^2]
 
     dfdx_vel = np.eye(3)
     zero_3x3 = np.zeros((3,3))
