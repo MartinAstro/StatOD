@@ -10,6 +10,7 @@ from sympy import init_printing
 from StatOD.utils import print_expression
 from StatOD.data import get_earth_position
 import StatOD
+from StatOD.dynamics_DMC import * 
 
 import os
 os.environ["NUMBA_CACHE_DIR"] = "./numba_cache_tmp"
@@ -61,8 +62,7 @@ def get_Q_original(dt, x, Q, DCM, args):
     M = Q.shape[0]
 
     A = zeros(N,N)
-    # for i in range(N // 2):
-    #     A[i, N//2 + i] = 1
+
     A[0,3] = 1
     A[1,4] = 1
     A[2,5] = 1
@@ -71,8 +71,7 @@ def get_Q_original(dt, x, Q, DCM, args):
     
     # control only influence x_dd
     B = zeros(N,M)
-    # for i in range(N // 2):
-    #     B[N//2 + i, i] = 1
+
     B[3,0] = 1
     B[4,1] = 1
     B[5,2] = 1
@@ -125,57 +124,6 @@ def get_Gamma_SRIF(dt, x, Q, DCM, args):
     Gamma_i_i_m1[np.where(Gamma_i_i_m1 == 1)] = 1.0
 
     return Gamma_i_i_m1.tolist()
-
-def get_Q_DMC(dt, x, Q, DCM, args):
-    N = len(x)
-    M = Q.shape[0]
-    tau, = args
-
-    A = zeros(N,N)
-
-    # velocities
-    A[0,3] = 1
-    A[1,4] = 1
-    A[2,5] = 1
-
-    # acceleration is just DMC
-    A[3,6] = 1
-    A[4,7] = 1
-    A[5,8] = 1
-
-    # TODO: Revisit this. If not commented, it causes the Q
-    # matrix to shrink the covariance instead of increase it. 
-    # For now, make the linear approximation used in SNC instead.
-    
-    # A[6,6] = -1/tau
-    # A[7,7] = -1/tau
-    # A[8,8] = -1/tau
-
-    # phi = eye(N) + A*dt
-    phi = exp(A*dt)
-    
-    B = zeros(N,M)
-
-    B[6,0] = 1
-    B[7,1] = 1
-    B[8,2] = 1
-
-    integrand = phi*B*DCM.T*Q*DCM*B.T*phi.T
-
-    Q_i_i_m1 = np.zeros((N,N), dtype=np.object)
-    for i in range(N): # f[i] differentiated
-        for j in range(i,N): # w.r.t. X[j]
-            integrated = integrate(integrand[i,j], dt)
-            Q_i_i_m1[i,j] = integrated
-            Q_i_i_m1[j,i] = integrated
-
-            
-    # numba can't work with arrays of sympy ints and floats in same matrix
-    # so just force sympy ints to be floats
-    Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
-    Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
-
-    return Q_i_i_m1.tolist()
 
 # DMC Models
 def f_J2_DMC(x, args):
@@ -570,375 +518,6 @@ def f_scenario_2(x, args):
                     Cr_dot, 
                     ]).tolist() 
 
-def f_scenario_2_mu(x, args):
-    x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, mu, mu_sun = x
-    x_E_sun, y_E_sun, z_E_sun, A2M, flux, misc, misc_2, AU, c = args
-    
-    # from earth to sun (E/S)
-    x_sun_E = -x_E_sun
-    y_sun_E = -y_E_sun
-    z_sun_E = -z_E_sun
-
-    # from sun to sc (B/S)
-    x_sc_sun = x_sc_E + x_E_sun
-    y_sc_sun = y_sc_E + y_E_sun
-    z_sc_sun = z_sc_E + z_E_sun
-
-    # from sun to sc (S/B)
-    x_sun_sc = -x_sc_sun
-    y_sun_sc = -y_sc_sun
-    z_sun_sc = -z_sc_sun
-
-    r_sc_E_mag   = sqrt(x_sc_E**2   + y_sc_E**2   + z_sc_E**2)
-    r_E_sun_mag  = sqrt(x_sun_E**2  + y_sun_E**2  + z_sun_E**2)
-    r_sc_sun_mag = sqrt(x_sc_sun**2 + y_sc_sun**2 + z_sc_sun**2)
-
-    # Gravity
-
-    # 2BP
-    a_x_grav_E = -mu*x_sc_E/r_sc_E_mag**3
-    a_y_grav_E = -mu*y_sc_E/r_sc_E_mag**3
-    a_z_grav_E = -mu*z_sc_E/r_sc_E_mag**3
-
-    # 3BP Perturbation
-    a_x_grav_sun = mu_sun*(x_sun_sc/r_sc_sun_mag**3 - x_sun_E/r_E_sun_mag**3)
-    a_y_grav_sun = mu_sun*(y_sun_sc/r_sc_sun_mag**3 - y_sun_E/r_E_sun_mag**3)
-    a_z_grav_sun = mu_sun*(z_sun_sc/r_sc_sun_mag**3 - z_sun_E/r_E_sun_mag**3)
-
-    # SRP
-
-    # P = flux/c
-    # scale = (AU/r_sc_sun_mag)**2
-
-    # a_x_SRP = -Cr*P*scale*A2M*(x_sun_sc/r_sc_sun_mag)
-    # a_y_SRP = -Cr*P*scale*A2M*(y_sun_sc/r_sc_sun_mag)
-    # a_z_SRP = -Cr*P*scale*A2M*(z_sun_sc/r_sc_sun_mag)
-
-    P = flux/c
-    a_x_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(x_sun_sc/r_sc_sun_mag)
-    a_y_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(y_sun_sc/r_sc_sun_mag)
-    a_z_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(z_sun_sc/r_sc_sun_mag)
-   
-    a_x = a_x_grav_E + a_x_grav_sun + a_x_SRP
-    a_y = a_y_grav_E + a_y_grav_sun + a_y_SRP
-    a_z = a_z_grav_E + a_z_grav_sun + a_z_SRP
-
-
-    Cr_dot = 0.0
-    mu_sun_dot = 0.0
-    mu_dot = 0.0
-
-    # return np.array([x_sc_E, y_sc_E, z_sc_E,
-    #                 x_E_sun, y_E_sun, z_E_sun,
-    #                 vx, vy, vz, 
-    #                 x_sc_sun, y_sc_sun, z_sc_sun, 
-    #                 a_x_grav_E, a_y_grav_E, a_z_grav_E, 
-    #                 a_x_grav_sun, a_y_grav_sun, a_z_grav_sun, 
-    #                 a_x_SRP, a_y_SRP, a_z_SRP, 
-    #                 Cr_dot, 
-    #                 ]) 
-
-    return np.array([vx, vy, vz, 
-                    a_x, a_y, a_z, 
-                    Cr_dot, 
-                    mu_dot, mu_sun_dot
-                    ]).tolist() 
-
-def f_scenario_2_extra(x, args):
-    x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, mu, mu_sun, A2M, flux = x
-    x_E_sun, y_E_sun, z_E_sun, misc_3, misc_4, misc, misc_2, AU, c = args
-    
-    # from earth to sun (E/S)
-    x_sun_E = -x_E_sun
-    y_sun_E = -y_E_sun
-    z_sun_E = -z_E_sun
-
-    # from sun to sc (B/S)
-    x_sc_sun = x_sc_E + x_E_sun
-    y_sc_sun = y_sc_E + y_E_sun
-    z_sc_sun = z_sc_E + z_E_sun
-
-    # from sun to sc (S/B)
-    x_sun_sc = -x_sc_sun
-    y_sun_sc = -y_sc_sun
-    z_sun_sc = -z_sc_sun
-
-    r_sc_E_mag   = sqrt(x_sc_E**2   + y_sc_E**2   + z_sc_E**2)
-    r_E_sun_mag  = sqrt(x_sun_E**2  + y_sun_E**2  + z_sun_E**2)
-    r_sc_sun_mag = sqrt(x_sc_sun**2 + y_sc_sun**2 + z_sc_sun**2)
-
-    # Gravity
-
-    # 2BP
-    a_x_grav_E = -mu*x_sc_E/r_sc_E_mag**3
-    a_y_grav_E = -mu*y_sc_E/r_sc_E_mag**3
-    a_z_grav_E = -mu*z_sc_E/r_sc_E_mag**3
-
-    # 3BP Perturbation
-    a_x_grav_sun = mu_sun*(x_sun_sc/r_sc_sun_mag**3 - x_sun_E/r_E_sun_mag**3)
-    a_y_grav_sun = mu_sun*(y_sun_sc/r_sc_sun_mag**3 - y_sun_E/r_E_sun_mag**3)
-    a_z_grav_sun = mu_sun*(z_sun_sc/r_sc_sun_mag**3 - z_sun_E/r_E_sun_mag**3)
-
-    # SRP
-
-    # P = flux/c
-    # scale = (AU/r_sc_sun_mag)**2
-
-    # a_x_SRP = -Cr*P*scale*A2M*(x_sun_sc/r_sc_sun_mag)
-    # a_y_SRP = -Cr*P*scale*A2M*(y_sun_sc/r_sc_sun_mag)
-    # a_z_SRP = -Cr*P*scale*A2M*(z_sun_sc/r_sc_sun_mag)
-
-    P = flux/c
-    a_x_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(x_sun_sc/r_sc_sun_mag)
-    a_y_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(y_sun_sc/r_sc_sun_mag)
-    a_z_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(z_sun_sc/r_sc_sun_mag)
-   
-    a_x = a_x_grav_E + a_x_grav_sun + a_x_SRP
-    a_y = a_y_grav_E + a_y_grav_sun + a_y_SRP
-    a_z = a_z_grav_E + a_z_grav_sun + a_z_SRP
-
-
-    Cr_dot = 0.0
-    mu_sun_dot = 0.0
-    mu_dot = 0.0
-    A2M_dot = 0.0
-    flux_dot = 0.0
-
-    # return np.array([x_sc_E, y_sc_E, z_sc_E,
-    #                 x_E_sun, y_E_sun, z_E_sun,
-    #                 vx, vy, vz, 
-    #                 x_sc_sun, y_sc_sun, z_sc_sun, 
-    #                 a_x_grav_E, a_y_grav_E, a_z_grav_E, 
-    #                 a_x_grav_sun, a_y_grav_sun, a_z_grav_sun, 
-    #                 a_x_SRP, a_y_SRP, a_z_SRP, 
-    #                 Cr_dot, 
-    #                 ]) 
-
-    return np.array([vx, vy, vz, 
-                    a_x, a_y, a_z, 
-                    Cr_dot, 
-                    mu_dot, mu_sun_dot,
-                    A2M_dot, flux_dot
-                    ]).tolist() 
-
-def f_scenario_2_DMC(x, args):
-    x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, w0, w1, w2 = x
-    x_E_sun, y_E_sun, z_E_sun, A2M, flux, mu, mu_sun, tau, c = args
-    
-    # from earth to sun (E/S)
-    x_sun_E = -x_E_sun
-    y_sun_E = -y_E_sun
-    z_sun_E = -z_E_sun
-
-    # from sun to sc (B/S)
-    x_sc_sun = x_sc_E + x_E_sun
-    y_sc_sun = y_sc_E + y_E_sun
-    z_sc_sun = z_sc_E + z_E_sun
-
-    # from sun to sc (S/B)
-    x_sun_sc = -x_sc_sun
-    y_sun_sc = -y_sc_sun
-    z_sun_sc = -z_sc_sun
-
-    r_sc_E_mag   = sqrt(x_sc_E**2   + y_sc_E**2   + z_sc_E**2)
-    r_E_sun_mag  = sqrt(x_sun_E**2  + y_sun_E**2  + z_sun_E**2)
-    r_sc_sun_mag = sqrt(x_sc_sun**2 + y_sc_sun**2 + z_sc_sun**2)
-
-    # Gravity
-
-    # 2BP
-    a_x_grav_E = -mu*x_sc_E/r_sc_E_mag**3
-    a_y_grav_E = -mu*y_sc_E/r_sc_E_mag**3
-    a_z_grav_E = -mu*z_sc_E/r_sc_E_mag**3
-
-    # 3BP Perturbation
-    a_x_grav_sun = mu_sun*(x_sun_sc/r_sc_sun_mag**3 - x_sun_E/r_E_sun_mag**3)
-    a_y_grav_sun = mu_sun*(y_sun_sc/r_sc_sun_mag**3 - y_sun_E/r_E_sun_mag**3)
-    a_z_grav_sun = mu_sun*(z_sun_sc/r_sc_sun_mag**3 - z_sun_E/r_E_sun_mag**3)
-
-    # SRP
-    P = flux/c
-    a_x_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(x_sun_sc/r_sc_sun_mag)
-    a_y_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(y_sun_sc/r_sc_sun_mag)
-    a_z_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(z_sun_sc/r_sc_sun_mag)
-
-    # DMC
-   
-    a_x = a_x_grav_E + a_x_grav_sun + a_x_SRP + w0
-    a_y = a_y_grav_E + a_y_grav_sun + a_y_SRP + w1
-    a_z = a_z_grav_E + a_z_grav_sun + a_z_SRP + w2
-
-
-    Cr_dot = 0.0
-
-    w0_d = -1/tau * w0
-    w1_d = -1/tau * w1
-    w2_d = -1/tau * w2
-
-    return np.array([vx, vy, vz, 
-                    a_x, a_y, a_z, 
-                    Cr_dot, 
-                    w0_d, w1_d, w2_d
-                    ]).tolist() 
-
-def get_Q_DMC_scenario_2(dt, x, Q, DCM, args):
-    N = len(x)
-    M = Q.shape[0]
-    tau, = args
-
-    A = zeros(N,N)
-    
-    # velocities
-    A[0,3] = 1
-    A[1,4] = 1
-    A[2,5] = 1
-
-    # acceleration is just DMC
-    A[3,6] = 1
-    A[4,7] = 1
-    A[5,8] = 1
-
-    # A[6,6] = 0 -- Constant Cr
-
-    A[7,7] = -1/tau
-    A[8,8] = -1/tau
-    A[9,9] = -1/tau
-
-    # phi = eye(N) + A*dt
-    phi = exp(A*dt)
-    
-    B = zeros(N,M)
-    B[7,0] = 1
-    B[8,1] = 1
-    B[9,2] = 1
-
-    integrand = phi*B*DCM.T*Q*DCM*B.T*phi.T
-
-    Q_i_i_m1 = np.zeros((N,N), dtype=np.object)
-    for i in range(N): # f[i] differentiated
-        for j in range(i, N): # w.r.t. X[j]
-            integrated = integrate(integrand[i,j], dt)
-            Q_i_i_m1[i,j] = integrated
-            Q_i_i_m1[j,i] = integrated
-            
-    # numba can't work with arrays of sympy ints and floats in same matrix
-    # so just force sympy ints to be floats
-    Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
-    Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
-
-    return Q_i_i_m1.tolist()
-
-def f_scenario_2_DMC_mu(x, args):
-    x_sc_E, y_sc_E, z_sc_E, vx, vy, vz, Cr, mu, mu_sun, w0, w1, w2 = x
-    x_E_sun, y_E_sun, z_E_sun, A2M, flux, misc, misc_2, tau, c = args
-    
-    # from earth to sun (E/S)
-    x_sun_E = -x_E_sun
-    y_sun_E = -y_E_sun
-    z_sun_E = -z_E_sun
-
-    # from sun to sc (B/S)
-    x_sc_sun = x_sc_E + x_E_sun
-    y_sc_sun = y_sc_E + y_E_sun
-    z_sc_sun = z_sc_E + z_E_sun
-
-    # from sun to sc (S/B)
-    x_sun_sc = -x_sc_sun
-    y_sun_sc = -y_sc_sun
-    z_sun_sc = -z_sc_sun
-
-    r_sc_E_mag   = sqrt(x_sc_E**2   + y_sc_E**2   + z_sc_E**2)
-    r_E_sun_mag  = sqrt(x_sun_E**2  + y_sun_E**2  + z_sun_E**2)
-    r_sc_sun_mag = sqrt(x_sc_sun**2 + y_sc_sun**2 + z_sc_sun**2)
-
-    # Gravity
-
-    # 2BP
-    a_x_grav_E = -mu*x_sc_E/r_sc_E_mag**3
-    a_y_grav_E = -mu*y_sc_E/r_sc_E_mag**3
-    a_z_grav_E = -mu*z_sc_E/r_sc_E_mag**3
-
-    # 3BP Perturbation
-    a_x_grav_sun = mu_sun*(x_sun_sc/r_sc_sun_mag**3 - x_sun_E/r_E_sun_mag**3)
-    a_y_grav_sun = mu_sun*(y_sun_sc/r_sc_sun_mag**3 - y_sun_E/r_E_sun_mag**3)
-    a_z_grav_sun = mu_sun*(z_sun_sc/r_sc_sun_mag**3 - z_sun_E/r_E_sun_mag**3)
-
-    # SRP
-    P = flux/c
-    a_x_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(x_sun_sc/r_sc_sun_mag)
-    a_y_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(y_sun_sc/r_sc_sun_mag)
-    a_z_SRP = -Cr*P/r_sc_sun_mag**2*A2M*(z_sun_sc/r_sc_sun_mag)
-
-    # DMC
-   
-    a_x = a_x_grav_E + a_x_grav_sun + a_x_SRP + w0
-    a_y = a_y_grav_E + a_y_grav_sun + a_y_SRP + w1
-    a_z = a_z_grav_E + a_z_grav_sun + a_z_SRP + w2
-
-
-    Cr_dot = 0.0
-    mu_dot = 0.0
-    mu_sun_dot = 0.0
-
-    w0_d = -1/tau * w0
-    w1_d = -1/tau * w1
-    w2_d = -1/tau * w2
-
-    return np.array([vx, vy, vz, 
-                    a_x, a_y, a_z, 
-                    Cr_dot, 
-                    mu_dot, mu_sun_dot,
-                    w0_d, w1_d, w2_d
-                    ]).tolist() 
-
-def get_Q_DMC_scenario_2_mu(dt, x, Q, DCM, args):
-    N = len(x)
-    M = Q.shape[0]
-    tau, = args
-
-    A = zeros(N,N)
-    
-    # velocities
-    A[0,3] = 1
-    A[1,4] = 1
-    A[2,5] = 1
-
-    # acceleration is just DMC
-    A[3,6] = 1
-    A[4,7] = 1
-    A[5,8] = 1
-
-    # A[6,6] = 0 -- Constant Cr
-    # A[7,7] = 0 -- Constant mu
-    # A[8,8] = 0 -- Constant mu_sun
-
-    A[9,9] = -1/tau
-    A[10,10] = -1/tau
-    A[11,11] = -1/tau
-
-    # phi = eye(N) + A*dt
-    phi = exp(A*dt)
-    
-    B = zeros(N,M)
-    B[9,0] = 1
-    B[10,1] = 1
-    B[11,2] = 1
-
-    integrand = phi*B*DCM.T*Q*DCM*B.T*phi.T
-
-    Q_i_i_m1 = np.zeros((N,N), dtype=np.object)
-    for i in range(N): # f[i] differentiated
-        for j in range(i, N): # w.r.t. X[j]
-            integrated = integrate(integrand[i,j], dt)
-            Q_i_i_m1[i,j] = integrated
-            Q_i_i_m1[j,i] = integrated
-            
-    # numba can't work with arrays of sympy ints and floats in same matrix
-    # so just force sympy ints to be floats
-    Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
-    Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
-
-    return Q_i_i_m1.tolist()
 
 #################
 # PINN Dynamics #
@@ -975,54 +554,6 @@ def dfdx_PINN(x, f, args):
     zero_3x3 = np.zeros((3,3))
     dfdx = np.block([[zero_3x3, dfdx_vel],[dfdx_acc_m, zero_3x3]])
     return dfdx
-
-def f_PINN_DMC(x, args):
-    X_sc_ECI = x[0:6]
-    w_vec = x[6:]
-
-    model = args[0]
-    X_body_ECI = args[1:-1].astype(float)
-    tau = float(args[-1])
-
-    x_pos = (X_sc_ECI[0:3] - X_body_ECI[0:3]) # either km or [-]
-    x_vel = (X_sc_ECI[3:6] - X_body_ECI[3:6])
-
-    # scaling occurs within the gravity model 
-    x_acc_m = model.generate_acceleration(x_pos).reshape((-1,))
-
-    x_acc = x_acc_m + w_vec
-    
-    w_d = -1.0/tau*w_vec
-
-    return np.hstack((x_vel, x_acc, w_d))
-
-def dfdx_PINN_DMC(x, f, args):
-    # f argument is needed to make interface standard 
-    X_sc_ECI = x
-    model = args[0]
-    X_body_ECI = args[1:-1].astype(float)
-    tau = float(args[-1])
-    
-    x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]# either km or [-]
-
-    dfdx_acc_m = model.generate_dadx(x_pos).reshape((3,3)) #[(m/s^2) / m] = [1/s^2]
-
-    dfdx_vel = np.eye(3)
-    zero_3x3 = np.zeros((3,3))
-    dfdx = np.block([[zero_3x3, dfdx_vel],[dfdx_acc_m, zero_3x3]])
-
-    dfdw = np.eye(3) * -1.0/tau
-    zeros_6x3 = np.zeros((6,3))
-    intermediate_6x3 = np.zeros((6,3))
-    intermediate_6x3[3:] = np.eye(3)
-
-    dfdz = np.block(
-        [
-            [dfdx, intermediate_6x3],
-            [zeros_6x3.T, dfdw]
-        ]
-    )
-    return dfdz
 
 ########################
 # UKF Example Dynamics #
@@ -1163,10 +694,6 @@ def process_noise(x, Q, Q_fcn, args, cse_func=cse, use_numba=True):
 
     return Q_func
 
-# dynamics = memory.cache(dynamics)
-
-# Use cached output regardless of the inputs
-# process_noise = memory.cache(process_noise)#, ignore=['x', 'f', 'args', 'cse_func', 'use_numba'])
 
 @njit(cache=False)
 def dynamics_ivp(t, Z, f, dfdx, f_args):
@@ -1214,6 +741,18 @@ def consider_dynamics_ivp(t, Z, f, dfdx, dfdc, args, N, M, consider_mask):
     
 @njit(cache=False)
 def dynamics_ivp_unscented(t, Z, f, dfdx, f_args):
+    L = len(Z)
+    N = int(1/4.*(np.sqrt(8*L + 1 ) -1))
+    sigma_points = Z.reshape((2*N + 1, N))
+    Zd = np.zeros((L,))
+    for k in range(2*N+1):
+        X_inst = sigma_points[k]
+        f_inst = np.array(f(X_inst, f_args)).reshape((N))
+        Zd[k*N:(k+1)*N] = f_inst
+    return Zd
+
+
+def dynamics_ivp_unscented_no_jit(t, Z, f, dfdx, f_args):
     L = len(Z)
     N = int(1/4.*(np.sqrt(8*L + 1 ) -1))
     sigma_points = Z.reshape((2*N + 1, N))
