@@ -64,7 +64,6 @@ class FilterLogger():
 
         self.sigma_i = np.zeros((samples, N))
 
-
         self.M = M # consider parameters
 
         if self.M is not None:
@@ -152,6 +151,7 @@ class FilterBase(ABC):
         self.Q_0 = f_dict.get('Q', None)
         self.Q_args = f_dict.get('Q_args', [])
         self.Q_DCM = f_dict.get('Q_DCM', no_rotation)
+        self.Q_dt = f_dict.get('Q_dt', 60)
 
         self.h = h_dict['h']
         self.dhdx = h_dict['dhdx']
@@ -185,8 +185,8 @@ class FilterBase(ABC):
             else:
                 dt = t_i - self.t_i_m1
                 Q_i_i_m1 = np.zeros((N,N))
-                if dt > 10*60: # 10 minutes
-                    tk_list = np.arange(0, dt, step=1*60) # 3 minutes
+                if dt > self.Q_dt: # 1 minutes by default
+                    tk_list = np.arange(0, dt, step=self.Q_dt) 
                     tk_list = np.append(tk_list, dt)
                     for k in range(1,len(tk_list)):
                         dt = tk_list[k] - tk_list[k-1]
@@ -396,7 +396,13 @@ class ExtendedKalmanFilter(FilterBase):
         N = len(x_hat_i_m1_plus)
         Z_i_m1 = np.hstack((x_hat_i_m1_plus, phi_i_m1.reshape((-1))))
         event_fcn = self.events
-        sol = solve_ivp(self.f_integrate, [self.t_i_m1, t_i], Z_i_m1, args=(self.f, self.dfdx, self.f_args), atol=self.atol, rtol=self.rtol, events=event_fcn)
+        sol = solve_ivp(self.f_integrate, 
+                        [self.t_i_m1, t_i], 
+                        Z_i_m1, 
+                        args=(self.f, self.dfdx, self.f_args), 
+                        atol=self.atol, 
+                        rtol=self.rtol, 
+                        events=event_fcn)
         x_i = sol.y[:N,-1]
         phi_i = sol.y[N:,-1].reshape((N,N))
 
