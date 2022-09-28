@@ -16,7 +16,6 @@ from StatOD.measurements import h_rho_rhod, measurements
 from StatOD.utils import pinnGravityModel
 from StatOD.visualizations import *
 from StatOD.constants import *
-import GravNN
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.Polyhedral import get_poly_data
 def main():
@@ -27,26 +26,20 @@ def main():
         "l_star" : 1E1
     }
 
-    # q_fcn = get_Q_DMC_wo_tau
     q_fcn = get_Q_DMC_wo_tau_model
     f_fcn = f_PINN_DMC_wo_tau
     dfdx_fcn = dfdx_PINN_DMC_wo_tau
 
-    # data_file = "trajectory_asteroid_inclined_short_timestep"
     data_file = "trajectory_asteroid_inclined_high_alt_30_timestep"
-    # data_file = "trajectory_asteroid_inclined_high_alt_short_timestep"
-    # data_file = "trajectory_asteroid_inclined_high_alt_shorter_timestep"
+
     package_dir = os.path.dirname(StatOD.__file__) + "/../"
     with open(package_dir + f'Data/Trajectories/{data_file}.data', 'rb') as f:
         traj_data = pickle.load(f)
 
     t, Y, X_stations_ECI = get_measurements(f"Data/Measurements/{data_file}_meas_noiseless.data", t_gap=30)
-    # R_diag = np.array([1E-3, 1E-6])**2 #/ 1E6
     R_diag = np.array([0.0,0.0])**2 
 
     Y[0,1:] = np.nan
-    # Y[:,1:] = np.nan # no measurements
-
     q = 1e-14
     scale = 1
 
@@ -56,17 +49,8 @@ def main():
         Q[3:6,3:6] = np.eye(3)*1E-8**2  / scale
         Q[6:9,6:9] = np.eye(3)*q**2 /scale
         return Q
-    # def Q_forced(z0, Q0, q_fcn, Q_args, use_numba=False):
-    #     Q = np.zeros((9,9))
-    #     Q[0:3,0:3] = np.eye(3)*1E-3**2  
-    #     Q[3:6,3:6] = np.eye(3)*1E-5**2  
-    #     Q[6:9,6:9] = np.eye(3)*q**2 
-    #     return Q
 
-
-    # 7.29 -- smooth signal, particularly nice covariances (albeit state exceeds bounds)
     batch_size = 256 * 4
-    # q = 1e-8 
     tau = 90
     Q_dt = 30 # seconds
 
@@ -81,10 +65,7 @@ def main():
         "m_star" : dim_constants['m_star'],
         "l_star" : dim_constants['l_star']*1E3
     }
-    # model = pinnGravityModel(os.path.dirname(GravNN.__file__) + \
-    #     "/../Data/Dataframes/eros_point_mass_v2.data", 
-    #     learning_rate=lr,
-    #     dim_constants=dim_constants_pinn)
+
     model = pinnGravityModel(os.path.dirname(StatOD.__file__) + \
         "/../Data/Dataframes/eros_point_mass_v4.data", # Better dimensionalization
         learning_rate=lr,
@@ -136,16 +117,9 @@ def main():
     t0 = 0.0
 
     # Initialize Process Noise
-
     Q0 = np.eye(3) * q ** 2
-    # Q_args = [tau,]
     Q_args = [tau, model]
     Q_fcn = Q_forced
-    # Q_fcn = None
-    # Q_fcn = process_noise(z0, Q0, q_fcn, Q_args, use_numba=False)
-    # Q_fcn = get_Q_DMC_wo_tau_model
-    # Q_args = [tau, model]
-    # Q_fcn = get_Q_PINN_DMC
 
     # Initialize Dynamics and Measurements
     f_args = np.hstack((model, eros_pos, tau))
@@ -180,11 +154,10 @@ def main():
 
     alpha = 1E-1 # determines the spread of the sigma points
     beta = 2.0 # used to incorporate knowledge of the distribution 
-    kappa = 0# 1E-3 # secondary scaling parameter (normally zero)
+    kappa = 0 # 1E-3 # secondary scaling parameter (normally zero)
 
     start_time = time.time()
     logger = FilterLogger(len(z0), len(t))
-    # filter = ExtendedKalmanFilter(t0, z0, dz0, P0, f_dict, h_dict, logger=logger)
     filter = UnscentedKalmanFilter(t0, z0, dz0, P0, alpha, kappa, beta, f_dict, h_dict, logger=logger)
     filter.f_integrate = dynamics_ivp_unscented_no_jit # can't pass the model into the numba JIT function
     filter.atol = 1E-9
@@ -206,8 +179,6 @@ def main():
 
         # usee latest trained model to f_args
         f_args_batch[:,0] = model
-        # filter.Q_args = [tau, ]
-        # filter.Q_args = [tau, model]
 
         # run the filter on the batch of measurements
         filter.run(t_batch, Y_batch, R_batch, f_args_batch, h_args_batch)
@@ -234,10 +205,6 @@ def main():
     print("Time Elapsed: " + str(time.time() - start_time))
 
 
-    # smooth = Smoother(logger)
-    # smooth.update()
-    # logger = smooth.logger
-
     ##################################
     # Gather measurement predictions #
     ##################################
@@ -251,7 +218,6 @@ def main():
     x_truth = np.hstack((x_truth, w_truth)) 
     y_hat_vec = np.zeros((len(t), 2))
     for i in range(len(t)):
-        # y_hat_vec[i] = filter.predict_measurement(logger.x_i[i], logger.dx_i_plus[i], h_args_vec[i])
         y_hat_vec[i] = filter.predict_measurement(logger.x_hat_i_plus[i],  h_args_vec[i])
 
     directory = "Plots/" + filter.__class__.__name__ + "/"
@@ -330,12 +296,3 @@ def main():
 if __name__ == "__main__":
     finished = False
     main()
-
-    # finished = False
-    # while not finished:
-    #     try:
-    #         main()
-    #         finished=True
-    #     except:
-    #         finished = False
-    #         print("Didn't finish")
