@@ -122,6 +122,8 @@ import tensorflow as tf
 
 class pinnGravityModel():
     def __init__(self, df_file, custom_data_dir="", learning_rate=None, dim_constants=None):
+
+        # tf.keras.mixed_precision.Policy("float64")
         df = pd.read_pickle(custom_data_dir + df_file)
         config, gravity_model = load_config_and_model(df.iloc[-1]['id'], df)
         self.config = config
@@ -151,11 +153,17 @@ class pinnGravityModel():
         u_transformer = config['u_transformer'][0]
         a_transformer = config['a_transformer'][0]
 
+        # # TODO: Fix this, it's very counter intuitive. 
+        # x_preprocessor = PostprocessingLayer(0, x_transformer.scale_, tf.float64) # normalizing layer
+        # u_postprocessor = PreprocessingLayer(0, u_transformer.scale_, tf.float64) # unnormalize layer
+        # a_preprocessor = PostprocessingLayer(0, a_transformer.scale_, tf.float64) # normalizing layer
+        # a_postprocessor = PreprocessingLayer(0, a_transformer.scale_, tf.float64) # unormalizing layer
+
         # TODO: Fix this, it's very counter intuitive. 
-        x_preprocessor = PostprocessingLayer(x_transformer.data_min_, x_transformer.data_range_, tf.float64) # normalizing layer
-        u_postprocessor = PreprocessingLayer(u_transformer.data_min_, u_transformer.data_range_, tf.float64) # unnormalize layer
-        a_preprocessor = PostprocessingLayer(a_transformer.data_min_, a_transformer.data_range_, tf.float64) # normalizing layer
-        a_postprocessor = PreprocessingLayer(a_transformer.data_min_, a_transformer.data_range_, tf.float64) # unormalizing layer
+        x_preprocessor = PreprocessingLayer(0, x_transformer.scale_, tf.float64) # normalizing layer
+        u_postprocessor = PostprocessingLayer(0, u_transformer.scale_, tf.float64) # unnormalize layer
+        a_preprocessor = PreprocessingLayer(0, a_transformer.scale_, tf.float64) # normalizing layer
+        a_postprocessor = PostprocessingLayer(0, a_transformer.scale_, tf.float64) # unormalizing layer
 
         self.gravity_model.x_preprocessor = x_preprocessor
         self.gravity_model.u_postprocessor = u_postprocessor
@@ -164,7 +172,7 @@ class pinnGravityModel():
 
     def generate_acceleration(self, X):
         X_dim = X*self.dim_constants['l_star']
-        R = np.array(X_dim).reshape((-1,3)).astype(np.float32)
+        R = np.array(X_dim).reshape((-1,3)).astype(np.float64)
         a_model = self.gravity_model.generate_acceleration(R).numpy() # this is currently a_r > 0
 
         if not self.removed_pm:
@@ -183,14 +191,14 @@ class pinnGravityModel():
 
     def generate_dadx(self, X):
         X_dim = X*self.dim_constants['l_star']
-        R = np.array(X_dim).reshape((-1,3)).astype(np.float32)
+        R = np.array(X_dim).reshape((-1,3)).astype(np.float64)
         dadx_dim = self.gravity_model.generate_dU_dxdx(R).numpy() # this is also > 0
         dadx_non_dim = dadx_dim / (1.0 / self.dim_constants['t_star']**2)
         return dadx_non_dim.squeeze()
 
     def generate_potential(self, X):
         X_dim = X*self.dim_constants['l_star']
-        R = np.array(X_dim).reshape((-1,3)).astype(np.float32)
+        R = np.array(X_dim).reshape((-1,3)).astype(np.float64)
         U_model = self.gravity_model.generate_potential(R).numpy() # this is also > 0
         if not self.removed_pm:
             U_model = U_model.squeeze()
@@ -207,7 +215,7 @@ class pinnGravityModel():
         PINN_variables = _get_PI_constraint(PINN_constraint_fcn)
         self.gravity_model.eval = PINN_variables[0]
         self.gravity_model.scale_loss = PINN_variables[1]
-        self.gravity_model.adaptive_constant = tf.Variable(PINN_variables[2], dtype=tf.float32)
+        self.gravity_model.adaptive_constant = tf.Variable(PINN_variables[2], dtype=self.config['dtype'][0])
         self.config['PINN_constraint_fcn'] = [PINN_constraint_fcn]
 
     def train(self, X, Y, **kwargs):
@@ -222,7 +230,7 @@ class pinnGravityModel():
             Y_process = np.hstack((Y_process, Y_LC))
 
         batch_size = kwargs.get("batch_size", 32)
-        dataset = generate_dataset(X_process, Y_process, batch_size)
+        dataset = generate_dataset(X_process, Y_process, batch_size, dtype=self.config['dtype'][0])
         dataset.shuffle(buffer_size=batch_size)
         self.gravity_model.compile(optimizer=self.optimizer, loss='mse')
         self.gravity_model.fit(

@@ -18,6 +18,12 @@ def h_rho_rhod(x, args):
     h = np.array([rho, rho_dot])
     return h.tolist()
 
+def h_pos(x, args):
+    x_i, y_i, z_i, vx_i, vy_i, vz_i  = x[0], x[1], x[2], x[3], x[4], x[5]
+    x_s, y_s, z_s, vx_s, vy_s, vz_s = args[0], args[1], args[2], args[3], args[4], args[5]
+    h = np.array([x_i - x_s, y_i - y_s, z_i - z_s])
+    return h.tolist()
+
 
 #######################
 # scenario 1 Functions #

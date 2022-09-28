@@ -85,7 +85,7 @@ class VisualizationBase():
         cov_lower = -3*sigma
         t = self.logger.t_i
         plt.figure()
-        plt.plot(t, state_error, linewidth=0.5)
+        plt.plot(t, state_error, marker='o', markersize=0.5, linewidth=0.5)
         plt.plot(t, cov_upper, color='r', alpha=0.5, linewidth=0.5)
         plt.plot(t, cov_lower, color='r', alpha=0.5, linewidth=0.5)
         plt.ylabel(y_label)
