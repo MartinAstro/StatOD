@@ -86,6 +86,88 @@ def get_measurements(filepath, t_gap=10):
     
     return t, Y, X_stations_ECI
 
+
+def get_measurements_pos(filepath, t_gap=10):
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + filepath, 'rb') as f:
+        measurements = pickle.load(f)
+
+    time = measurements['time']
+
+    # station index 
+    idx_1 = np.zeros((len(time),)) + 0
+    idx_2 = np.zeros((len(time),)) + 1
+    idx_3 = np.zeros((len(time),)) + 2
+
+    # each station Y vector [(1+1+1+1+6) x len(t)]
+    filler_array = np.full((len(time), ), np.array([np.nan]))
+    filler_pos_array = np.full((len(time), 3), np.array([np.nan, np.nan, np.nan]))
+    filler_obs_array = np.full(
+                            (len(time), 6), 
+                            np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+                            )
+    Y_station_1 = np.vstack((
+        time, 
+        idx_1, 
+        measurements.get('pos', filler_pos_array).T,
+        measurements.get('X_obs_1_ECI', filler_obs_array).T)).T
+    Y_station_2 = np.vstack((
+        time, 
+        idx_2, 
+        measurements.get('pos', filler_pos_array).T,
+        measurements.get('X_obs_2_ECI', filler_obs_array).T)).T
+    Y_station_3 = np.vstack((
+        time, 
+        idx_3, 
+        measurements.get('pos', filler_pos_array).T,
+        measurements.get('X_obs_3_ECI', filler_obs_array).T)).T
+
+    # Y vector [len(t)*3 x M] but time isn't chronological
+    Y = np.vstack((Y_station_1, Y_station_2, Y_station_3))    
+    
+    # sort by time
+    idx_sort = Y[:, 0].argsort()
+    Y = Y[idx_sort] 
+
+    # remove empty rows
+    mask = np.any(np.isnan(Y), axis=1)
+    Y = Y[~mask]
+
+    # get the sorted 3*len(t) vector
+    t = Y[:,0].squeeze()
+
+    # don't include time in the observation vector
+    Y = Y[:,1:]
+    
+    # Fill in the observation vectors with nan's if time gaps are too large
+    time_gaps = np.where(np.diff(t) > t_gap)[0] + 1
+    while len(time_gaps) > 0:  
+        # find the first gap 
+        idx = time_gaps[0] 
+
+        # Generate a time vector that samples at intervals of t_gap between the two gap values
+        t_vec = np.arange(t[idx-1], t[idx], t_gap)[1:]
+
+        # populate the observation vector with nan's at those values
+        y_vec = np.zeros((len(t_vec), len(Y[0])))*np.nan
+
+        # set the station index column to 1 arbitrarily 
+        y_vec[:,0] = 1
+
+        # insert the filler time vector and obs vector 
+        t = np.insert(t, idx, t_vec)
+        Y = np.insert(Y, idx, y_vec, axis=0)
+
+        # recalculate the time gaps 
+        time_gaps = np.where(np.diff(t) > t_gap)[0] + 1
+
+    # assign station states to their own value
+    X_stations_ECI = Y[:,-6:]
+    Y = Y[:,:-6]
+    
+    return t, Y, X_stations_ECI
+
+
 def get_scenario_1_measurements(filepath=os.path.dirname(os.path.abspath(StatOD.__file__)) + '/../Data/scenario_1_observations.txt'):
     with open(filepath, 'r') as f:
         lines = f.readlines()

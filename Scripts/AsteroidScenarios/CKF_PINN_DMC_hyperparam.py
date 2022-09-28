@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import StatOD
 from StatOD.data import get_measurements
 from StatOD.dynamics import *
-from StatOD.filters import FilterLogger, KalmanFilter
+from StatOD.filters import FilterLogger, KalmanFilter, ExtendedKalmanFilter
 from StatOD.measurements import h_rho_rhod, measurements
 from StatOD.utils import pinnGravityModel
 from StatOD.visualizations import *
@@ -23,31 +23,51 @@ from GravNN.GravityModels.Polyhedral import get_poly_data
 
 def main():
 
-    # full run
+    # # full run
     # hparams = {
-    #     'q_value' : [1E-8, 5E-8, 1E-7],
-    #     "tau" : [50, 100, 150, 200],
-    #     'epochs' : [1, 10, 100],
+    #     'q_value' : [1E-11, 1E-10, 1E-9],
+    #     "tau" : [50, 500, 5000],
+    #     'epochs' : [10, 100],
     #     'learning_rate' : [1E-6, 1E-7, 1E-8],
-    #     'batch_size' : [32, 128, 512],
+    #     'batch_size' : [128, 512],
+    #     "train_fcn" : ['pinn_a','pinn_alc']
+    # }
+    # full run 2
+    hparams = {
+        'q_value' : [1E-11, 1E-10],
+        "tau" : [5000, 7500],
+        'epochs' : [100, 200],
+        'learning_rate' : [1E-6, 1E-7],
+        'batch_size' : [128],
+        "train_fcn" : ['pinn_a','pinn_alc']
+    }
+
+    # # full run 2
+    # hparams = {
+    #     'q_value' : [1E-11],
+    #     "tau" : [6250, 7500],
+    #     'epochs' : [100, 200],
+    #     'learning_rate' : [1E-6],
+    #     'batch_size' : [128],
     #     "train_fcn" : ['pinn_a','pinn_alc']
     # }
 
     # short run 
-    hparams = {
-        'q_value' : [1E-12, 1E-10],
-        "tau" : [150, 500],
-        'epochs' : [10, 100],
-        'learning_rate' : [1E-6, 1E-8],
-        'batch_size' : [128, 512],
-        "train_fcn" : ['pinn_a']
-    }
-
     # hparams = {
-    #     'q_value' : [1E-8, 5E-8, 1E-7],
-    #     "tau" : [50, 100, 150, 200],
-    #     'epochs' : [1],
-    #     'learning_rate' : [1E-6, 1E-7, 1E-8],
+    #     'q_value' : [1E-12, 1E-10],
+    #     "tau" : [150, 500],
+    #     'epochs' : [10, 100],
+    #     'learning_rate' : [1E-6, 1E-8],
+    #     'batch_size' : [128, 512],
+    #     "train_fcn" : ['pinn_a']
+    # }
+
+    # Trial
+    # hparams = {
+    #     'q_value' : [1E-12],
+    #     "tau" : [150, 500],
+    #     'epochs' : [10, 5],
+    #     'learning_rate' : [ 1E-8],
     #     'batch_size' : [512],
     #     "train_fcn" : ['pinn_a']
     # }
@@ -59,10 +79,13 @@ def main():
         print("--- Starting trial: %d" % session_num)
         print({key: value for key, value in hparam_inst.items()})
         session_num += 1
-        try:
-            run(hparam_inst)
-        except Exception as e:
-            print(e)
+        finished = False
+        while not finished:
+            try:
+                run(hparam_inst)
+                finished = True
+            except Exception as e:
+                print(e)
 
 def run(hparams):
     q = hparams['q_value']
@@ -72,6 +95,7 @@ def run(hparams):
     batch_size = hparams['batch_size'] 
     train_fcn = hparams['train_fcn']
     Q0 = np.eye(3) * q ** 2
+    save_df = "trained_networks_pm_hparams_EKF_4.data"
 
 
     ep = ErosParams()
@@ -86,7 +110,7 @@ def run(hparams):
     t, Y, X_stations_ECI = get_measurements("Data/Measurements/range_rangerate_asteroid_wo_noise.data", t_gap=60)
 
     # Decrease scenario length
-    M_end = len(t) // 1
+    M_end = len(t) // 5
     t = t[:M_end]
     Y = Y[:M_end]
 
@@ -139,7 +163,7 @@ def run(hparams):
 
     start_time = time.time()
     logger = FilterLogger(len(z0), len(t))
-    filter = KalmanFilter(t0, z0, dz0, P0, f_dict, h_dict, logger=logger)
+    filter = ExtendedKalmanFilter(t0, z0, dz0, P0, f_dict, h_dict, logger=logger)
     filter.f_integrate = dynamics_ivp_no_jit # can't pass the model into the numba JIT function
     filter.atol = 1E-7
     filter.rtol = 1E-7
@@ -172,14 +196,14 @@ def run(hparams):
     planes_exp = PlanesExperiment(model.gravity_model, model.config, [-model.config['planet'][0].radius*4, model.config['planet'][0].radius*4], 50)
     planes_exp.config['gravity_data_fcn'] = [get_poly_data]
     planes_exp.run()
-    # mask = planes_exp.get_planet_mask()
-    # planes_exp.percent_error_acc[mask] = np.nan
+    mask = planes_exp.get_planet_mask()
+    planes_exp.percent_error_acc[mask] = np.nan
     hparams.update({'results' : planes_exp.percent_error_acc})
 
     # save the updated network in a custom network directory
     data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
     model.config.update({'hparams' : [hparams]})
-    model.save("trained_networks_pm_hparams_temp.data", data_dir)
+    model.save(save_df, data_dir)
     filter.logger.save(f"DMC_{q}_{tau}")
 
     print("Time Elapsed: " + str(time.time() - start_time))

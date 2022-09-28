@@ -1,11 +1,13 @@
 import numpy as np
+import os
 from StatOD.constants import ErosParams
+from StatOD.data import get_measurements_pos
 from StatOD.measurements import get_rho_rhod_el
 import pickle
 
 from StatOD.utils import ECEF_2_ECI, latlon2cart
 
-def generate_measurements_asteroid():
+def generate_measurements_asteroid(traj_file):
     """
     Generate range and range rate for a very simple asteroid scenario.
     Produce both truth and noisy measurements. 
@@ -16,11 +18,10 @@ def generate_measurements_asteroid():
     2: The range and range-rate measurements are not eclipsed by the asteroid. 
        i.e. visibility remains even when the asteroid is between the observer 
        and the s/c. 
-    3: The asteroid Eros is at perihelion (1.334 AU) and the distance between the Earth 
-        and the asteroid is 0.1334 AU along the X-axis
+
     """
 
-    with open('Data/Trajectories/trajectory_asteroid.data', 'rb') as f:
+    with open(traj_file, 'rb') as f:
         traj_data = pickle.load(f)
 
     t = traj_data["t"]
@@ -39,6 +40,7 @@ def generate_measurements_asteroid():
 
     true_measurements = {
         'time' : t,
+        'pos' : X_sc_ECI[:,0:3],
         'rho_1' : rho,
         'rho_dot_1' : rho_dot,
         'X_obs_1_ECI' : X_obs_ECI,
@@ -46,16 +48,24 @@ def generate_measurements_asteroid():
 
     measurements = {
         'time' : t,
+        'pos' : X_sc_ECI[:,0:3] + np.random.normal(0, sigma_rhod, size=np.shape(X_sc_ECI[:,0:3])),
         'rho_1' : noisy_rho,
         'rho_dot_1' : noisy_rho_dot,
         'X_obs_1_ECI' : X_obs_ECI,
     }
 
-    with open('Data/Measurements/range_rangerate_asteroid_simple_wo_noise.data', 'wb') as f:
+    meas_file = os.path.basename(traj_file).split('.')[0] + "_meas"
+    with open(f'Data/Measurements/{meas_file}_noiseless.data', 'wb') as f:
         pickle.dump(true_measurements, f)
 
-    with open('Data/Measurements/range_rangerate_asteroid_simple_w_noise.data', 'wb') as f:
+    with open(f'Data/Measurements/{meas_file}_noisy.data', 'wb') as f:
         pickle.dump(measurements, f)
 
 if __name__ == '__main__':
-    generate_measurements_asteroid()
+    generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_equitorial.data')
+    # generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_inclined.data')
+    # generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_inclined_short_timestep.data')
+    # generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_inclined_high_alt_short_timestep.data')
+    # generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_inclined_high_alt_shorter_timestep.data')
+    # generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_inclined_high_alt_30_timestep.data')
+    generate_measurements_asteroid('Data/Trajectories/trajectory_asteroid_inclined_high_alt_30_timestep.data')
