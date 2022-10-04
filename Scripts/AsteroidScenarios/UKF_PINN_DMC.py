@@ -26,9 +26,9 @@ def main():
         "l_star" : 1E1
     }
 
-    q_fcn = get_Q_DMC_wo_tau_model
-    f_fcn = f_PINN_DMC_wo_tau
-    dfdx_fcn = dfdx_PINN_DMC_wo_tau
+    q_fcn = get_Q_DMC_zero_order_model
+    f_fcn = f_PINN_DMC_zero_order
+    dfdx_fcn = dfdx_PINN_DMC_zero_order
 
     data_file = "trajectory_asteroid_inclined_high_alt_30_timestep"
 

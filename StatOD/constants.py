@@ -28,3 +28,4 @@ class ErosParams:
         self.mu = G * 6.687 * 10 ** 15 / (1E3)**3
         self.R = 16.000 # km
         self.X_BE_E = np.array([1.995636E7,0,0,0,0,0]) # [km, km/s] Assume Eros is 0.1334 AU from Earth
+        self.omega = 3.318*1E-4 # rad/s

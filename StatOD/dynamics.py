@@ -11,6 +11,7 @@ from StatOD.utils import print_expression
 from StatOD.data import get_earth_position
 import StatOD
 from StatOD.dynamics_DMC import * 
+from StatOD.dynamics_DMC_rotating import * 
 
 import os
 os.environ["NUMBA_CACHE_DIR"] = "./numba_cache_tmp"

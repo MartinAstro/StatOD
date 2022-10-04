@@ -3,48 +3,117 @@ Kalman Filter with Dynamic Model Compensation Example
 ============================================================
 
 """
-import os
-import time
-import pickle
-import numpy as np
-import matplotlib.pyplot as plt
+import itertools
+import multiprocessing as mp
+import os 
 import StatOD
-from StatOD.data import get_measurements, get_measurements_pos
-from StatOD.dynamics import *
-from StatOD.filters import FilterLogger, KalmanFilter, ExtendedKalmanFilter, Smoother, UnscentedKalmanFilter
-from StatOD.measurements import h_rho_rhod, measurements, h_pos
-from StatOD.utils import pinnGravityModel
-from StatOD.visualizations import *
-from StatOD.constants import *
-from GravNN.Analysis.PlanesExperiment import PlanesExperiment
-from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
-from GravNN.GravityModels.Polyhedral import get_poly_data
-from GravNN.GravityModels.PointMass import PointMass
-from GravNN.CelestialBodies.Asteroids import Eros
+from StatOD.data import get_measurements_pos
+from StatOD.measurements import h_pos
 
-from helper_functions import * 
+def format_args(hparams):
+    keys, values = zip(*hparams.items())
+    permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
-def boundary_condition_data(N, dim_constants):
-    s = np.random.uniform(-1, 1, size=(N,))
-    t = np.random.uniform(-1, 1, size=(N,))
-    u = np.random.uniform(-1, 1, size=(N,))
-    r = Eros().radius*500
-    x = r*s
-    y = r*t
-    z = r*u
-    X_train = np.column_stack((x,y,z))
+    args = []
+    session_num = 0
+    for hparam_inst in permutations_dicts:
+        print("--- Starting trial: %d" % session_num)
+        print({key: value for key, value in hparam_inst.items()})
+        session_num += 1
+        args.append((hparam_inst,))
+    return args
 
-    pm_gravity = PointMass(Eros())
-    Y_train = pm_gravity.compute_acceleration(X_train)
+def save_results(df_file, configs):
+    import pandas as pd
+    for config in configs:
+        config = dict(sorted(config.items(), key = lambda kv: kv[0]))
+        config['PINN_constraint_fcn'] = [config['PINN_constraint_fcn'][0]]# Can't have multiple args in each list
+        df = pd.DataFrame().from_dict(config).set_index('timetag')
+
+        try: 
+            df_all = pd.read_pickle(df_file)
+            df_all = df_all.append(df)
+            df_all.to_pickle(df_file)
+        except: 
+            df.to_pickle(df_file)
     
-    X_train /= dim_constants['l_star']
-    Y_train /= dim_constants['l_star'] / dim_constants['t_star']**2
-
-
-    return X_train, Y_train
-
 def main():
 
+    hparams = {
+        'q_value' : [1E-9, 1E-8, 1E-7],
+        'epochs' : [10, 50, 100],
+        'learning_rate' : [1E-6, 1E-5],
+        'batch_size' : [512, 1024, 2048],
+        "train_fcn" : ['pinn_a'],
+        "tau" : [0]
+    }
+    hparams = {
+        'q_value' : [1E-9, 1E-8, 1E-7],
+        'epochs' : [10, 50, 100],
+        'learning_rate' : [1E-6],
+        'batch_size' : [1024, 2048],
+        "train_fcn" : ['pinn_alc'],
+        "tau" : [0]
+    }
+
+    # save_df = os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/df_DMC_Forced_Q.data"
+    save_df = os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/df_fixed_IAC.data"
+
+    threads = 3
+    args = format_args(hparams)
+    # run_catch(*args[0])
+    with mp.Pool(threads) as pool:
+        results = pool.starmap_async(run_catch, args)
+        configs = results.get()
+    save_results(save_df, configs)
+
+
+def run_catch(args):
+    finished = False
+    # config = run(args)
+
+    while not finished:
+        try:
+            config = run(args)
+            finished = True
+        except Exception as e:
+            print(e)
+    return config 
+
+
+
+def run(hparams):
+
+
+    import os
+    import time
+    import pickle
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import StatOD
+    from StatOD.data import get_measurements
+    from StatOD.dynamics import f_PINN_DMC, dfdx_PINN_DMC, dynamics_ivp_no_jit, get_Q_DMC, process_noise
+    from StatOD.dynamics import get_Q_DMC_zero_order, f_PINN_DMC_zero_order, dfdx_PINN_DMC_zero_order, get_DMC_zero_order
+    from StatOD.filters import FilterLogger, KalmanFilter, ExtendedKalmanFilter
+    from StatOD.measurements import h_rho_rhod, measurements
+    from StatOD.utils import pinnGravityModel
+    from StatOD.visualizations import VisualizationBase
+    from StatOD.constants import ErosParams
+    import GravNN
+    from GravNN.Analysis.PlanesExperiment import PlanesExperiment
+    from GravNN.GravityModels.Polyhedral import get_poly_data
+    from helper_functions import non_dimensionalize, dimensionalize, get_trajectory_data
+
+
+    q = hparams['q_value']
+    tau = hparams['tau']
+    epochs = hparams['epochs'] 
+    lr = hparams['learning_rate'] 
+    batch_size = hparams['batch_size'] 
+    pinn_constraint_fcn = hparams['train_fcn']
+    Q0 = np.eye(3) * q ** 2
+
+    
     dim_constants = {
         "t_star" : 1E4,
         "m_star" : 1E0,
@@ -66,10 +135,9 @@ def main():
 
     q = 5e-7
     batch_size = 256 * 4
-    epochs = 200
-    lr = 5E-6
-    lr = 5E-5
-
+    epochs = 100
+    # lr = 5E-6
+    lr = 1E-5
                            
     dim_constants_pinn = dim_constants.copy()
     dim_constants_pinn['l_star'] *= 1E3
@@ -78,7 +146,7 @@ def main():
         "/../Data/Dataframes/eros_point_mass_v4.data",
         learning_rate=lr,
         dim_constants=dim_constants_pinn)
-    model.set_PINN_training_fcn("pinn_alc")
+    model.set_PINN_training_fcn("pinn_a")
     
     cart_state = traj_data['X'][0].copy() # SC to Asteroid in km 
     eros_pos = np.zeros((6,))
@@ -171,12 +239,6 @@ def main():
         X_train = filter.logger.x_hat_i_plus[start_idx:end_idx,0:3] - eros_pos[0:3]# position estimates
         Y_train = filter.logger.x_hat_i_plus[start_idx:end_idx,6:9] # high-order accel est
 
-        # augment training data with boundary conditions (x->inf, y->0)
-        X_train_BC, Y_train_BC = boundary_condition_data(N=len(X_train)//10, dim_constants=dim_constants)
-        
-        X_train = np.vstack((X_train, X_train_BC))
-        Y_train = np.vstack((Y_train, Y_train_BC))
-        
         # Don't train on the last batch of data if it's too small
         if k != total_batches:
             model.train(X_train, Y_train, epochs=epochs, batch_size=batch_size)
@@ -185,64 +247,27 @@ def main():
 
     if len(train_idx_list) > 0 : train_idx_list.pop()
 
-    # save the updated network in a custom network directory
-    data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
-    # model.save("trained_networks_pm.data", data_dir)
-
-    # (optional): save the log
-    q = np.sqrt(np.diag(Q0)[0])
-    # filter.logger.save(f"DMC_{q}_{tau}")
-
-    print("Time Elapsed: " + str(time.time() - start_time))
-
-
-    ##################################
-    # Gather measurement predictions #
-    ##################################
-
-    x_truth = traj_data['X'][:M_end] # in km and km/s
-    w_truth =  np.full((len(x_truth),3), 0) # DMC should be zero ideally 
-    w_truth = traj_data['W'][:M_end] # accelerations above pm 
-
-    x_truth += eros_pos
-    x_truth = np.hstack((x_truth, w_truth)) 
-    y_hat_vec = np.zeros((len(t), 3))
-    for i in range(len(t)):
-        y_hat_vec[i] = filter.predict_measurement(logger.x_hat_i_plus[i], np.zeros_like(logger.x_hat_i_plus[i]), h_args_vec[i])
-
-    directory = "Plots/" + filter.__class__.__name__ + "/"
-    y_labels = np.array([r'$x$', r'$y$', r"$z$"])
-
-
-    ########################
-    # Plotting and Metrics #
-    ########################
-
-    logger, t, Y, y_hat_vec, R_vec, dim_constants = dimensionalize(logger, t, Y, y_hat_vec, R_vec, dim_constants)
-
-    vis = VisualizationBase(logger, directory, False)
-    plt.rc('text', usetex=False)
-
-    vis.plot_state_errors(x_truth)
-    vis.plot_residuals(Y[:,1:], y_hat_vec, R_vec, y_labels)
-    vis.plot_vlines(train_idx_list)
-
-    # Plot the DMC values 
-    plot_DMC(logger, w_truth)
-
     planes_exp = PlanesExperiment(model.gravity_model, model.config, [-model.config['planet'][0].radius*4, model.config['planet'][0].radius*4], 50)
     planes_exp.config['gravity_data_fcn'] = [get_poly_data]
     planes_exp.run()
     mask = planes_exp.get_planet_mask()
     planes_exp.percent_error_acc[mask] = np.nan
-    print(f"Error Percent Average: {np.nanmean(planes_exp.percent_error_acc)}")
+    hparams.update({'results' : planes_exp.percent_error_acc})
 
-    plot_error_planes(planes_exp, max_error=20, logger=logger)
-   
-    plt.show()
+
+    # save the updated network in a custom network directory
+    data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
+    model.config.update({'hparams' : [hparams]})
+    model.save(None, data_dir) # save the network, but not into the directory right now
+    # filter.logger.save(f"DMC_{q}_{tau}")
+
+    print(np.nanmean(planes_exp.percent_error_acc))
+    print("Time Elapsed: " + str(time.time() - start_time))
+    print(f"Percent Error {np.nanmean(planes_exp.percent_error_acc)}")
+
+    # add planes experiment and record metrics into dataframe for parallel coordinate plot (plotly)
+    return model.config
+
 
 if __name__ == "__main__":
-    finished = False
     main()
-
-

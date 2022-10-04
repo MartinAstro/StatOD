@@ -145,7 +145,7 @@ def get_DMC_first_order(tau=120):
     return f_fcn, dfdx_fcn, q_fcn, tau
 
 # DMC without dynamics
-def f_PINN_DMC_wo_tau(x, args):
+def f_PINN_DMC_zero_order(x, args):
     X_sc_ECI = x[0:6]
     w_vec = x[6:]
 
@@ -165,7 +165,7 @@ def f_PINN_DMC_wo_tau(x, args):
 
     return np.hstack((x_vel, x_acc, w_d))
 
-def dfdx_PINN_DMC_wo_tau(x, f, args):
+def dfdx_PINN_DMC_zero_order(x, f, args):
     # f argument is needed to make interface standard 
     X_sc_ECI = x
     model = args[0]
@@ -196,7 +196,7 @@ def dfdx_PINN_DMC_wo_tau(x, f, args):
     )
     return dfdz
 
-def get_Q_DMC_wo_tau(dt, x, Q, DCM, args):
+def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
     tau, = args
@@ -248,7 +248,7 @@ def get_Q_DMC_wo_tau(dt, x, Q, DCM, args):
 
     return Q_i_i_m1.tolist()
 
-def get_Q_DMC_wo_tau_model(dt, x, Q, DCM, args):
+def get_Q_DMC_zero_order_model(dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
     tau, model = args
@@ -316,8 +316,8 @@ def get_Gamma_SRIF_DMC(dt, x, Q, DCM, args):
     return Gamma_i_i_m1.tolist()
 
 def get_DMC_zero_order():
-    q_fcn = get_Q_DMC_wo_tau
-    f_fcn = f_PINN_DMC_wo_tau
-    dfdx_fcn = dfdx_PINN_DMC_wo_tau
+    q_fcn = get_Q_DMC_zero_order
+    f_fcn = f_PINN_DMC_zero_order
+    dfdx_fcn = dfdx_PINN_DMC_zero_order
     tau = 0
     return f_fcn, dfdx_fcn, q_fcn, tau

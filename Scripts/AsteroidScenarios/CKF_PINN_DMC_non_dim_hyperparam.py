@@ -93,7 +93,7 @@ def run(hparams):
     import StatOD
     from StatOD.data import get_measurements
     from StatOD.dynamics import f_PINN_DMC, dfdx_PINN_DMC, dynamics_ivp_no_jit, get_Q_DMC, process_noise
-    from StatOD.dynamics import get_Q_DMC_wo_tau, f_PINN_DMC_wo_tau, dfdx_PINN_DMC_wo_tau
+    from StatOD.dynamics import get_Q_DMC_zero_order, f_PINN_DMC_zero_order, dfdx_PINN_DMC_zero_order
     from StatOD.filters import FilterLogger, KalmanFilter, ExtendedKalmanFilter
     from StatOD.measurements import h_rho_rhod, measurements
     from StatOD.utils import pinnGravityModel
@@ -114,9 +114,9 @@ def run(hparams):
 
     
     # Assume tau is zero
-    q_fcn = get_Q_DMC_wo_tau
-    f_fcn = f_PINN_DMC_wo_tau
-    dfdx_fcn = dfdx_PINN_DMC_wo_tau
+    q_fcn = get_Q_DMC_zero_order
+    f_fcn = f_PINN_DMC_zero_order
+    dfdx_fcn = dfdx_PINN_DMC_zero_order
     tau = 0
 
 

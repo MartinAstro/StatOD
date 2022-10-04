@@ -42,9 +42,9 @@ def main():
     Q_dt = 30 # seconds
 
     tau = 0    
-    q_fcn = get_Q_DMC_wo_tau
-    f_fcn = f_PINN_DMC_wo_tau
-    dfdx = dfdx_PINN_DMC_wo_tau
+    q_fcn = get_Q_DMC_zero_order
+    f_fcn = f_PINN_DMC_zero_order
+    dfdx = dfdx_PINN_DMC_zero_order
 
     # tau = 200
     # q_fcn = get_Q_DMC
@@ -155,7 +155,7 @@ def main():
     Q0 = np.eye(3) * q ** 2
     # Q_args = [tau,]
     Q_args = [tau, model]
-    # Q_fcn = get_Q_DMC_wo_tau_model
+    # Q_fcn = get_Q_DMC_zero_order_model
 
     # Q_fcn = process_noise(z0, Q0, q_fcn, Q_args, use_numba=False)
     Q_fcn = Q_forced

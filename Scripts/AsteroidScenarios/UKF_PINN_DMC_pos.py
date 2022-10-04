@@ -36,9 +36,9 @@ def main():
     # tau = 120
 
     # Assume tau is zero
-    q_fcn = get_Q_DMC_wo_tau
-    f_fcn = f_PINN_DMC_wo_tau
-    dfdx_fcn = dfdx_PINN_DMC_wo_tau
+    q_fcn = get_Q_DMC_zero_order
+    f_fcn = f_PINN_DMC_zero_order
+    dfdx_fcn = dfdx_PINN_DMC_zero_order
     tau = 0
 
 
