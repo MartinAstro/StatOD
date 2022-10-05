@@ -1,5 +1,6 @@
 from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
 from Scripts.AsteroidScenarios.ScenarioBaseClass import ScenarioBaseClass
+from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
 from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
 from StatOD.data import get_measurements_general
 from StatOD.dynamics_DMC import get_DMC_zero_order
@@ -11,47 +12,6 @@ import StatOD
 import matplotlib.pyplot as plt
 
 from StatOD.utils import pinnGravityModel
-
-
-def dimensionalize(scenario):
-    t_star = scenario.t_star
-    l_star = scenario.l_star
-    ms = scenario.ms
-    ms2 = scenario.ms2
-
-    scenario.filter.logger.x_hat_i_plus[:,0:3] *= l_star
-    scenario.filter.logger.x_hat_i_plus[:,3:6] *= ms
-    scenario.filter.logger.x_hat_i_plus[:,6:9] *= ms2
-
-    scenario.t *= t_star
-    scenario.Y *= l_star
-    
-    scenario.filter.logger.t_i *= t_star
-    scenario.filter.logger.P_i_plus[:,0:3,0:3] *= l_star**2
-    scenario.filter.logger.P_i_plus[:,3:6,3:6] *= ms**2
-    scenario.filter.logger.P_i_plus[:,6:9,6:9] *= ms2**2
-    
-    scenario.R *= l_star**2
-        
-def non_dimensionalize(scenario):
-
-    scenario.x0[0:3] /= scenario.l_star
-    scenario.x0[3:6] /= scenario.ms
-    scenario.x0[6:9] /= scenario.ms2
-    
-    scenario.P0[0:3,0:3] /= scenario.l_star**2
-    scenario.P0[3:6,3:6] /= scenario.ms**2
-    scenario.P0[6:9,6:9] /= scenario.ms2**2
-
-    scenario.Y /= scenario.l_star
-
-    scenario.R /= scenario.l_star**2
-
-    scenario.t /= scenario.t_star
-    # tau /= scenario.t_star
-    scenario.Q0 /= scenario.ms2**2
-
-
 
 
 def main():
@@ -91,7 +51,7 @@ def main():
     f_args = np.full((len(t_vec), len(f_args)), f_args)
     Q0 = np.eye(3)*(1E-9)**2
 
-    scenario = ScenarioBaseClass({
+    scenario = ScenarioPositions({
         'dim_constants' : [dim_constants],
         'N_states' : [len(x0)],
         'model' : [model]
@@ -123,7 +83,7 @@ def main():
         P0=P_diag
     )
 
-    non_dimensionalize(scenario)
+    scenario.non_dimensionalize()
     scenario.initializeFilter(ExtendedKalmanFilter)
 
     network_train_config = {
@@ -132,7 +92,7 @@ def main():
         'BC_data' : False
     }
     scenario.run(network_train_config)
-    dimensionalize(scenario)
+    scenario.dimensionalize()
 
 
     analysis = AnalysisBaseClass(scenario)

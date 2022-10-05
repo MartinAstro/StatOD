@@ -1,3 +1,4 @@
+from abc import abstractclassmethod
 import time
 from StatOD.data import get_measurements_general
 from StatOD.dynamics import dynamics_ivp_no_jit, dynamics_ivp_unscented_no_jit, process_noise, dynamics
@@ -106,7 +107,16 @@ class ScenarioBaseClass:
         self.filter = filter
         pass
 
-    
+    @abstractclassmethod
+    def transform(self, function):
+        pass
+
+    def dimensionalize(self):
+        self.transform(lambda a, b: a*b)
+
+    def non_dimensionalize(self):
+        self.transform(lambda a, b: a/b)
+
 
     def run(self, train_config):
 
