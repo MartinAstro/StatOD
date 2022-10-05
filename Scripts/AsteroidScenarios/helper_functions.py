@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 from GravNN.CelestialBodies.Asteroids import Eros
+from GravNN.GravityModels.PointMass import PointMass
 import pickle
 import os
-
+import StatOD
 def plot_DMC_subplot(x, y1, y2):
     plt.plot(x, y1)
     plt.plot(x, y2)
@@ -29,13 +30,21 @@ def plot_DMC_subplot(x, y1, y2):
                 interpolate=True)
 
 def plot_DMC(logger, w_truth):
+    idx_max = len(logger.t_i) if len(logger.t_i) < len(w_truth) else len(w_truth)
+
     plt.figure()
     plt.subplot(311)
-    plot_DMC_subplot(logger.t_i, logger.x_hat_i_plus[:,6], w_truth[:,0])
+    plot_DMC_subplot(logger.t_i[:idx_max], 
+                    logger.x_hat_i_plus[:idx_max,6],
+                    w_truth[:idx_max,0])
     plt.subplot(312)
-    plot_DMC_subplot(logger.t_i, logger.x_hat_i_plus[:,7], w_truth[:,1])
+    plot_DMC_subplot(logger.t_i[:idx_max], 
+                    logger.x_hat_i_plus[:idx_max,7],
+                    w_truth[:idx_max,1])
     plt.subplot(313)
-    plot_DMC_subplot(logger.t_i, logger.x_hat_i_plus[:,8], w_truth[:,2])
+    plot_DMC_subplot(logger.t_i[:idx_max], 
+                    logger.x_hat_i_plus[:idx_max,8],
+                    w_truth[:idx_max,2])
 
     # Plot magnitude
     DMC_mag = np.linalg.norm(logger.x_hat_i_plus[:,6:9], axis=1)
@@ -126,3 +135,21 @@ def get_trajectory_data(data_file):
         data = pickle.load(f)
     return data
 
+def boundary_condition_data(N, dim_constants):
+    s = np.random.uniform(-1, 1, size=(N,))
+    t = np.random.uniform(-1, 1, size=(N,))
+    u = np.random.uniform(-1, 1, size=(N,))
+    r = Eros().radius*500
+    x = r*s
+    y = r*t
+    z = r*u
+    X_train = np.column_stack((x,y,z))
+
+    pm_gravity = PointMass(Eros())
+    Y_train = pm_gravity.compute_acceleration(X_train)
+    
+    X_train /= dim_constants['l_star']
+    Y_train /= dim_constants['l_star'] / dim_constants['t_star']**2
+
+
+    return X_train, Y_train

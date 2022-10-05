@@ -4,6 +4,67 @@ import os
 import StatOD
 from numba import njit
 
+def get_measurements_general(filepath, t_gap=10, data_fraction=1.0):
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + filepath, 'rb') as f:
+        measurements = pickle.load(f)
+
+    time = measurements['time'].reshape((-1,1))
+    h_args = measurements['h_args']
+    Y_original = measurements['Y']
+
+    # stack all information together with idx [:,0] = time
+    Y = np.hstack((time, Y_original, h_args))
+
+    # sort by time
+    idx_sort = Y[:, 0].argsort()
+    Y = Y[idx_sort] 
+
+    # remove empty rows
+    mask = np.any(np.isnan(Y), axis=1)
+    Y = Y[~mask]
+
+    # get sorted time vector
+    t = Y[:,0].squeeze()
+
+    # get everything except time 
+    Y = Y[:,1:]
+    
+    # Fill in the observation vectors with nan's if time gaps are too large
+    time_gaps = np.where(np.diff(t) > t_gap)[0] + 1
+    while len(time_gaps) > 0:  
+        # find the first gap 
+        idx = time_gaps[0] 
+
+        # Generate a time vector that samples at intervals of t_gap between the two gap values
+        t_vec = np.arange(t[idx-1], t[idx], t_gap)[1:]
+
+        # populate the observation vector with nan's at those values
+        y_vec = np.zeros((len(t_vec), len(Y[0])))*np.nan
+
+        # insert the filler time vector and obs vector 
+        t = np.insert(t, idx, t_vec)
+        Y = np.insert(Y, idx, y_vec, axis=0)
+
+        # recalculate the time gaps 
+        time_gaps = np.where(np.diff(t) > t_gap)[0] + 1
+
+    # separate measurements from h_args
+    h_args_dim = len(h_args[0])
+    h_args_vec = Y[:,-h_args_dim:]
+    Y_buffered = Y[:,:-h_args_dim]
+    
+
+    # select fraction of total data
+    M_subset_idx = int(len(Y_buffered)*data_fraction)
+    t = t[:M_subset_idx]
+    Y_buffered = Y_buffered[:M_subset_idx]
+    h_args_vec = h_args_vec[:M_subset_idx]
+
+    # return measurements which include nan measurements if time gap are too long to force time update
+    return t, Y_buffered, h_args_vec
+
+
 def get_measurements(filepath, t_gap=10):
     package_dir = os.path.dirname(StatOD.__file__) + "/../"
     with open(package_dir + filepath, 'rb') as f:
