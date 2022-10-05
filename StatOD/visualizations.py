@@ -80,7 +80,8 @@ class VisualizationBase():
 
 
     def plot_state_error(self, x_hat, x_true, sigma, y_label):
-        state_error = x_hat - x_true
+        idx_max = len(x_hat) if len(x_hat) < len(x_true) else len(x_true)
+        state_error = x_hat[:idx_max] - x_true[idx_max]
         cov_upper = 3*sigma
         cov_lower = -3*sigma
         t = self.logger.t_i
