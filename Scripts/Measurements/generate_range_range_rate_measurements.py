@@ -21,18 +21,18 @@ def generate_measurements_asteroid(traj_file):
     noisy_rho_dot = rho_dot + np.random.normal(0, sigma_rhod, size=np.shape(rho_dot))
 
 
-    Y = np.hstack((rho, rho_dot))
-    Y_noisy = np.hstack((noisy_rho, noisy_rho_dot))
+    Y = np.vstack(([rho], [rho_dot])).T
+    Y_noisy =  np.vstack(([noisy_rho], [noisy_rho_dot])).T
 
     true_measurements = {
         'time' : t,
-        'measurements' : Y,
+        'Y' : Y,
         'h_args' : X_asteroid,
     }
 
     noisy_measurements = {
         'time' : t,
-        'measurements' : Y_noisy,
+        'Y' : Y_noisy,
         'h_args' : X_asteroid,
     }
 
