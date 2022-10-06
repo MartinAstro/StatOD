@@ -1,5 +1,4 @@
 from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
-from Scripts.AsteroidScenarios.ScenarioBaseClass import ScenarioBaseClass
 from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
 from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
 from StatOD.data import get_measurements_general
