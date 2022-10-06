@@ -7,6 +7,7 @@ from GravNN.GravityModels.PointMass import PointMass
 import pickle
 import os
 import StatOD
+import itertools
 def plot_DMC_subplot(x, y1, y2):
     plt.plot(x, y1)
     plt.plot(x, y2)
@@ -153,3 +154,31 @@ def boundary_condition_data(N, dim_constants):
 
 
     return X_train, Y_train
+
+
+def format_args(hparams):
+    keys, values = zip(*hparams.items())
+    permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
+    args = []
+    session_num = 0
+    for hparam_inst in permutations_dicts:
+        print("--- Starting trial: %d" % session_num)
+        print({key: value for key, value in hparam_inst.items()})
+        session_num += 1
+        args.append((hparam_inst,))
+    return args
+
+def save_results(df_file, configs):
+    import pandas as pd
+    for config in configs:
+        config = dict(sorted(config.items(), key = lambda kv: kv[0]))
+        config['PINN_constraint_fcn'] = [config['PINN_constraint_fcn'][0]]# Can't have multiple args in each list
+        df = pd.DataFrame().from_dict(config).set_index('timetag')
+
+        try: 
+            df_all = pd.read_pickle(df_file)
+            df_all = df_all.append(df)
+            df_all.to_pickle(df_file)
+        except: 
+            df.to_pickle(df_file)
