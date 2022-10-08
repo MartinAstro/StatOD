@@ -8,6 +8,8 @@ import pickle
 import os
 import StatOD
 import itertools
+
+from StatOD.constants import ErosParams
 def plot_DMC_subplot(x, y1, y2):
     plt.plot(x, y1)
     plt.plot(x, y2)
@@ -182,3 +184,21 @@ def save_results(df_file, configs):
             df_all.to_pickle(df_file)
         except: 
             df.to_pickle(df_file)
+
+def compute_BN(tVec, omega):
+    theta = tVec*omega
+    C00 = np.cos(theta)
+    C01 = -np.sin(theta)
+    C10 = np.sin(theta)
+    C11 = np.cos(theta)
+    Cij = np.zeros_like(C00)
+    C22 = np.zeros_like(C00) + 1
+
+    C = np.block([
+        [[C00], [C01], [Cij]],
+        [[C10], [C11], [Cij]],
+        [[Cij], [Cij], [C22]],
+    ])    
+    C = np.transpose(C,axes=[2,0,1])
+
+    return C

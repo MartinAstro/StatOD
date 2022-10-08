@@ -15,7 +15,7 @@ class AnalysisBaseClass:
         h_args_vec = self.scenario.h_args
         filter = self.scenario.filter
 
-        y_hat_vec = np.zeros((len(t), 3))
+        y_hat_vec = np.zeros((len(t), len(self.scenario.Y[0])))
         for i in range(len(t)):
 
             if self.scenario.filter_type == "KalmanFilter":
