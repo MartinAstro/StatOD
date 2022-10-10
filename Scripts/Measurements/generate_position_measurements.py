@@ -40,5 +40,6 @@ def generate_measurements(traj_file):
         pickle.dump(noisy_measurements, f)
 
 if __name__ == '__main__':
-    generate_measurements('Data/Trajectories/trajectory_asteroid_equitorial.data')
-    generate_measurements('Data/Trajectories/trajectory_asteroid_inclined_high_alt_30_timestep.data')
+    # generate_measurements('Data/Trajectories/trajectory_asteroid_equitorial.data')
+    # generate_measurements('Data/Trajectories/trajectory_asteroid_inclined_high_alt_30_timestep.data')
+    generate_measurements('Data/Trajectories/traj_rotating.data')
