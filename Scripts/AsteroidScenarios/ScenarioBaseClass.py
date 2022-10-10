@@ -62,7 +62,8 @@ class ScenarioBaseClass:
         try: # if sympy 
             z0 = np.zeros((self.N_states,))
             q_fcn = process_noise(z0, Q0, q_fcn, q_args, use_numba=False)
-        except:
+        except Exception as e:
+            print(e)
             pass
         
         self.q_fcn = q_fcn
@@ -87,7 +88,7 @@ class ScenarioBaseClass:
             "Q_fcn": self.q_fcn,
             "Q": self.Q0,
             "Q_args": self.q_args,
-            "Q_dt" : 30
+            "Q_dt" : 60
         }
 
         h_dict = {
@@ -123,6 +124,8 @@ class ScenarioBaseClass:
         batch_size = train_config.get('batch_size',32)
         epochs = train_config.get('epochs',32)
         BC_data = train_config.get('BC_data', False)
+        rotating = train_config.get('rotating', False)
+        rotating_fcn = train_config.get('rotating_fcn', None)
         start_time = time.time()
 
         train_idx_list = []
@@ -158,7 +161,15 @@ class ScenarioBaseClass:
                 
                 X_train = np.vstack((X_train, X_train_BC))
                 Y_train = np.vstack((Y_train, Y_train_BC))
-            
+
+                t_batch_BC = np.full((len(Y_train_BC),),0.0)
+                t_batch = np.hstack((t_batch, t_batch_BC))
+
+            if rotating:
+                omega =  f_args_batch[0,-1]
+                X_train, Y_train = rotating_fcn(t_batch, omega, X_train, Y_train)
+
+
             # Don't train on the last batch of data if it's too small
             if k != total_batches:
                 self.model.train(X_train, Y_train, epochs=epochs, batch_size=batch_size)

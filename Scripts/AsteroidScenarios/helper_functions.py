@@ -78,60 +78,6 @@ def plot_error_planes(planes_exp, max_error, logger):
     plt.gca().set_yticks([])
 
 
-
-def non_dimensionalize(t, z0, Y, P_diag, R_diag, tau, q, dim_constants):
-    t_star = dim_constants['t_star']
-    l_star = dim_constants['l_star']
-    ms = dim_constants['l_star'] / dim_constants['t_star']
-    ms2 = dim_constants['l_star'] / dim_constants['t_star']**2
-
-    z0[0:3] /= l_star
-    z0[3:6] /= ms
-    z0[6:9] /= ms2
-    
-    P_diag[0:3] /= l_star**2
-    P_diag[3:6] /= ms**2
-    P_diag[6:9] /= ms2**2
-
-    Y[:,1:] /= l_star
-
-    R_diag /= l_star**2
-
-    t /= t_star
-    tau /= t_star
-    q /= ms2
-
-    return t, z0, Y, P_diag, R_diag, tau, q, dim_constants
-
-
-def dimensionalize(logger, t, Y, y_hat_vec, R_vec, dim_constants):
-
-    # dimensionalize 
-    t_star = dim_constants['t_star']
-    l_star = dim_constants['l_star']
-    ms = dim_constants['l_star'] / dim_constants['t_star']
-    ms2 = dim_constants['l_star'] / dim_constants['t_star']**2
-
-    t *= t_star
-
-    logger.x_hat_i_plus[:,0:3] *= l_star
-    logger.x_hat_i_plus[:,3:6] *= l_star / t_star
-    logger.x_hat_i_plus[:,6:9] *= ms2
-    t *= t_star
-    Y[:,1:] *= l_star
-    y_hat_vec[:,0:3] *= l_star
-    
-    logger.t_i *= t_star
-    logger.P_i_plus[:,0:3,0:3] *= l_star**2
-    logger.P_i_plus[:,3:6,3:6] *= ms**2
-    logger.P_i_plus[:,6:9,6:9] *= ms2**2
-    
-    R_vec *= l_star**2
-
-    return logger, t, Y, y_hat_vec, R_vec, dim_constants
-
-
-
 def get_trajectory_data(data_file):
     package_dir = os.path.dirname(StatOD.__file__) + "/../"
     with open(package_dir + f'Data/Trajectories/{data_file}.data', 'rb') as f:
@@ -142,7 +88,15 @@ def boundary_condition_data(N, dim_constants):
     s = np.random.uniform(-1, 1, size=(N,))
     t = np.random.uniform(-1, 1, size=(N,))
     u = np.random.uniform(-1, 1, size=(N,))
-    r = Eros().radius*500
+
+    # Forces data to be on sphere of radius r*500
+    coordinates = np.vstack([s,t,u]).T
+    r_mag = np.linalg.norm(coordinates, axis=1)
+    s /= r_mag
+    t /= r_mag
+    u /= r_mag
+
+    r = Eros().radius*50
     x = r*s
     y = r*t
     z = r*u
@@ -151,8 +105,11 @@ def boundary_condition_data(N, dim_constants):
     pm_gravity = PointMass(Eros())
     Y_train = pm_gravity.compute_acceleration(X_train)
     
+    X_train /= 1000 # convert to km
+    Y_train /= 1000 # convert to km
+
     X_train /= dim_constants['l_star']
-    Y_train /= dim_constants['l_star'] / dim_constants['t_star']**2
+    Y_train /= (dim_constants['l_star'] / dim_constants['t_star']**2)
 
 
     return X_train, Y_train

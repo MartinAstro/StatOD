@@ -8,6 +8,7 @@ from GravNN.GravityModels.Polyhedral import get_poly_data
 class AnalysisBaseClass:
     def __init__(self, scenario):
         self.scenario = scenario
+        self.planes_exp = None
     
     def generate_y_hat(self):
         t = self.scenario.t
@@ -47,6 +48,13 @@ class AnalysisBaseClass:
         plot_DMC(self.scenario.filter.logger, w_truth)
 
     def generate_gravity_plots(self):
+        if self.planes_exp is not None:
+            plot_error_planes(self.planes_exp, max_error=20, logger=self.scenario.filter.logger)
+        else:
+            self.run_planes_experiment()
+            plot_error_planes(self.planes_exp, max_error=20, logger=self.scenario.filter.logger)
+
+    def run_planes_experiment(self):
         model = self.scenario.model
         planes_exp = PlanesExperiment(model.gravity_model, model.config, [-model.config['planet'][0].radius*4, model.config['planet'][0].radius*4], 50)
         planes_exp.config['gravity_data_fcn'] = [get_poly_data]
@@ -54,6 +62,7 @@ class AnalysisBaseClass:
         mask = planes_exp.get_planet_mask()
         planes_exp.percent_error_acc[mask] = np.nan
         print(f"Error Percent Average: {np.nanmean(planes_exp.percent_error_acc)}")
-
-        plot_error_planes(planes_exp, max_error=20, logger=self.scenario.filter.logger)
+        self.planes_exp = planes_exp
+        
+        return planes_exp.percent_error_acc 
     
