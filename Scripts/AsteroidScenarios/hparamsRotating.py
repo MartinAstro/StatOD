@@ -1,42 +1,46 @@
-"""
-Kalman Filter with Dynamic Model Compensation Example
-============================================================
 
-"""
-import os
-import time
-import pickle
 import numpy as np
-import matplotlib.pyplot as plt
 import StatOD
-from StatOD.data import get_measurements, get_measurements_pos
-from StatOD.dynamics import *
-from StatOD.filters import FilterLogger, KalmanFilter, ExtendedKalmanFilter, Smoother, UnscentedKalmanFilter
-from StatOD.measurements import h_rho_rhod, measurements, h_pos
-from StatOD.utils import pinnGravityModel
-from StatOD.visualizations import *
-from StatOD.constants import *
-from GravNN.Analysis.PlanesExperiment import PlanesExperiment
-from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
-from GravNN.GravityModels.Polyhedral import get_poly_data
-from GravNN.GravityModels.PointMass import PointMass
-from GravNN.CelestialBodies.Asteroids import Eros
-
+import multiprocessing as mp
 from helper_functions import * 
+def main():
+    hparams = {
+        'q_value' : [1E-9, 1E-8, 1E-7],
+        'epochs' : [10, 50, 100],
+        'learning_rate' : [1E-4, 1E-5, 1E-6],
+        'batch_size' : [256, 1024, 2048],
+        "train_fcn" : ['pinn_a','pinn_alc'],
+        'boundary_condition_data' : [True, False]
+    }
+    # hparams = {
+    #     'q_value' : [1E-9],
+    #     'epochs' : [10],
+    #     'learning_rate' : [1E-5],
+    #     'batch_size' : [2048],
+    #     "train_fcn" : ['pinn_a'],
+    #     'boundary_condition_data' : [True, False]
+    # }
 
-from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
-from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
-from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
-from StatOD.data import get_measurements_general
-from StatOD.dynamics_DMC import get_DMC_zero_order
-from StatOD.filters import ExtendedKalmanFilter
-from StatOD.measurements import h_pos
-import numpy as np
-import os
-import StatOD
-import matplotlib.pyplot as plt
+    save_df = os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/hparams_rotating_setup_test.data"
 
-from StatOD.utils import pinnGravityModel
+    threads = 2
+    args = format_args(hparams)
+    with mp.Pool(threads) as pool:
+        results = pool.starmap_async(run_catch, args)
+        configs = results.get()
+    save_results(save_df, configs)
+
+
+def run_catch(args):
+    finished = False
+    while not finished:
+        try:
+            config = run(args)
+            finished = True
+        except Exception as e:
+            print(e)
+    return config 
+
 
 def rotating_fcn(tVec, omega, X_train, Y_train):
     BN = compute_BN(tVec, omega)
@@ -46,7 +50,32 @@ def rotating_fcn(tVec, omega, X_train, Y_train):
 
 
 
-def main():
+def run(hparams):
+
+
+    from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
+    from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
+    from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
+    from StatOD.data import get_measurements_general
+    from StatOD.dynamics import get_rot_DMC_zero_order
+    from StatOD.filters import ExtendedKalmanFilter
+    from StatOD.measurements import h_pos
+    import numpy as np
+    import os
+    import StatOD
+    import matplotlib.pyplot as plt
+
+    from StatOD.utils import pinnGravityModel
+
+    q = hparams['q_value']
+    epochs = hparams['epochs'] 
+    lr = hparams['learning_rate'] 
+    batch_size = hparams['batch_size'] 
+    pinn_constraint_fcn = hparams['train_fcn']
+    bc_data = hparams['boundary_condition_data']
+    Q0 = np.eye(3) * q ** 2
+
+
     dim_constants = {
         "t_star" : 1E4,
         "m_star" : 1E0,
@@ -64,7 +93,6 @@ def main():
     measurement_file = f"Data/Measurements/Position/{traj_file}_meas_noiseless.data"
     t_vec, Y_vec, h_args_vec = get_measurements_general(measurement_file, t_gap=60, data_fraction=1)
     R_diag = np.array([1E-3, 1E-3, 1E-3])**2
-    R_diag = np.array([1E-12, 1E-12, 1E-12])**2
 
 
     # Initialize the PINN-GM
@@ -72,9 +100,9 @@ def main():
     dim_constants_pinn['l_star'] *= 1E3
     model = pinnGravityModel(os.path.dirname(StatOD.__file__) + \
         "/../Data/Dataframes/eros_point_mass_v4.data",
-        learning_rate=1E-5,
+        learning_rate=lr,
         dim_constants=dim_constants_pinn)
-    model.set_PINN_training_fcn("pinn_a")
+    model.set_PINN_training_fcn(pinn_constraint_fcn)
 
 
     # Dynamics and noise information 
@@ -85,7 +113,7 @@ def main():
     f_args[:,-2] = t_vec
     f_args[:,-1] = ErosParams().omega
 
-    Q0 = np.eye(3)*(1E-9)**2
+    Q0 = np.eye(3)*(q)**2
 
     scenario = ScenarioPositions({
         'dim_constants' : [dim_constants],
@@ -123,9 +151,9 @@ def main():
     scenario.initializeFilter(ExtendedKalmanFilter)
 
     network_train_config = {
-        'batch_size' : 1024,
-        'epochs' : 100,
-        'BC_data' : False,
+        'batch_size' : batch_size,
+        'epochs' : epochs,
+        'BC_data' : bc_data,
         'rotating' : True,
         'rotating_fcn' : rotating_fcn
     }
@@ -134,13 +162,7 @@ def main():
 
 
     analysis = AnalysisBaseClass(scenario)
-    analysis.generate_y_hat()
-    analysis.generate_filter_plots(
-        x_truth=np.hstack((traj_data['X'], traj_data['W_pinn'])),
-        w_truth=traj_data['W_pinn'],
-        y_labels=['x', 'y', 'z']
-        )
-
+    
     # convert from N to B frame
     logger = analysis.scenario.filter.logger
     BN = compute_BN(logger.t_i, ErosParams().omega)
@@ -148,8 +170,18 @@ def main():
     analysis.scenario.filter.logger.x_hat_i_plus[:,0:3] = X_B
     
     # plot in B-Frame
-    analysis.generate_gravity_plots()
-    plt.show()
+    percent_error_vec = analysis.run_planes_experiment()
+    
+    # save the updated network in a custom network directory
+    data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
+    hparams.update({'results' : percent_error_vec})
+    model.config.update({'hparams' : [hparams]})
+    model.save(None, data_dir) # save the network, but not into the directory right now
+
+
+    # add planes experiment and record metrics into dataframe for parallel coordinate plot (plotly)
+    return model.config
+
 
 
 if __name__ == "__main__":

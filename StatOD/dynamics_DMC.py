@@ -150,8 +150,7 @@ def f_PINN_DMC_zero_order(x, args):
     w_vec = x[6:]
 
     model = args[0]
-    X_body_ECI = args[1:-1].astype(float)
-    tau = float(args[-1])
+    X_body_ECI = args[1:].astype(float)
 
     x_pos = (X_sc_ECI[0:3] - X_body_ECI[0:3]) # either km or [-]
     x_vel = (X_sc_ECI[3:6] - X_body_ECI[3:6])
@@ -169,8 +168,7 @@ def dfdx_PINN_DMC_zero_order(x, f, args):
     # f argument is needed to make interface standard 
     X_sc_ECI = x
     model = args[0]
-    X_body_ECI = args[1:-1].astype(float)
-    tau = float(args[-1])
+    X_body_ECI = args[1:].astype(float)
     
     x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]# either km or [-]
 
@@ -199,7 +197,6 @@ def dfdx_PINN_DMC_zero_order(x, f, args):
 def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
-    tau, = args
 
     A = zeros(N,N)
 
@@ -212,15 +209,6 @@ def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
     A[3,6] = 1
     A[4,7] = 1
     A[5,8] = 1
-
-    # TODO: Revisit this. If not commented, it causes the Q
-    # matrix to shrink the covariance instead of increase it. 
-    # For now, make the linear approximation used in SNC instead.
-    
-    # A[3:6,0:3] = model.generate_dadx(x[0:3])
-    # A[6,6] = -1/tau
-    # A[7,7] = -1/tau
-    # A[8,8] = -1/tau
 
     # phi = eye(N) + A*dt
     phi = exp(A*dt)
@@ -251,7 +239,7 @@ def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
 def get_Q_DMC_zero_order_model(dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
-    tau, model = args
+    model = args
 
     A = np.zeros((N,N))
 
@@ -266,9 +254,6 @@ def get_Q_DMC_zero_order_model(dt, x, Q, DCM, args):
     A[5,8] = 1
 
     A[3:6,0:3] = model.generate_dadx(x[0:3])
-    # A[6,6] = -1/tau
-    # A[7,7] = -1/tau
-    # A[8,8] = -1/tau
 
     phi = np.eye(N) + A*dt
     # phi = exp(A*dt)
@@ -319,5 +304,5 @@ def get_DMC_zero_order():
     q_fcn = get_Q_DMC_zero_order
     f_fcn = f_PINN_DMC_zero_order
     dfdx_fcn = dfdx_PINN_DMC_zero_order
-    tau = 0
-    return f_fcn, dfdx_fcn, q_fcn, tau
+    q_args = []
+    return f_fcn, dfdx_fcn, q_fcn, q_args
