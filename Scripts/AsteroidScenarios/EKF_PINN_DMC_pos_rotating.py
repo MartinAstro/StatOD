@@ -28,7 +28,7 @@ from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
 from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
 from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
 from StatOD.data import get_measurements_general
-from StatOD.dynamics_DMC import get_DMC_zero_order
+from StatOD.dynamics import get_DMC_zero_order
 from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 import numpy as np
@@ -72,9 +72,9 @@ def main():
     dim_constants_pinn['l_star'] *= 1E3
     model = pinnGravityModel(os.path.dirname(StatOD.__file__) + \
         "/../Data/Dataframes/eros_point_mass_v4.data",
-        learning_rate=1E-5,
+        learning_rate=5E-5,
         dim_constants=dim_constants_pinn)
-    model.set_PINN_training_fcn("pinn_a")
+    model.set_PINN_training_fcn("pinn_alc")
 
 
     # Dynamics and noise information 
@@ -124,8 +124,8 @@ def main():
 
     network_train_config = {
         'batch_size' : 1024,
-        'epochs' : 100,
-        'BC_data' : False,
+        'epochs' : 200,
+        'BC_data' : True,
         'rotating' : True,
         'rotating_fcn' : rotating_fcn
     }
