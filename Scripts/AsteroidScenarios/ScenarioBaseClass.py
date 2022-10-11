@@ -131,6 +131,11 @@ class ScenarioBaseClass:
         train_idx_list = []
         total_batches = len(self.Y) // batch_size
         self.model.train_idx = 0
+
+        X_train_full = np.empty((0,3), float)
+        Y_train_full = np.empty((0,3), float)
+        t_full = np.empty((0,), float)
+
         for k in range(total_batches+1):
 
             # Gather measurements in batch
@@ -150,20 +155,34 @@ class ScenarioBaseClass:
 
             # collect network training data
             X_train = self.filter.logger.x_hat_i_plus[start_idx:end_idx,0:3] 
-            Y_train = self.filter.logger.x_hat_i_plus[start_idx:end_idx,6:9] # DMC
+            Y_train = self.filter.logger.x_hat_i_plus[start_idx:end_idx,6:9].copy() # DMC
+            Y_train += self.model.generate_acceleration(X_train) # add DMC to current model
+
+            X_train_full = np.append(X_train_full,X_train,axis=0)
+            Y_train_full = np.append(Y_train_full,Y_train,axis=0)
+            t_full = np.append(t_full,t_batch)
 
             if BC_data:
                 # augment training data with boundary conditions (x->inf, y->0)
                 X_train_BC, Y_train_BC = boundary_condition_data(
-                    N=len(X_train)//10, 
+                    N=len(X_train)//1, 
                     dim_constants=self.dim_constants
                     )
-                
-                X_train = np.vstack((X_train, X_train_BC))
-                Y_train = np.vstack((Y_train, Y_train_BC))
-
                 t_batch_BC = np.full((len(Y_train_BC),),0.0)
-                t_batch = np.hstack((t_batch, t_batch_BC))
+                
+                # X_train = X_train_BC
+                # Y_train = Y_train_BC
+                # t_batch = t_batch_BC
+
+                # one batch at a time
+                # X_train = np.vstack((X_train, X_train_BC))
+                # Y_train = np.vstack((Y_train, Y_train_BC))
+                # t_batch = np.hstack((t_batch, t_batch_BC))
+
+                # all data + some random BC data each time 
+                X_train = np.vstack((X_train_full, X_train_BC))
+                Y_train = np.vstack((Y_train_full, Y_train_BC))
+                t_batch = np.hstack((t_full, t_batch_BC))
 
             if rotating:
                 omega =  f_args_batch[0,-1]
@@ -171,7 +190,7 @@ class ScenarioBaseClass:
 
 
             # Don't train on the last batch of data if it's too small
-            if k != total_batches:
+            if True: # k != total_batches:
                 self.model.train(X_train, Y_train, epochs=epochs, batch_size=batch_size)
                 self.model.train_idx += 1
                 train_idx_list.append(end_idx)
