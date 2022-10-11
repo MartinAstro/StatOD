@@ -219,10 +219,10 @@ class pinnGravityModel():
         self.config['PINN_constraint_fcn'] = [PINN_constraint_fcn]
 
     def train(self, X, Y, **kwargs):
+        # Make sure Y_DMC has the gravity model accelerations added to it 
         # tf.config.run_functions_eagerly(True)
-        A = Y + self.generate_acceleration(X)
         X_dim = X*(self.dim_constants['l_star'])
-        A_dim = A*(self.dim_constants['l_star'] / self.dim_constants['t_star']**2)
+        A_dim = Y*(self.dim_constants['l_star'] / self.dim_constants['t_star']**2)
         X_process = self.gravity_model.x_preprocessor(X_dim).numpy()
         Y_process = self.gravity_model.a_preprocessor(A_dim).numpy()
         if self.config['PINN_constraint_fcn'][0] == "pinn_alc":
@@ -243,6 +243,19 @@ class pinnGravityModel():
     def save(self, df_file, data_dir):
         # save the network and config data using PINN-GM API
         self.gravity_model.save(df_file, data_dir)
+
+
+class sphericalHarmonicModel():
+    def __init__(self, model):
+        self.gravity_model = model
+
+    def generate_acceleration(self, X):
+        return self.gravity_model.compute_acceleration(X)
+
+    def generate_potential(self, X):
+        return self.gravity_model.compute_potential(X)
+
+
 
 
 def get_jac_sparsity_matrix():
