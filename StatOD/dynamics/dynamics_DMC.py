@@ -306,3 +306,40 @@ def get_DMC_zero_order():
     dfdx_fcn = dfdx_PINN_DMC_zero_order
     q_args = []
     return f_fcn, dfdx_fcn, q_fcn, q_args
+
+
+# DMC Models
+def f_J2_DMC(x, args):
+    x, y, z, vx, vy, vz, w0, w1, w2 = x
+    R, mu, J2, tau = args
+    
+    def P(arg, l):
+        if l == 0:
+            return 1
+        elif l == 1:
+            return arg
+        else:
+            return ((2*l - 1)*arg*P(arg, l-1) - (l-1)*P(arg, l-2))/l
+
+    r_mag = sqrt(x**2 + y**2 + z**2)
+    P2 = P(z/r_mag, 2)
+
+    U0 = -mu/r_mag
+    U2 = (mu/r_mag)*(R/r_mag)**2*P2*J2
+    
+    def differentiate(U, arg):
+        u_arg = diff(U, arg)
+        return simplify(u_arg)
+
+    U0_x, U0_y, U0_z = differentiate(U0, x), differentiate(U0, y), differentiate(U0, z)
+    U2_x, U2_y, U2_z = differentiate(U2, x), differentiate(U2, y), differentiate(U2, z)
+
+    a_x = -(U0_x + U2_x) + w0
+    a_y = -(U0_y + U2_y) + w1
+    a_z = -(U0_z + U2_z) + w2
+
+    w0_d = -1/tau * w0
+    w1_d = -1/tau * w1
+    w2_d = -1/tau * w2
+
+    return np.array([vx, vy, vz, a_x, a_y, a_z, w0_d, w1_d, w2_d]).tolist() 
