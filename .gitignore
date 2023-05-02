@@ -18,3 +18,5 @@ Scripts/Archived/
 Data/Networks
 Data/Dataframes
 Data/FilterLogs
+*.data
+*.ipynb
