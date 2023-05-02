@@ -66,7 +66,7 @@ def f_PINN_DMC(x, args):
     x_vel = (X_sc_ECI[3:6] - X_body_ECI[3:6])
 
     # scaling occurs within the gravity model 
-    x_acc_m = model.generate_acceleration(x_pos).reshape((-1,))
+    x_acc_m = model.compute_acceleration(x_pos).reshape((-1,))
 
     x_acc = x_acc_m + w_vec
     
@@ -156,7 +156,7 @@ def f_PINN_DMC_zero_order(x, args):
     x_vel = (X_sc_ECI[3:6] - X_body_ECI[3:6])
 
     # scaling occurs within the gravity model 
-    x_acc_m = model.generate_acceleration(x_pos).reshape((-1,))
+    x_acc_m = model.compute_acceleration(x_pos).reshape((-1,))
 
     x_acc = x_acc_m + w_vec
     

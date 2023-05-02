@@ -68,7 +68,7 @@ def f_rot_PINN_DMC_zero_order(x, args):
     x_vel = (X_sc_ECI[3:6] - X_body_ECI[3:6])
 
     # scaling occurs within the gravity model 
-    x_acc_m = model.generate_acceleration(x_pos).reshape((-1,))
+    x_acc_m = model.compute_acceleration(x_pos).reshape((-1,))
 
     x, y, z = x_pos
     x_d, y_d, z_d = x_vel
@@ -146,7 +146,7 @@ def f_rot_N_PINN_DMC_zero_order(x, args):
     # scaling occurs within the gravity model 
     BN = compute_BN(t, omega).squeeze()
     x_pos_B = BN@x_pos
-    x_acc_m_B = model.generate_acceleration(x_pos_B).reshape((-1,))
+    x_acc_m_B = model.compute_acceleration(x_pos_B).reshape((-1,))
     x_acc_m = BN.T@x_acc_m_B 
 
 

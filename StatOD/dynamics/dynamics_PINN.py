@@ -12,7 +12,7 @@ def f_PINN(x, args):
 
     # gravity model requires meters so convert km -> m
     x_pos_m = x_pos_km*1E3
-    x_acc_m = model.generate_acceleration(x_pos_m).reshape((-1,))
+    x_acc_m = model.compute_acceleration(x_pos_m).reshape((-1,))
 
     #convert acceleration to km/s^2
     x_acc_km = x_acc_m/1E3
