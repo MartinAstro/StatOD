@@ -199,3 +199,11 @@ def get_jac_sparsity_matrix():
     )
 
     return jac_sparsity
+
+
+# Iterate through a dictionary and for any value that is not a list, make it a list
+def dict_values_to_list(d):
+    for k, v in d.items():
+        if not isinstance(v, list):
+            d[k] = [v]
+    return d

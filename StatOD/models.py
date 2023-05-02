@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from GravNN.Networks.Constraints import get_PI_constraint
 from GravNN.Networks.Data import DataSet
-from GravNN.Networks.Layers import PostprocessingLayer, PreprocessingLayer
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Networks.utils import configure_optimizer
 from GravNN.Support.transformations import cart2sph, invert_projection
+
+from StatOD.utils import dict_values_to_list
 
 
 class pinnGravityModel:
@@ -20,7 +20,11 @@ class pinnGravityModel:
 
         # tf.keras.mixed_precision.Policy("float64")
         df = pd.read_pickle(custom_data_dir + df_file)
-        config, gravity_model = load_config_and_model(df.iloc[-1]["id"], df)
+        config, gravity_model = load_config_and_model(
+            df.id.values[-1],
+            df,
+            custom_dtype="float64",
+        )
         self.config = config
         self.gravity_model = gravity_model
         self.planet = config["planet"][0]
@@ -43,25 +47,25 @@ class pinnGravityModel:
         else:
             self.removed_pm = False
 
-        # configure preprocessing layers
-        x_transformer = config["x_transformer"][0]
-        u_transformer = config["u_transformer"][0]
-        a_transformer = config["a_transformer"][0]
+        # # configure preprocessing layers
+        # x_transformer = config["x_transformer"][0]
+        # u_transformer = config["u_transformer"][0]
+        # a_transformer = config["a_transformer"][0]
 
-        x_star = x_transformer.scale_
-        u_star = u_transformer.scale_
-        a_star = a_transformer.scale_
+        # x_star = x_transformer.scale_
+        # u_star = u_transformer.scale_
+        # a_star = a_transformer.scale_
 
-        # TODO: Fix this, it's very counter intuitive.
-        x_preprocessor = PreprocessingLayer(0, x_star, tf.float64)
-        u_postprocessor = PostprocessingLayer(0, u_star, tf.float64)
-        a_preprocessor = PreprocessingLayer(0, a_star, tf.float64)
-        a_postprocessor = PostprocessingLayer(0, a_star, tf.float64)
+        # # TODO: Fix this, it's very counter intuitive.
+        # x_preprocessor = PreprocessingLayer(0, x_star, tf.float64)
+        # u_postprocessor = PostprocessingLayer(0, u_star, tf.float64)
+        # a_preprocessor = PreprocessingLayer(0, a_star, tf.float64)
+        # a_postprocessor = PostprocessingLayer(0, a_star, tf.float64)
 
-        self.gravity_model.x_preprocessor = x_preprocessor
-        self.gravity_model.u_postprocessor = u_postprocessor
-        self.gravity_model.a_preprocessor = a_preprocessor
-        self.gravity_model.a_postprocessor = a_postprocessor
+        # self.gravity_model.x_preprocessor = x_preprocessor
+        # self.gravity_model.u_postprocessor = u_postprocessor
+        # self.gravity_model.a_preprocessor = a_preprocessor
+        # self.gravity_model.a_postprocessor = a_postprocessor
 
     def compute_acceleration(self, X):
         X_dim = X * self.dim_constants["l_star"]
@@ -146,7 +150,7 @@ class pinnGravityModel:
 
         batch_size = kwargs.get("batch_size", 32)
         dataset = DataSet()
-        dataset.config = kwargs
+        dataset.config = dict_values_to_list(kwargs)
         dataset.from_raw_data(X_process, Y_process, percent_validation=0.01)
         # dataset = generate_dataset(X_process, Y_process, batch_size, dtype=self.config['dtype'][0])
         # dataset.shuffle(buffer_size=batch_size)
@@ -154,7 +158,7 @@ class pinnGravityModel:
         self.gravity_model.fit(
             dataset.train_data,
             batch_size=batch_size,
-            epochs=kwargs.get("epochs", 5),
+            epochs=kwargs.get("epochs", [5])[0],
             use_multiprocessing=True,
         )
 
