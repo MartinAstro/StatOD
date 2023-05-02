@@ -86,7 +86,7 @@ def generate_rotating_asteroid_trajectory(X0_km_N, filename, timestep=30, orbits
 
     acc_poly_B_m = gravity_model.compute_acceleration(R_B, pbar=False).reshape((-1,3)) 
     acc_pm_B_m = gravity_model_pm.compute_acceleration(R_B).reshape((-1,3)) 
-    acc_pinn_B_m = gravity_model_pinn.generate_acceleration(R_B).reshape((-1,3))
+    acc_pinn_B_m = gravity_model_pinn.compute_acceleration(R_B).reshape((-1,3))
 
     NB = np.transpose(BN, axes=[0,2,1])  
     acc_poly_N_m =  np.einsum('ijk,ik->ij', NB, acc_poly_B_m) 
@@ -109,6 +109,8 @@ def generate_rotating_asteroid_trajectory(X0_km_N, filename, timestep=30, orbits
     data = {
         "t" : sol.t,
         "X" : sol.y[:N, :].T, # in km and km/s
+        "X_B" : R_B / 1E3,
+        "A_B" : acc_poly_B_m / 1E3,
         "W" : acc_poly_km - acc_pm_km,
         "W_pinn" : acc_poly_km - acc_pinn_km
     }
@@ -139,7 +141,7 @@ if __name__ == '__main__':
 
     X0_km_N = np.array([
         3.16800000e+04,0.00000000e+00,-3.00000000e+03,
-        0.00000000e+00, -3.25, 3.0
+        0.1, -2.75, 2.25
         ])/1E3 
    
     # X0_km_N = np.array([
@@ -147,7 +149,7 @@ if __name__ == '__main__':
     #     0.00000000e+00, -4.60365320e+00, 2.11474057e+00
     #     ])/1E3 
 
-    generate_rotating_asteroid_trajectory(X0_km_N, "traj_rotating", timestep=60, orbits=1)
+    generate_rotating_asteroid_trajectory(X0_km_N, "traj_rotating", timestep=60, orbits=3)
  
     from Scripts.Plots.plot_asteroid_trajectory import main
     main()
