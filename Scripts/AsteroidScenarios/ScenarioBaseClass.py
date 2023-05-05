@@ -4,12 +4,8 @@ from abc import abstractclassmethod
 import numpy as np
 
 from Scripts.AsteroidScenarios.helper_functions import *
-from StatOD.dynamics import (
-    dynamics,
-    dynamics_ivp_no_jit,
-    dynamics_ivp_unscented_no_jit,
-    process_noise,
-)
+from StatOD.dynamics import (dynamics, dynamics_ivp_no_jit,
+                             dynamics_ivp_unscented_no_jit, process_noise)
 from StatOD.filters import FilterLogger
 from StatOD.measurements import measurements
 
@@ -134,11 +130,11 @@ class ScenarioBaseClass:
     def run(self, train_config):
 
         batch_size = train_config.get("batch_size", 32)
-        epochs = train_config.get("epochs", 32)
+        train_config.get("epochs", 32)
         BC_data = train_config.get("BC_data", False)
         rotating = train_config.get("rotating", False)
         rotating_fcn = train_config.get("rotating_fcn", None)
-        internal_density = train_config.get("internal_density", False)
+        train_config.get("internal_density", False)
         start_time = time.time()
 
         train_idx_list = []
@@ -204,9 +200,7 @@ class ScenarioBaseClass:
                 self.model.train(
                     X_train,
                     Y_train,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    internal_density=internal_density,
+                    **train_config,
                 )
                 self.model.train_idx += 1
                 train_idx_list.append(end_idx)

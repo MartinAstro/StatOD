@@ -47,26 +47,6 @@ class pinnGravityModel:
         else:
             self.removed_pm = False
 
-        # # configure preprocessing layers
-        # x_transformer = config["x_transformer"][0]
-        # u_transformer = config["u_transformer"][0]
-        # a_transformer = config["a_transformer"][0]
-
-        # x_star = x_transformer.scale_
-        # u_star = u_transformer.scale_
-        # a_star = a_transformer.scale_
-
-        # # TODO: Fix this, it's very counter intuitive.
-        # x_preprocessor = PreprocessingLayer(0, x_star, tf.float64)
-        # u_postprocessor = PostprocessingLayer(0, u_star, tf.float64)
-        # a_preprocessor = PreprocessingLayer(0, a_star, tf.float64)
-        # a_postprocessor = PostprocessingLayer(0, a_star, tf.float64)
-
-        # self.gravity_model.x_preprocessor = x_preprocessor
-        # self.gravity_model.u_postprocessor = u_postprocessor
-        # self.gravity_model.a_preprocessor = a_preprocessor
-        # self.gravity_model.a_postprocessor = a_postprocessor
-
     def compute_acceleration(self, X):
         X_dim = X * self.dim_constants["l_star"]
         R = np.array(X_dim).reshape((-1, 3)).astype(np.float64)
@@ -148,19 +128,16 @@ class pinnGravityModel:
             #     X_process = np.vstack((X_process, X_com))
             #     Y_process = np.vstack((Y_process, Y_com))
 
-        batch_size = kwargs.get("batch_size", 32)
+        # Make a dataset object, but don't preprocess the data (already taken
+        # care of above using the pretrained network preferences).
         dataset = DataSet()
         dataset.config = dict_values_to_list(kwargs)
         dataset.from_raw_data(X_process, Y_process, percent_validation=0.01)
-        # dataset = generate_dataset(X_process, Y_process, batch_size, dtype=self.config['dtype'][0])
         # dataset.shuffle(buffer_size=batch_size)
-        self.gravity_model.compile(optimizer=self.optimizer, loss="mse")
-        self.gravity_model.fit(
-            dataset.train_data,
-            batch_size=batch_size,
-            epochs=kwargs.get("epochs", [5])[0],
-            use_multiprocessing=True,
-        )
+
+        # override default training config with kwargs
+        self.gravity_model.config.update(**kwargs)
+        self.gravity_model.train(dataset, initialize_optimizer=False)
 
     def save(self, df_file, data_dir):
         # save the network and config data using PINN-GM API
