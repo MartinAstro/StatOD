@@ -4,8 +4,12 @@ from abc import abstractclassmethod
 import numpy as np
 
 from Scripts.AsteroidScenarios.helper_functions import *
-from StatOD.dynamics import (dynamics, dynamics_ivp_no_jit,
-                             dynamics_ivp_unscented_no_jit, process_noise)
+from StatOD.dynamics import (
+    dynamics,
+    dynamics_ivp_no_jit,
+    dynamics_ivp_unscented_no_jit,
+    process_noise,
+)
 from StatOD.filters import FilterLogger
 from StatOD.measurements import measurements
 
