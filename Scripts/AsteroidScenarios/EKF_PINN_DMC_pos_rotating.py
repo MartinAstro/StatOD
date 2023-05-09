@@ -29,7 +29,7 @@ def main():
     dim_constants = {"t_star": 1e4, "m_star": 1e0, "l_star": 1e1}
 
     # load trajectory data and initialize state, covariance
-    traj_file = "traj_rotating"
+    traj_file = "traj_rotating_gen_III"
     traj_data = get_trajectory_data(traj_file)
     x0 = np.hstack(
         (
@@ -71,7 +71,7 @@ def main():
         learning_rate=1e-4,
         dim_constants=dim_constants_pinn,
     )
-    # model.set_PINN_training_fcn("pinn_alc")
+    model.set_PINN_training_fcn("pinn_al")
 
     ##################################
     # Dynamics and noise information #
@@ -109,8 +109,8 @@ def main():
 
     scenario.non_dimensionalize()
     scenario.initializeFilter(ExtendedKalmanFilter)
-    scenario.filter.atol = 1e-6
-    scenario.filter.rtol = 1e-6
+    scenario.filter.atol = 1e-10
+    scenario.filter.rtol = 1e-10
 
     network_train_config = {
         "batch_size": 1024 * 2,

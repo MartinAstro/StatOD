@@ -3,7 +3,6 @@ import pandas as pd
 from GravNN.Networks.Constraints import get_PI_constraint
 from GravNN.Networks.Data import DataSet
 from GravNN.Networks.Model import load_config_and_model
-from GravNN.Networks.utils import configure_optimizer
 from GravNN.Support.transformations import cart2sph, invert_projection
 
 from StatOD.utils import dict_values_to_list
@@ -14,23 +13,27 @@ class pinnGravityModel:
         self,
         df_file,
         custom_data_dir="",
+        dtype="float32",
         learning_rate=None,
         dim_constants=None,
     ):
 
-        # tf.keras.mixed_precision.Policy("float64")
+        # tf.config.run_functions_eagerly(True)
         df = pd.read_pickle(custom_data_dir + df_file)
         config, gravity_model = load_config_and_model(
             df.id.values[-1],
             df,
-            custom_dtype="float64",
+            custom_dtype=dtype,
+            only_weights=True,
         )
+
+        self.dtype = dtype
         self.config = config
         self.gravity_model = gravity_model
         self.planet = config["planet"][0]
         if learning_rate is not None:
             self.config["learning_rate"][0] = learning_rate
-        self.optimizer = configure_optimizer(self.config, None)
+        self.optimizer = gravity_model.optimizer
         if dim_constants is None:
             self.dim_constants = {
                 "m_star": 1.0,
@@ -94,9 +97,11 @@ class pinnGravityModel:
     def set_PINN_training_fcn(self, PINN_constraint_fcn):
         PINN_variables = get_PI_constraint(PINN_constraint_fcn)
         self.gravity_model.eval = PINN_variables
-        # self.gravity_model.scale_loss = PINN_variables[1]
-        # self.gravity_model.adaptive_constant = tf.Variable(PINN_variables[2], dtype=self.config['dtype'][0])
         self.config["PINN_constraint_fcn"] = [PINN_constraint_fcn]
+
+        # necessary to set or avoid XLA
+        self.gravity_model.__init__(self.config, self.gravity_model.network)
+        self.gravity_model.compile(optimizer=self.gravity_model.optimizer)
 
     def train(self, X, Y, **kwargs):
         # Make sure Y_DMC has the gravity model accelerations added to it
@@ -115,7 +120,7 @@ class pinnGravityModel:
         # non-dimensionalize / preprocess (in case different scheme was used)
         X_process = self.gravity_model.x_preprocessor(X_dim).numpy()
         Y_process = self.gravity_model.a_preprocessor(A_dim).numpy()
-        if self.config["PINN_constraint_fcn"][0] == "pinn_alc":
+        if self.config["PINN_constraint_fcn"][0] == "pinn_al":
             Y_LC = np.full((len(Y_process), 4), 0.0)
             Y_process = np.hstack((Y_process, Y_LC))
 
@@ -132,6 +137,7 @@ class pinnGravityModel:
         # care of above using the pretrained network preferences).
         dataset = DataSet()
         dataset.config = dict_values_to_list(kwargs)
+        dataset.config.update({"dtype": [self.dtype]})
         dataset.from_raw_data(X_process, Y_process, percent_validation=0.01)
         # dataset.shuffle(buffer_size=batch_size)
 
