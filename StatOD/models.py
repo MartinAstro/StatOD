@@ -103,35 +103,14 @@ class pinnGravityModel:
         self.gravity_model.__init__(self.config, self.gravity_model.network)
         self.gravity_model.compile(optimizer=self.gravity_model.optimizer)
 
-    def train(self, X, Y, **kwargs):
-        # Make sure Y_DMC has the gravity model accelerations added to it
-        # tf.config.run_functions_eagerly(True)
-
-        # COM data ?
-        # X_com = np.full((10, 3), 0.1) # can't be zero exactly otherwise zeros cause issues
-        # Y_com = np.full((10, 3), 0.0)
-        # X = np.vstack((X, X_com))
-        # Y = np.vstack((Y, Y_com))
-
-        # dimensionalize
-        X_dim = X * (self.dim_constants["l_star"])
-        A_dim = Y * (self.dim_constants["l_star"] / self.dim_constants["t_star"] ** 2)
+    def train(self, X_dim, Y_dim, **kwargs):
 
         # non-dimensionalize / preprocess (in case different scheme was used)
         X_process = self.gravity_model.x_preprocessor(X_dim).numpy()
-        Y_process = self.gravity_model.a_preprocessor(A_dim).numpy()
+        Y_process = self.gravity_model.a_preprocessor(Y_dim).numpy()
         if self.config["PINN_constraint_fcn"][0] == "pinn_al":
-            Y_LC = np.full((len(Y_process), 4), 0.0)
-            Y_process = np.hstack((Y_process, Y_LC))
-
-            # # Use the COM as a constraint
-            # internal_density = kwargs.get('internal_density', None)
-            # if internal_density is not None:
-            #     internal_density_non_dim = internal_density * self.dim_constants['l_star']**3
-            #     X_com = np.full((10, 3), 1E-3) # can't be zero exactly otherwise zeros cause issues
-            #     Y_com = np.full((10, 7), [0,0,0,internal_density_non_dim, 0,0,0])
-            #     X_process = np.vstack((X_process, X_com))
-            #     Y_process = np.vstack((Y_process, Y_com))
+            Y_L = np.full((len(Y_process), 1), 0.0)
+            Y_process = np.hstack((Y_process, Y_L))
 
         # Make a dataset object, but don't preprocess the data (already taken
         # care of above using the pretrained network preferences).
@@ -139,7 +118,6 @@ class pinnGravityModel:
         dataset.config = dict_values_to_list(kwargs)
         dataset.config.update({"dtype": [self.dtype]})
         dataset.from_raw_data(X_process, Y_process, percent_validation=0.01)
-        # dataset.shuffle(buffer_size=batch_size)
 
         # override default training config with kwargs
         self.gravity_model.config.update(**kwargs)

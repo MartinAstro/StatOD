@@ -4,6 +4,7 @@ from abc import abstractclassmethod
 import numpy as np
 
 from Scripts.AsteroidScenarios.helper_functions import *
+from StatOD.datasets import Dataset
 from StatOD.dynamics import (
     dynamics,
     dynamics_ivp_no_jit,
@@ -138,16 +139,15 @@ class ScenarioBaseClass:
         BC_data = train_config.get("BC_data", False)
         rotating = train_config.get("rotating", False)
         rotating_fcn = train_config.get("rotating_fcn", None)
-        train_config.get("internal_density", False)
+        synthetic_data = train_config.get("synthetic_data", False)
+        empty_data = train_config.get("empty_data", False)
         start_time = time.time()
 
         train_idx_list = []
         total_batches = len(self.Y) // batch_size
         self.model.train_idx = 0
-
-        X_train_full = np.empty((0, 3), float)
-        Y_train_full = np.empty((0, 3), float)
-        t_full = np.empty((0,), float)
+        data = Dataset(self.dim_constants)
+        planet = self.model.planet
 
         for k in range(total_batches + 1):
 
@@ -169,41 +169,45 @@ class ScenarioBaseClass:
             self.filter.run(t_batch, Y_batch, R_batch, f_args_batch, h_args_batch)
 
             # collect network training data
-            X_train = self.filter.logger.x_hat_i_plus[start_idx:end_idx, 0:3]
-            Y_train = self.filter.logger.x_hat_i_plus[
-                start_idx:end_idx,
-                6:9,
-            ].copy()  # DMC
-            Y_train += self.model.compute_acceleration(
-                X_train,
-            )  # add DMC to current model
+            if empty_data:
+                data.clear()
 
-            X_train_full = np.append(X_train_full, X_train, axis=0)
-            Y_train_full = np.append(Y_train_full, Y_train, axis=0)
-            t_full = np.append(t_full, t_batch)
+            state = self.filter.logger.x_hat_i_plus[start_idx:end_idx]
+            data.generate_estimated_data(state, self.model, t_batch)
 
             if BC_data:
-                # augment training data with boundary conditions (x->inf, y->0)
-                X_train_BC, Y_train_BC = boundary_condition_data(
-                    N=len(X_train) // 1,
-                    dim_constants=self.dim_constants,
+                data.generate_BC_data(
+                    train_config.get("bc_radii", np.array([5, 10])) * planet.radius,
+                    train_config.get("num_samples", 1000),
+                    **self.model.config,
                 )
-                t_batch_BC = np.full((len(Y_train_BC),), 0.0)
+            if synthetic_data:
+                data.generate_synthetic_data(
+                    train_config.get("syn_radii", np.array([0, 3])) * planet.radius,
+                    train_config.get("num_samples", 1000),
+                    self.model,
+                    **self.model.config,
+                )
 
-                # all data + some random BC data each time
-                X_train = np.vstack((X_train_full, X_train_BC))
-                Y_train = np.vstack((Y_train_full, Y_train_BC))
-                t_batch = np.hstack((t_full, t_batch_BC))
-
+            # rotate the values based on spin of asteroid
             if rotating:
                 omega = f_args_batch[0, -1]
-                X_train, Y_train = rotating_fcn(t_batch, omega, X_train, Y_train)
+                X_non_dim, Y_non_dim, t_non_dim = data.get_data_non_dim()
+                X_non_dim, Y_non_dim = rotating_fcn(
+                    t_non_dim,
+                    omega,
+                    X_non_dim,
+                    Y_non_dim,
+                )
+                data.set_data_non_dim(X_non_dim, Y_non_dim, t_non_dim)
+
+            X_train_dim, Y_train_dim, t_train_dim = data.get_data_dim()
 
             # Don't train on the last batch of data if it's too small
             if True:  # k != total_batches:
                 self.model.train(
-                    X_train,
-                    Y_train,
+                    X_train_dim * 1e3,  # convert to m
+                    Y_train_dim * 1e3,  # convert to m/s^2
                     **train_config,
                 )
                 self.model.train_idx += 1
