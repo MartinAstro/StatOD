@@ -8,6 +8,8 @@ import numpy as np
 from GravNN.GravityModels.PointMass import PointMass
 from GravNN.Trajectories.RandomDist import RandomDist
 
+from Scripts.AsteroidScenarios.helper_functions import compute_BN
+
 
 class Dataset:
     def __init__(self, dim_constants):
@@ -56,15 +58,21 @@ class Dataset:
         self.Y_non_dim = Y_non_dim
         self.t_non_dim = t_non_dim
 
-    def generate_estimated_data(self, state_non_dim, model, t_batch):
-        X = state_non_dim[:, 0:3]
-        Y = state_non_dim[:, 6:9].copy()
+    def generate_estimated_data(self, state_non_dim, model, t_batch, omega):
+        X_N = state_non_dim[:, 0:3]
+        Y_DMC_N = state_non_dim[:, 6:9].copy()
+
+        BN = compute_BN(t_batch, omega)
+        # X_B = BN @ X_N
+        X_B = np.einsum("ijk,ik->ij", BN, X_N)
+        Y_m_B = model.compute_acceleration(X_B).reshape((-1, 3))
+        Y_m_N = np.einsum("ijk,ik->ij", np.transpose(BN, axes=[0, 2, 1]), Y_m_B)
 
         # add DMC to PINN predictions
-        Y += model.compute_acceleration(X)
+        Y_m_N += Y_DMC_N
 
         t = t_batch.copy()
-        self.append(X, Y, t)
+        self.append(X_N, Y_m_N, t)
 
     def generate_BC_data(self, radii_bounds, num_samples, **kwargs):
         planet = kwargs.get("planet")[0]
@@ -104,6 +112,7 @@ class Dataset:
             radii_bounds,
             num_samples,
             shape_model=grav_file,
+            uniform=True,
         ).generate()
         Y_synth = model.gravity_model.compute_acceleration(X_synth)
 
