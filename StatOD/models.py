@@ -33,7 +33,9 @@ class pinnGravityModel:
         self.planet = config["planet"][0]
         if learning_rate is not None:
             self.config["learning_rate"][0] = learning_rate
-        self.optimizer = gravity_model.optimizer
+        self.optimizer = gravity_model.optimizer.learning_rate = self.config[
+            "learning_rate"
+        ][0]
         if dim_constants is None:
             self.dim_constants = {
                 "m_star": 1.0,
@@ -104,6 +106,13 @@ class pinnGravityModel:
         self.gravity_model.compile(optimizer=self.gravity_model.optimizer)
 
     def train(self, X_dim, Y_dim, **kwargs):
+
+        # save X_dim and Y_dim to a pickle file
+        import pickle
+
+        data = {"X": X_dim, "Y": Y_dim}
+        with open("Scripts/Scratch/training_data_III_v2.data", "wb") as f:
+            pickle.dump(data, f)
 
         # non-dimensionalize / preprocess (in case different scheme was used)
         X_process = self.gravity_model.x_preprocessor(X_dim).numpy()
