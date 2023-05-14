@@ -2,6 +2,7 @@ import multiprocessing as mp
 import os
 from pprint import pprint
 
+import numpy as np
 from GravNN.GravityModels.PointMass import get_pm_data
 from GravNN.Networks.Configs import *
 from GravNN.Networks.script_utils import save_training
@@ -15,6 +16,8 @@ def main():
     threads = 4
 
     df_file = "Data/Dataframes/eros_filter_poly.data"
+    df_file = "Data/Dataframes/eros_filter_poly_dropout.data"
+    df_file = "Data/Dataframes/eros_filter_poly_no_epochs.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -31,10 +34,11 @@ def main():
         "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [1],
+        "epochs": [0],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
+        "dropout": [0.1],
         # "override": [True],
     }
     args = configure_run_args(config, hparams)
@@ -59,10 +63,10 @@ def run(config):
     pprint(config)
 
     # Get data, network, optimizer, and generate model
-    data = DataSet(config)
+    DataSet(config)
     model = PINNGravityModel(config)
-    history = model.train(data)
-    saver = ModelSaver(model, history)
+    model.predict(np.array([[0.0, 0.0, 0.0]]))
+    saver = ModelSaver(model, history=None)
     saver.save(df_file=None)
 
     print(f"Model ID: [{model.config['id']}]")

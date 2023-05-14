@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.Polyhedral import get_poly_data
-from helper_functions import *
 
+from Scripts.AsteroidScenarios.helper_functions import *
 from StatOD.visualizations import VisualizationBase
 
 
@@ -11,6 +11,7 @@ class AnalysisBaseClass:
     def __init__(self, scenario):
         self.scenario = scenario
         self.planes_exp = None
+        self.true_gravity_fcn = get_poly_data
 
     def generate_y_hat(self):
         t = self.scenario.t
@@ -59,14 +60,14 @@ class AnalysisBaseClass:
         if self.planes_exp is not None:
             plot_error_planes(
                 self.planes_exp,
-                max_error=20,
+                max_error=10,
                 logger=self.scenario.filter.logger,
             )
         else:
             self.run_planes_experiment()
             plot_error_planes(
                 self.planes_exp,
-                max_error=20,
+                max_error=10,
                 logger=self.scenario.filter.logger,
             )
 
@@ -81,7 +82,7 @@ class AnalysisBaseClass:
             ],
             50,
         )
-        planes_exp.config["gravity_data_fcn"] = [get_poly_data]
+        planes_exp.config["gravity_data_fcn"] = [self.true_gravity_fcn]
         planes_exp.run()
         mask = planes_exp.get_planet_mask()
         planes_exp.percent_error_acc[mask] = np.nan

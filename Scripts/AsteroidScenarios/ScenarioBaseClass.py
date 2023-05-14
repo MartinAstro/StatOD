@@ -172,8 +172,9 @@ class ScenarioBaseClass:
             if empty_data:
                 data.clear()
 
+            omega = f_args_batch[0, -1]
             state = self.filter.logger.x_hat_i_plus[start_idx:end_idx]
-            data.generate_estimated_data(state, self.model, t_batch)
+            data.generate_estimated_data(state, self.model, t_batch, omega)
 
             if BC_data:
                 data.generate_BC_data(
@@ -191,7 +192,6 @@ class ScenarioBaseClass:
 
             # rotate the values based on spin of asteroid
             if rotating:
-                omega = f_args_batch[0, -1]
                 X_non_dim, Y_non_dim, t_non_dim = data.get_data_non_dim()
                 X_non_dim, Y_non_dim = rotating_fcn(
                     t_non_dim,

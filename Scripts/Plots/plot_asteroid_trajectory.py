@@ -165,12 +165,10 @@ def compute_BN(tVec, omega):
     return C
 
 
-def main():
+def main(trajectory_file="Data/Trajectories/traj_rotating.data"):
 
     VisualizationBase(save_directory=StatOD.__path__[0] + "/../Plots/")
-    with open("Data/Trajectories/traj_rotating.data", "rb") as f:
-        # with open("Data/Trajectories/trajectory_asteroid_equitorial.data", 'rb') as f:
-        # with open("Data/Trajectories/trajectory_asteroid_inclined.data", 'rb') as f:
+    with open(trajectory_file, "rb") as f:
         data = pickle.load(f)
 
     X_km = data["X"] * 1e3
@@ -193,4 +191,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main("Data/Trajectories/traj_rotating.data")
+    main("Data/Trajectories/trajectory_asteroid_equitorial.data")
+    main("Data/Trajectories/trajectory_asteroid_inclined.data")

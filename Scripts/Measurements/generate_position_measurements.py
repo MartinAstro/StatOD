@@ -47,4 +47,11 @@ if __name__ == "__main__":
     # generate_measurements('Data/Trajectories/trajectory_asteroid_equitorial.data')
     # generate_measurements('Data/Trajectories/trajectory_asteroid_inclined_high_alt_30_timestep.data')
     # generate_measurements('Data/Trajectories/traj_rotating.data')
-    generate_measurements("Data/Trajectories/traj_rotating_gen_III.data")
+    # generate_measurements("Data/Trajectories/traj_rotating_gen_III.data")
+    # generate_measurements("Data/Trajectories/traj_rotating_gen_III_constant.data")
+    # generate_measurements(
+    #     "Data/Trajectories/traj_rotating_gen_III_constant_no_fuse.data"
+    # )
+    generate_measurements(
+        "Data/Trajectories/traj_rotating_gen_III_constant_dropout.data",
+    )

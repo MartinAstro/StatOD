@@ -5,7 +5,6 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
-from GravNN.GravityModels.PointMass import PointMass
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
 import StatOD
@@ -104,17 +103,17 @@ def plot_error_planes(planes_exp, max_error, logger):
     y = visPlanes.experiment.percent_error_acc
     plt.figure()
     visPlanes.max = max_error
-    visPlanes.plot_plane(x, y, plane="xy")
+    visPlanes.plot_plane(x, y, plane="xy", annotate_stats=True)
     plt.sca(plt.gcf().axes[0])
     plt.plot(X_traj[:, 0], X_traj[:, 1], color="black", linewidth=0.5)
     plt.figure()
-    visPlanes.plot_plane(x, y, plane="xz")
+    visPlanes.plot_plane(x, y, plane="xz", annotate_stats=True)
     plt.sca(plt.gcf().axes[0])
     plt.plot(X_traj[:, 0], X_traj[:, 2], color="black", linewidth=0.5)
     plt.gca().set_xticks([])
     plt.gca().set_yticks([])
     plt.figure()
-    visPlanes.plot_plane(x, y, plane="yz")
+    visPlanes.plot_plane(x, y, plane="yz", annotate_stats=True)
     plt.sca(plt.gcf().axes[0])
     plt.plot(X_traj[:, 1], X_traj[:, 2], color="black", linewidth=0.5)
     plt.gca().set_xticks([])
@@ -126,37 +125,6 @@ def get_trajectory_data(data_file):
     with open(package_dir + f"Data/Trajectories/{data_file}.data", "rb") as f:
         data = pickle.load(f)
     return data
-
-
-def boundary_condition_data(N, dim_constants):
-    s = np.random.uniform(-1, 1, size=(N,))
-    t = np.random.uniform(-1, 1, size=(N,))
-    u = np.random.uniform(-1, 1, size=(N,))
-
-    # Forces data to be on sphere of radius r*500
-    coordinates = np.vstack([s, t, u]).T
-    r_mag = np.linalg.norm(coordinates, axis=1)
-    s /= r_mag
-    t /= r_mag
-    u /= r_mag
-
-    # r = Eros().radius*4
-    r = np.random.uniform(Eros().radius * 4, Eros().radius * 6, size=s.shape)
-    x = r * s
-    y = r * t
-    z = r * u
-    X_train = np.column_stack((x, y, z))
-
-    pm_gravity = PointMass(Eros())
-    Y_train = pm_gravity.compute_acceleration(X_train)
-
-    X_train /= 1000  # convert to km
-    Y_train /= 1000  # convert to km
-
-    X_train /= dim_constants["l_star"]
-    Y_train /= dim_constants["l_star"] / dim_constants["t_star"] ** 2
-
-    return X_train, Y_train
 
 
 def format_args(hparams):
