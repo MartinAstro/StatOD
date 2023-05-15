@@ -8,7 +8,7 @@ import numpy as np
 from GravNN.GravityModels.PointMass import PointMass
 from GravNN.Trajectories.RandomDist import RandomDist
 
-from Scripts.AsteroidScenarios.helper_functions import compute_BN
+from Scripts.Scenarios.helper_functions import compute_BN
 
 
 class Dataset:

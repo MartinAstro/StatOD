@@ -1,4 +1,4 @@
-from Scripts.AsteroidScenarios.ScenarioBaseClass import ScenarioBaseClass
+from Scripts.Scenarios.ScenarioBaseClass import ScenarioBaseClass
 
 
 class ScenarioPositions(ScenarioBaseClass):

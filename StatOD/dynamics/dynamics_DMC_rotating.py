@@ -1,7 +1,7 @@
 import numpy as np
 from sympy import *
 
-from Scripts.AsteroidScenarios.helper_functions import compute_BN
+from Scripts.Scenarios.helper_functions import compute_BN
 
 
 def get_Q_DMC(dt, x, Q, DCM, args):

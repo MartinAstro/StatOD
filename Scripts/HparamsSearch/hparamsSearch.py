@@ -1,7 +1,8 @@
 import multiprocessing as mp
 
-from helper_functions import *
-
+from Scripts.Scenarios.helper_functions import *
+from Scripts.Experiments.EKF_PINN_DMC_pos_rotating import EKF_Rotating_Scenario
+import os
 import StatOD
 
 
@@ -9,149 +10,22 @@ def main():
     hparams = {
         "q_value": [1e-9, 1e-8, 1e-7],
         "epochs": [10, 50, 100],
-        "learning_rate": [1e-6],
-        "batch_size": [1024, 2048],
-        "train_fcn": ["pinn_alc"],
+        "learning_rate": [1e-4, 1e-5, 1e-6],
+        "batch_size": [256, 1024, 2048],
+        "train_fcn": ["pinn_a", "pinn_al"],
+        "boundary_condition_data": [True, False],
     }
 
     save_df = (
-        os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/hparams_pos_df.data"
+        os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/hparams_rotating.data"
     )
 
-    threads = 3
+    threads = 6
     args = format_args(hparams)
     with mp.Pool(threads) as pool:
-        results = pool.starmap_async(run_catch, args)
+        results = pool.starmap_async(EKF_Rotating_Scenario, args)
         configs = results.get()
     save_results(save_df, configs)
-
-
-def run_catch(args):
-    finished = False
-    while not finished:
-        try:
-            config = run(args)
-            finished = True
-        except Exception as e:
-            print(e)
-    return config
-
-
-def run(hparams):
-
-    import os
-
-    import numpy as np
-
-    import StatOD
-    from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
-    from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
-    from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
-    from StatOD.data import get_measurements_general
-    from StatOD.dynamics_DMC import get_DMC_zero_order
-    from StatOD.filters import ExtendedKalmanFilter
-    from StatOD.measurements import h_pos
-    from StatOD.models import pinnGravityModel
-
-    q = hparams["q_value"]
-    epochs = hparams["epochs"]
-    lr = hparams["learning_rate"]
-    batch_size = hparams["batch_size"]
-    pinn_constraint_fcn = hparams["train_fcn"]
-    Q0 = np.eye(3) * q**2
-
-    dim_constants = {
-        "t_star": 1e4,
-        "m_star": 1e0,
-        "l_star": 1e1,
-    }
-
-    # load trajectory data and initialize state, covariance
-    traj_file = "trajectory_asteroid_inclined_high_alt_30_timestep"
-    traj_data = get_trajectory_data(traj_file)
-    x0 = np.hstack((traj_data["X"][0].copy(), [0.0, 0.0, 0.0]))
-    P_diag = np.array([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-7, 1e-7, 1e-7]) ** 2
-
-    # Measurement information
-    measurement_file = f"Data/Measurements/Position/{traj_file}_meas_noiseless.data"
-    t_vec, Y_vec, h_args_vec = get_measurements_general(
-        measurement_file,
-        t_gap=30,
-        data_fraction=1.0,
-    )
-    R_diag = np.array([1e-3, 1e-3, 1e-3]) ** 2
-
-    # Initialize the PINN-GM
-    dim_constants_pinn = dim_constants.copy()
-    dim_constants_pinn["l_star"] *= 1e3
-    model = pinnGravityModel(
-        os.path.dirname(StatOD.__file__)
-        + "/../Data/Dataframes/eros_point_mass_v4.data",
-        learning_rate=lr,
-        dim_constants=dim_constants_pinn,
-    )
-    model.set_PINN_training_fcn(pinn_constraint_fcn)
-
-    # Dynamics and noise information
-    eros_pos = np.zeros((6,))
-    f_fcn, dfdx_fcn, q_fcn, q_args = get_DMC_zero_order()
-    f_args = np.hstack((model, eros_pos))
-    f_args = np.full((len(t_vec), len(f_args)), f_args)
-    Q0 = np.eye(3) * (q) ** 2
-
-    scenario = ScenarioPositions(
-        {
-            "dim_constants": [dim_constants],
-            "N_states": [len(x0)],
-            "model": [model],
-        },
-    )
-
-    scenario.initializeMeasurements(
-        t_vec=t_vec,
-        Y_vec=Y_vec,
-        R=R_diag,
-        h_fcn=h_pos,
-        h_args_vec=h_args_vec,
-    )
-
-    scenario.initializeDynamics(
-        f_fcn=f_fcn,
-        dfdx_fcn=dfdx_fcn,
-        f_args=f_args,
-    )
-
-    scenario.initializeNoise(
-        q_fcn=q_fcn,
-        q_args=q_args,
-        Q0=Q0,
-    )
-
-    scenario.initializeIC(
-        t0=t_vec[0],
-        x0=x0,
-        P0=P_diag,
-    )
-
-    scenario.non_dimensionalize()
-    scenario.initializeFilter(ExtendedKalmanFilter)
-
-    network_train_config = {
-        "batch_size": batch_size,
-        "epochs": epochs,
-        "BC_data": False,
-    }
-    scenario.run(network_train_config)
-    scenario.dimensionalize()
-
-    analysis = AnalysisBaseClass(scenario)
-    analysis.generate_y_hat()
-    analysis.generate_filter_plots(
-        x_truth=np.hstack((traj_data["X"], traj_data["W_pinn"])),
-        w_truth=traj_data["W_pinn"],
-        y_labels=["x", "y", "z"],
-    )
-    analysis.generate_gravity_plots()
 
 
 if __name__ == "__main__":

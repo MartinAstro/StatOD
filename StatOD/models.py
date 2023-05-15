@@ -4,6 +4,7 @@ from GravNN.Networks.Constraints import get_PI_constraint
 from GravNN.Networks.Data import DataSet
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Support.transformations import cart2sph, invert_projection
+from GravNN.Networks.Saver import ModelSaver
 
 from StatOD.utils import dict_values_to_list
 
@@ -12,14 +13,20 @@ class pinnGravityModel:
     def __init__(
         self,
         df_file,
-        custom_data_dir="",
+        custom_data_dir=None,
         dtype="float32",
         learning_rate=None,
         dim_constants=None,
     ):
+        self.history = None
+        self.custom_data_dir = custom_data_dir
 
         # tf.config.run_functions_eagerly(True)
-        df = pd.read_pickle(custom_data_dir + df_file)
+        if custom_data_dir is not None:
+            df = pd.read_pickle(custom_data_dir + df_file)
+        else:
+            df = pd.read_pickle(df_file)
+
         config, gravity_model = load_config_and_model(
             df.id.values[-1],
             df,
@@ -130,11 +137,12 @@ class pinnGravityModel:
 
         # override default training config with kwargs
         self.gravity_model.config.update(**kwargs)
-        self.gravity_model.train(dataset, initialize_optimizer=False)
+        self.history = self.gravity_model.train(dataset, initialize_optimizer=False)
 
     def save(self, df_file, data_dir):
         # save the network and config data using PINN-GM API
-        self.gravity_model.save(df_file, data_dir)
+        saver = ModelSaver(self.gravity_model, self.history)
+        saver.save(df_file=None, custom_data_dir=self.custom_data_dir)
 
 
 class sphericalHarmonicModel:

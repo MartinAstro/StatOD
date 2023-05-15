@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_data
-from helper_functions import *
+from Scripts.Scenarios.helper_functions import *
 
-from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
-from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
-from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
+from Scripts.Visualization.FilterVisualizer import FilterVisualizer
+from Scripts.Scenarios.helper_functions import get_trajectory_data
+from Scripts.Scenarios.ScenarioPositions import ScenarioPositions
 from StatOD.constants import ErosParams
 from StatOD.data import get_measurements_general
 from StatOD.dynamics import *
@@ -13,6 +13,8 @@ from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
 from StatOD.visualizations import *
+from Scripts.Analysis.AnalysisBaseClass import AnalysisBaseClass
+from Scripts.Visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 
 plt.switch_backend("WebAgg")
 
@@ -28,13 +30,21 @@ def rotating_fcn(tVec, omega, X_train, Y_train):
     return X_train_B, Y_train_B
 
 
-def main():
+def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
+
+    q = hparams.get("q_value", [1e-9])[0]
+    r = hparams.get("r_value", [1e-12])[0]
+    epochs = hparams.get("epochs", [100])[0]
+    lr = hparams.get("learning_rate", [1e-4])[0]
+    batch_size = hparams.get("batch_size", [1024])[0]
+    pinn_constraint_fcn = hparams.get("train_fcn", ["pinn_a"])[0]
+    bc_data = hparams.get("boundary_condition_data", [False])[0]
+    measurement_noise = hparams.get("measurement_noise", ["noiseless"])[0]
+
     dim_constants = {"t_star": 1e4, "m_star": 1e0, "l_star": 1e1}
 
     # load trajectory data and initialize state, covariance
-    traj_file = "traj_rotating_gen_III_constant_no_fuse"
-    traj_file = "traj_rotating_gen_III_constant_dropout"  # 10 orbits
-    traj_file = "traj_rotating_gen_III_constant"
+
     traj_data = get_trajectory_data(traj_file)
     x0 = np.hstack(
         (
@@ -48,33 +58,29 @@ def main():
     # Measurement information #
     ###########################
 
-    measurement_file = f"Data/Measurements/Position/{traj_file}_meas_noiseless.data"
-    # measurement_file = f"Data/Measurements/Position/{traj_file}_meas_noisy.data"
+    measurement_file = (
+        f"Data/Measurements/Position/{traj_file}_meas_{measurement_noise}.data"
+    )
     t_vec, Y_vec, h_args_vec = get_measurements_general(
         measurement_file,
         t_gap=60,
-        data_fraction=1.0,
+        data_fraction=0.1,
     )
-    # R_diag = np.array([1e-3, 1e-3, 1e-3]) ** 2
-    R_diag = np.array([1e-12, 1e-12, 1e-12]) ** 2
+
+    R_diag = np.eye(3) * r**2
 
     ###########################
     # Initialize the PINN-GM  #
     ###########################
 
-    statOD_dir = os.path.dirname(StatOD.__file__)
-    df_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly_no_fuse.data"
-    df_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly_dropout.data"
-    df_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly.data"
-
     dim_constants_pinn = dim_constants.copy()
     dim_constants_pinn["l_star"] *= 1e3
     model = pinnGravityModel(
-        df_file,
-        learning_rate=1e-5,
+        pinn_file,
+        learning_rate=lr,
         dim_constants=dim_constants_pinn,
     )
-    model.set_PINN_training_fcn("pinn_a")
+    model.set_PINN_training_fcn(pinn_constraint_fcn)
 
     ##################################
     # Dynamics and noise information #
@@ -87,8 +93,7 @@ def main():
     f_args[:, -2] = t_vec
     f_args[:, -1] = ErosParams().omega
 
-    Q0 = np.eye(3) * (1e-9) ** 2
-    # Q0 = np.eye(3) * (1e-7) ** 2
+    Q0 = np.eye(3) * q**2
 
     scenario = ScenarioPositions(
         {
@@ -116,38 +121,77 @@ def main():
     scenario.filter.rtol = 1e-10
 
     network_train_config = {
-        "batch_size": 20000,
-        "epochs": 5000,
-        "BC_data": False,
+        "batch_size": batch_size,
+        "epochs": epochs,
+        "BC_data": bc_data,
         "rotating": True,
         "rotating_fcn": rotating_fcn,
         "synthetic_data": False,
         "num_samples": 1000,
-        # 'internal_density' : Eros().density
     }
     scenario.run(network_train_config)
     scenario.dimensionalize()
 
-    analysis = AnalysisBaseClass(scenario)
-    analysis.generate_y_hat()
-    analysis.generate_filter_plots(
+    # Plot filter results
+    vis = FilterVisualizer(scenario)
+    vis.generate_y_hat()
+    vis.generate_filter_plots(
         x_truth=np.hstack((traj_data["X"], traj_data["W_pinn"])),
         w_truth=traj_data["W_pinn"],
         y_labels=["x", "y", "z"],
     )
 
     # convert from N to B frame
-    logger = analysis.scenario.filter.logger
+    logger = vis.scenario.filter.logger
     BN = compute_BN(logger.t_i, ErosParams().omega)
     X_B = np.einsum("ijk,ik->ij", BN, logger.x_hat_i_plus[:, 0:3])
-    analysis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
+    vis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
 
-    # plot in B-Frame
+    # Run all the experiments on the trained model
+    analysis = AnalysisBaseClass(scenario)
     analysis.true_gravity_fcn = get_hetero_poly_data
-    analysis.generate_gravity_plots()
+    metrics = analysis.run()
 
-    plt.show()
+    if show:
+        # Plot experiment results
+        planes_vis = GravityPlanesVisualizer()
+        planes_vis.run(
+            analysis.planes_exp,
+            max_error=10,
+            logger=vis.scenario.filter.logger,
+        )
+        plt.show()
+
+    data_dir = os.path.dirname(StatOD.__file__) + "/../Data"
+    hparams.update(metrics)
+    model.config.update({"hparams": [hparams]})
+    model.save(None, data_dir)  # save the network, but not into the directory right now
+
+    # add planes experiment and record metrics into dataframe for parallel coordinate plot (plotly)
+    return model.config
 
 
 if __name__ == "__main__":
-    main()
+
+    statOD_dir = os.path.dirname(StatOD.__file__)
+
+    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly_no_fuse.data"
+    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly_dropout.data"
+    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly.data"
+
+    traj_file = "traj_rotating_gen_III_constant_no_fuse"
+    traj_file = "traj_rotating_gen_III_constant_dropout"  # 10 orbits
+    traj_file = "traj_rotating_gen_III_constant"
+
+    hparams = {
+        "q_value": [1e-9],
+        "r_value": [1e-12],
+        "epochs": [100],
+        "learning_rate": [1e-4],
+        "batch_size": [1024],
+        "train_fcn": ["pinn_a"],
+        "boundary_condition_data": [False],
+        "measurement_noise": ["noiseless"],
+    }
+
+    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False)

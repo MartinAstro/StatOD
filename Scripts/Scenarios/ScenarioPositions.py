@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import StatOD
-from Scripts.AsteroidScenarios.AnalysisBaseClass import AnalysisBaseClass
-from Scripts.AsteroidScenarios.helper_functions import get_trajectory_data
-from Scripts.AsteroidScenarios.Scenarios import ScenarioPositions
+from Scripts.Analysis.AnalysisBaseClass import AnalysisBaseClass
+from Scripts.Scenarios.helper_functions import get_trajectory_data
+from Scripts.Scenarios.Scenarios import ScenarioPositions
 from StatOD.data import get_measurements_general
-from StatOD.dynamics_DMC import get_DMC_zero_order
+from StatOD.dynamics.dynamics_DMC import get_DMC_zero_order
 from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel

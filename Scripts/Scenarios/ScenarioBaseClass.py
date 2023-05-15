@@ -3,7 +3,7 @@ from abc import abstractclassmethod
 
 import numpy as np
 
-from Scripts.AsteroidScenarios.helper_functions import *
+from Scripts.Scenarios.helper_functions import *
 from StatOD.datasets import Dataset
 from StatOD.dynamics import (
     dynamics,
