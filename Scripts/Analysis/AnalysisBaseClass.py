@@ -1,11 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.Polyhedral import get_poly_data
 
 from Scripts.Scenarios.helper_functions import *
-from StatOD.visualizations import VisualizationBase
-import pandas as pd
 
 
 class AnalysisBaseClass:
@@ -21,7 +18,7 @@ class AnalysisBaseClass:
         return metrics
 
     def gather_metrics(self):
-        metrics = {}
+        metrics = {"time_elapsed": self.scenario.time_elapsed}
         metrics.update(self.get_planes_metrics())
 
         return metrics
@@ -32,10 +29,10 @@ class AnalysisBaseClass:
             model.gravity_model,
             model.config,
             [
-                -model.config["planet"][0].radius * 4,
-                model.config["planet"][0].radius * 4,
+                -model.config["planet"][0].radius * 2,
+                model.config["planet"][0].radius * 2,
             ],
-            50,
+            100,
         )
         planes_exp.config["gravity_data_fcn"] = [self.true_gravity_fcn]
         planes_exp.run()
