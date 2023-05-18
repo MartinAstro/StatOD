@@ -8,6 +8,7 @@ from GravNN.GravityModels.PointMass import PointMass
 from GravNN.GravityModels.Polyhedral import Polyhedral
 from scipy.integrate import solve_ivp
 
+import StatOD
 from Scripts.Scenarios.helper_functions import compute_BN
 from StatOD.constants import ErosParams
 from StatOD.dynamics import *
@@ -136,12 +137,13 @@ def generate_rotating_asteroid_trajectory(
         # # estimated unmodeled acceleration in km/s^2
         "W_pinn": acc_true_km - acc_pinn_km,
     }
-    with open(f"Data/Trajectories/{filename}.data", "wb") as f:
+
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/.."
+    with open(f"{statOD_dir}/Data/Trajectories/{filename}.data", "wb") as f:
         pickle.dump(data, f)
 
 
 if __name__ == "__main__":
-
     ep = ErosParams()
     X0_m_N = np.array(
         [
@@ -191,10 +193,10 @@ if __name__ == "__main__":
     filename = "traj_rotating_gen_III_constant"
     generate_rotating_asteroid_trajectory(
         X0_km_N,
-        "traj_rotating_gen_III_constant",
+        filename,
         "eros_constant_poly",
         timestep=60,
-        orbits=3,
+        orbits=10,
     )
     # generate_rotating_asteroid_trajectory(
     #     X0_km_N,
@@ -213,12 +215,12 @@ if __name__ == "__main__":
     #     orbits=10,
     # )
 
-    from Scripts.Plots.plot_asteroid_trajectory import main
-
-    main(f"Data/Trajectories/{filename}.data")
+    # from Scripts.Plots.plot_asteroid_trajectory import main
+    # main(f"Data/Trajectories/{filename}.data")
 
     from Scripts.Measurements.generate_position_measurements import (
         generate_measurements,
     )
 
-    generate_measurements(f"Data/Trajectories/{filename}.data")
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    generate_measurements(f"{statOD_dir}Data/Trajectories/{filename}.data")

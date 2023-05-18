@@ -10,7 +10,6 @@ os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
 
 def main():
-
     threads = 4
 
     # df_file = "Data/Dataframes/eros_constant_poly.data"
@@ -39,6 +38,7 @@ def main():
         "gravity_data_fcn": [get_poly_data],
         "dropout": [0.0],
         "fuse_models": [False],
+        "print_interval": [10],
         # "decay_rate": [0.5],
         # "override": [True],
         # "eager": [True],
@@ -53,7 +53,6 @@ def main():
 
 
 def run(config):
-
     from GravNN.Networks.Data import DataSet
     from GravNN.Networks.Model import PINNGravityModel
     from GravNN.Networks.Saver import ModelSaver

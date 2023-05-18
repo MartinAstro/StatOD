@@ -7,7 +7,7 @@ from Scripts.Scenarios.helper_functions import *
 from StatOD.utils import dict_values_to_list
 
 
-def run_catch(args):
+def run_catch(lock, args):
     finished = False
     while not finished:
         try:
@@ -15,36 +15,36 @@ def run_catch(args):
             pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly.data"
             traj_file = "traj_rotating_gen_III_constant"
             args_list = dict_values_to_list(args)
-            config = EKF_Rotating_Scenario(pinn_file, traj_file, args_list, show=False)
+            config = EKF_Rotating_Scenario(
+                pinn_file,
+                traj_file,
+                args_list,
+                show=False,
+            )
             finished = True
         except Exception as e:
             print(e)
     return config
 
 
-def main():
+def main(noise):
     hparams = {
         "q_value": [1e-9, 1e-8, 1e-7],
-        "epochs": [10, 50, 100],
+        "epochs": [10, 100, 1000],
         "learning_rate": [1e-4, 1e-5, 1e-6],
-        "batch_size": [256, 1024, 2048],
-        "train_fcn": ["pinn_a", "pinn_al"],
-        "boundary_condition_data": [True, False],
-        "data_fraction": [0.1, 0.5, 1.0],
-    }
-
-    hparams = {
-        "q_value": [1e-9],
-        "epochs": [10],
-        "learning_rate": [1e-4, 1e-5],
-        "batch_size": [2048],
+        "batch_size": [256, 2048, 2**15],
         "train_fcn": ["pinn_a"],
-        "data_fraction": [0.1],
+        "data_fraction": [0.1, 0.5, 1.0],
+        "measurement_noise": [noise],
+        "r_value": [1e-12, 1e-3],
     }
 
-    save_df = os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/hparam_test.data"
-
-    threads = 2
+    save_df = (
+        os.path.dirname(StatOD.__file__)
+        + f"/../Data/Dataframes/hparam_search_{noise}.data"
+    )
+    # append lock to the list of arg tupl
+    threads = 6
     args = format_args(hparams)
     with mp.Pool(threads) as pool:
         results = pool.starmap_async(run_catch, args)
@@ -53,4 +53,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main("noiseless")
+    main("noisy")
