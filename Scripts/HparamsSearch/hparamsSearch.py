@@ -6,6 +6,16 @@ import os
 import StatOD
 
 
+def run_catch(args):
+    finished = False
+    while not finished:
+        try:
+            config = EKF_Rotating_Scenario(args)
+            finished = True
+        except Exception as e:
+            print(e)
+    return config
+
 def main():
     hparams = {
         "q_value": [1e-9, 1e-8, 1e-7],
@@ -20,10 +30,11 @@ def main():
         os.path.dirname(StatOD.__file__) + "/../Data/Dataframes/hparams_rotating.data"
     )
 
+
     threads = 6
     args = format_args(hparams)
     with mp.Pool(threads) as pool:
-        results = pool.starmap_async(EKF_Rotating_Scenario, args)
+        results = pool.starmap_async(run_catch, args)
         configs = results.get()
     save_results(save_df, configs)
 
