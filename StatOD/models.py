@@ -156,8 +156,8 @@ class pinnGravityModel:
 
     def save(self):
         # save the network and config data using PINN-GM API
-        saver = ModelSaver(self.gravity_model, self.history)
-        network_dir = saver.save(df_file=None, custom_data_dir=self.custom_data_dir)
+        saver = ModelSaver(self.gravity_model, self.history, save_dir=self.custom_data_dir + "Data/")
+        network_dir = saver.save(df_file=None)
         return network_dir
 
 
