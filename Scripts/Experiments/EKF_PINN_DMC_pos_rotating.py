@@ -16,6 +16,7 @@ from StatOD.dynamics import *
 from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
+from StatOD.utils import dict_values_to_list
 from StatOD.visualizations import *
 
 plt.switch_backend("WebAgg")
@@ -43,6 +44,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     bc_data = hparams.get("boundary_condition_data", [False])[0]
     measurement_noise = hparams.get("measurement_noise", ["noiseless"])[0]
     eager = hparams.get("eager", [False])[0]
+    data_frac = hparams.get("data_fraction", [1.0])[0]
     dim_constants = {"t_star": 1e4, "m_star": 1e0, "l_star": 1e1}
 
     # load trajectory data and initialize state, covariance
@@ -66,7 +68,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     t_vec, Y_vec, h_args_vec = get_measurements_general(
         measurement_file,
         t_gap=60,
-        data_fraction=1.0,  # 0.001,
+        data_fraction=data_frac,  # 0.001,
     )
     # t_vec[1] = 0
 
@@ -124,7 +126,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     scenario.filter.atol = 1e-10
     scenario.filter.rtol = 1e-10
 
-    new_COM = Eros().radius / 3 * 2 * (1 / 10.0)
+    Eros().radius / 3 * 2 * (1 / 10.0)
     network_train_config = {
         "batch_size": batch_size,
         "epochs": epochs,
@@ -133,10 +135,10 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
         "rotating_fcn": rotating_fcn,
         "synthetic_data": False,
         "num_samples": 1000,
-        "X_COM": np.array([[new_COM, 0.0, 0.0]]),
-        # "X_COM": np.array([[10.0, 0.0, 0.0]]),
-        "COM_samples": 1,
-        "COM_radius": 1e-12,
+        # "X_COM": np.array([[new_COM, 0.0, 0.0]]),
+        # # "X_COM": np.array([[10.0, 0.0, 0.0]]),
+        # "COM_samples": 1,
+        # "COM_radius": 1e-12,
     }
     scenario.run(network_train_config)
     scenario.dimensionalize()
@@ -162,8 +164,11 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     metrics = analysis.run()
 
     os.path.dirname(StatOD.__file__) + "/../Data"
-    hparams.update(metrics)
-    model.config.update({"hparams": [hparams]})
+    metrics_dict_list = dict_values_to_list(metrics)
+    hparams.update(metrics_dict_list)
+    # prepend "hparams_" to each key in the hparams dictionary
+    hparams = {"hparams_" + key: value for key, value in hparams.items()}
+    model.config.update(hparams)
     network_dir = model.save()  # save the network, but not into the directory right now
 
     # save the figures into the network directory
