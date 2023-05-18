@@ -141,6 +141,7 @@ class ScenarioBaseClass:
         rotating_fcn = train_config.get("rotating_fcn", None)
         synthetic_data = train_config.get("synthetic_data", False)
         empty_data = train_config.get("empty_data", False)
+        COM_data = train_config.get("COM_samples", 0)
         start_time = time.time()
 
         train_idx_list = []
@@ -189,6 +190,13 @@ class ScenarioBaseClass:
                     self.model,
                     **self.model.config,
                 )
+            if COM_data:
+                data.generate_COM_data(
+                    train_config.get("X_COM"),
+                    train_config.get("COM_samples", 1),
+                    train_config.get("COM_radius", 0),
+                    **self.model.config,
+                )
 
             # rotate the values based on spin of asteroid
             if rotating:
@@ -215,8 +223,9 @@ class ScenarioBaseClass:
 
         if len(train_idx_list) > 0:
             train_idx_list.pop()
-        print("Time Elapsed: " + str(time.time() - start_time))
+        self.time_elapsed = time.time() - start_time
         self.train_idx_list = train_idx_list
+        print(f"Time Elapsed: {self.time_elapsed}")
 
     def save(self):
         pass

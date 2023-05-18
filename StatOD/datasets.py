@@ -127,3 +127,35 @@ class Dataset:
             t_synth,
         )
         self.append(X_synth_non_dim, Y_synth_non_dim, t_synth_non_dim)
+
+    def generate_COM_data(
+        self,
+        X_COM,
+        num_samples,
+        COM_radius=None,
+        **kwargs,
+    ):
+
+        X_COM_samples = np.full((num_samples, 3), X_COM)
+
+        if COM_radius is not None:
+            X_COM_samples += np.random.normal(0, COM_radius, size=X_COM_samples.shape)
+
+        Y_COM_samples = np.zeros_like(X_COM_samples) + np.random.normal(
+            0,
+            1e-10,
+            size=X_COM_samples.shape,
+        )
+        # 1e-10
+
+        # convert to km
+        X_COM_samples /= 1000.0
+        Y_COM_samples /= 1000.0
+
+        t_COM = np.zeros((len(X_COM_samples),))
+        X_COM_non_dim, Y_COM_non_dim, t_COM_non_dim = self.non_dimensionalize(
+            X_COM_samples,
+            Y_COM_samples,
+            t_COM,
+        )
+        self.append(X_COM_non_dim, Y_COM_non_dim, t_COM_non_dim)
