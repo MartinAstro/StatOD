@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import sigfig
+from plotly.io import write_html, write_image
 
 import StatOD
 
@@ -99,7 +100,7 @@ def main():
     directory = os.path.dirname(StatOD.__file__)
 
     df = pd.read_pickle(
-        directory + "/../Data/Dataframes/hparam_test.data",
+        directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
     )
 
     percent_min = df["hparams_percent_error_avg"].min()
@@ -177,14 +178,18 @@ def main():
             "size": 20,  # *DPI_factor
         },
     )
-    directory = os.path.dirname(GravNN.__file__)
-    # write_image(
-    #     fig,
-    #     figure_path + "hparams.pdf",
-    #     format="pdf",
-    #     width=6.5 * DPI * DPI_factor,
-    #     height=3 * DPI * DPI_factor,
-    # )
+    directory = os.path.dirname(StatOD.__file__) + "/../Plots/"
+    write_image(
+        fig,
+        directory + "hparams.pdf",
+        format="pdf",
+        width=6.5 * DPI * DPI_factor,
+        height=3 * DPI * DPI_factor,
+    )
+    write_html(
+        fig,
+        directory + "hparams.html",
+    )
 
     fig.show()
 
