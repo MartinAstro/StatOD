@@ -7,30 +7,36 @@ from Scripts.Scenarios.helper_functions import *
 from StatOD.visualizations import VisualizationBase
 
 
-class GravityPlanesVisualizer:
-    def __init__(self):
+class GravityPlanesVisualizer(PlanesVisualizer):
+    def __init__(self, experiment):
+        super().__init__(experiment)
         pass
 
-    def run(self, planes_exp, max_error, logger):
-        visPlanes = PlanesVisualizer(planes_exp)
+    def run(self, max_error, logger):
         plt.rc("text", usetex=False)
         X_traj = logger.x_hat_i_plus[:, 0:3] * 1e3 / Eros().radius
-        x = visPlanes.experiment.x_test
-        y = visPlanes.experiment.percent_error_acc
+        x = self.experiment.x_test
+        y = self.experiment.percent_error_acc
         plt.figure()
-        visPlanes.max = max_error
-        visPlanes.plot_plane(x, y, plane="xy", annotate_stats=True)
+        self.max = max_error
+        self.plot_plane(x, y, plane="xy", annotate_stats=True)
         plt.sca(plt.gcf().axes[0])
         plt.plot(X_traj[:, 0], X_traj[:, 1], color="black", linewidth=0.5)
         plt.figure()
-        visPlanes.plot_plane(x, y, plane="xz", annotate_stats=True)
+        self.plot_plane(x, y, plane="xz", annotate_stats=True)
         plt.sca(plt.gcf().axes[0])
         plt.plot(X_traj[:, 0], X_traj[:, 2], color="black", linewidth=0.5)
         plt.gca().set_xticks([])
         plt.gca().set_yticks([])
         plt.figure()
-        visPlanes.plot_plane(x, y, plane="yz", annotate_stats=True)
+        self.plot_plane(x, y, plane="yz", annotate_stats=True)
         plt.sca(plt.gcf().axes[0])
         plt.plot(X_traj[:, 1], X_traj[:, 2], color="black", linewidth=0.5)
         plt.gca().set_xticks([])
         plt.gca().set_yticks([])
+
+    def save_all(self, network_directory):
+        figure_nums = plt.get_fignums()
+        for i in range(-3, 0):
+            fig = plt.figure(figure_nums[i])
+            super().save(fig, network_directory + f"/plane_{i}.png")
