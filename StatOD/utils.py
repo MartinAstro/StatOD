@@ -204,6 +204,10 @@ def get_jac_sparsity_matrix():
 # Iterate through a dictionary and for any value that is not a list, make it a list
 def dict_values_to_list(d):
     for k, v in d.items():
+        # check if value is a function, if so save name
+        if callable(v):
+            d[k] = [v.__name__]
+            continue
         if not isinstance(v, list):
             d[k] = [v]
     return d
