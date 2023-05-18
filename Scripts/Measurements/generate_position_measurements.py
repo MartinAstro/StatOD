@@ -53,5 +53,5 @@ if __name__ == "__main__":
     #     "Data/Trajectories/traj_rotating_gen_III_constant_no_fuse.data"
     # )
     generate_measurements(
-        "Data/Trajectories/traj_rotating_gen_III_constant_dropout.data",
+        "Data/Trajectories/traj_rotating_gen_III_constant.data",
     )

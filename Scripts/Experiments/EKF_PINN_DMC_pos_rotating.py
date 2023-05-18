@@ -80,10 +80,13 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
 
     dim_constants_pinn = dim_constants.copy()
     dim_constants_pinn["l_star"] *= 1e3
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+
     model = pinnGravityModel(
         pinn_file,
         learning_rate=lr,
         dim_constants=dim_constants_pinn,
+        custom_data_dir=statOD_dir,
         eager=eager,
     )
     model.set_PINN_training_fcn(pinn_constraint_fcn)
@@ -163,7 +166,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     analysis.true_gravity_fcn = get_hetero_poly_data
     metrics = analysis.run()
 
-    os.path.dirname(StatOD.__file__) + "/../Data"
+    os.path.dirname(StatOD.__file__) + "/../"
     metrics_dict_list = dict_values_to_list(metrics)
     hparams.update(metrics_dict_list)
     # prepend "hparams_" to each key in the hparams dictionary
@@ -174,7 +177,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     # save the figures into the network directory
 
     # Plot experiment results
-    planes_vis = GravityPlanesVisualizer(analysis.planes_exp)
+    planes_vis = GravityPlanesVisualizer(analysis.planes_exp, halt_formatting=True)
     planes_vis.run(
         max_error=10,
         logger=vis.scenario.filter.logger,
@@ -185,7 +188,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     extrap_exp.config["gravity_data_fcn"] = [get_hetero_poly_data]
     extrap_exp.run()
 
-    extrap_vis = ExtrapolationVisualizer(extrap_exp)
+    extrap_vis = ExtrapolationVisualizer(extrap_exp,  halt_formatting=True)
     extrap_vis.plot_interpolation_percent_error()
     extrap_vis.save(plt.gcf(), network_dir + "/extrap_interpolation.png")
 
@@ -201,11 +204,12 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
 
 if __name__ == "__main__":
 
-    statOD_dir = os.path.dirname(StatOD.__file__)
+    import time
+    start_time = time.time()
 
-    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly_no_fuse.data"
-    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly_dropout.data"
-    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly.data"
+    pinn_file = f"Data/Dataframes/eros_constant_poly_no_fuse.data"
+    pinn_file = f"Data/Dataframes/eros_constant_poly_dropout.data"
+    pinn_file = f"Data/Dataframes/eros_constant_poly.data"
 
     traj_file = "traj_rotating_gen_III_constant_no_fuse"
     traj_file = "traj_rotating_gen_III_constant_dropout"  # 10 orbits
@@ -221,6 +225,8 @@ if __name__ == "__main__":
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
+        "data_fraction" : [1.0],
     }
 
-    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=True)
+    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False)
+    print("Total Time: " + str(time.time() -start_time))
