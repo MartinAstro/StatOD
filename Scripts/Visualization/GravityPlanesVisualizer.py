@@ -8,8 +8,8 @@ from StatOD.visualizations import VisualizationBase
 
 
 class GravityPlanesVisualizer(PlanesVisualizer):
-    def __init__(self, experiment):
-        super().__init__(experiment)
+    def __init__(self, experiment, **kwargs):
+        super().__init__(experiment, **kwargs)
         pass
 
     def run(self, max_error, logger):
