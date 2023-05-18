@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from GravNN.Networks.Constraints import get_PI_constraint
 from GravNN.Networks.Data import DataSet
 from GravNN.Networks.Model import load_config_and_model
@@ -17,11 +18,13 @@ class pinnGravityModel:
         dtype="float32",
         learning_rate=None,
         dim_constants=None,
+        eager=False
     ):
         self.history = None
         self.custom_data_dir = custom_data_dir
 
-        # tf.config.run_functions_eagerly(True)
+        if eager:
+            tf.config.run_functions_eagerly(True)
         if custom_data_dir is not None:
             df = pd.read_pickle(custom_data_dir + df_file)
         else:
@@ -112,14 +115,25 @@ class pinnGravityModel:
         self.gravity_model.__init__(self.config, self.gravity_model.network)
         self.gravity_model.compile(optimizer=self.gravity_model.optimizer)
 
+    # Append a history object returned from a tensorflow model after .fit()
+    # to a preexisting history object
+    def append_history(self, history):
+        if self.history is None:
+            self.history = history
+        else:
+            for key in self.history.history.keys():
+                self.history.history[key] = np.append(
+                    self.history.history[key], history.history[key]
+                )
+
     def train(self, X_dim, Y_dim, **kwargs):
 
-        # save X_dim and Y_dim to a pickle file
-        import pickle
+        # # save X_dim and Y_dim to a pickle file
+        # import pickle
 
-        data = {"X": X_dim, "Y": Y_dim}
-        with open("Scripts/Scratch/training_data_III_v2.data", "wb") as f:
-            pickle.dump(data, f)
+        # data = {"X": X_dim, "Y": Y_dim}
+        # with open("Scripts/Scratch/training_data_III_v2.data", "wb") as f:
+        #     pickle.dump(data, f)
 
         # non-dimensionalize / preprocess (in case different scheme was used)
         X_process = self.gravity_model.x_preprocessor(X_dim).numpy()
@@ -137,12 +151,14 @@ class pinnGravityModel:
 
         # override default training config with kwargs
         self.gravity_model.config.update(**kwargs)
-        self.history = self.gravity_model.train(dataset, initialize_optimizer=False)
+        history = self.gravity_model.train(dataset, initialize_optimizer=False)
+        self.append_history(history)
 
-    def save(self, df_file, data_dir):
+    def save(self):
         # save the network and config data using PINN-GM API
         saver = ModelSaver(self.gravity_model, self.history)
-        saver.save(df_file=None, custom_data_dir=self.custom_data_dir)
+        network_dir = saver.save(df_file=None, custom_data_dir=self.custom_data_dir)
+        return network_dir
 
 
 class sphericalHarmonicModel:
