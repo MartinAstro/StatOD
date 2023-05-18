@@ -16,6 +16,7 @@ def main():
     # df_file = "Data/Dataframes/eros_constant_poly.data"
     df_file = "Data/Dataframes/eros_constant_poly_no_fuse.data"
     df_file = "Data/Dataframes/eros_constant_poly_dropout.data"
+    df_file = "Data/Dataframes/eros_constant_poly.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -32,13 +33,16 @@ def main():
         "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [5000],
+        "epochs": [10000],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_poly_data],
-        "dropout": [0.10],
-        "fuse_models": [True],
+        "dropout": [0.0],
+        "fuse_models": [False],
+        # "decay_rate": [0.5],
         # "override": [True],
+        # "eager": [True],
+        # "jit_compile": [False],
     }
     args = configure_run_args(config, hparams)
 
@@ -53,8 +57,7 @@ def run(config):
     from GravNN.Networks.Data import DataSet
     from GravNN.Networks.Model import PINNGravityModel
     from GravNN.Networks.Saver import ModelSaver
-    from GravNN.Networks.utils import (configure_tensorflow,
-                                       populate_config_objects)
+    from GravNN.Networks.utils import configure_tensorflow, populate_config_objects
 
     configure_tensorflow(config)
 

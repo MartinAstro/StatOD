@@ -8,7 +8,7 @@ from GravNN.GravityModels.PointMass import PointMass
 from GravNN.GravityModels.Polyhedral import Polyhedral
 from scipy.integrate import solve_ivp
 
-from Scripts.AsteroidScenarios.helper_functions import compute_BN
+from Scripts.Scenarios.helper_functions import compute_BN
 from StatOD.constants import ErosParams
 from StatOD.dynamics import *
 from StatOD.models import pinnGravityModel
@@ -188,13 +188,14 @@ if __name__ == "__main__":
     #     timestep=60,
     #     orbits=3,
     # )
-    # generate_rotating_asteroid_trajectory(
-    #     X0_km_N,
-    #     "traj_rotating_gen_III_constant",
-    #     "eros_constant_poly",
-    #     timestep=60,
-    #     orbits=3,
-    # )
+    filename = "traj_rotating_gen_III_constant"
+    generate_rotating_asteroid_trajectory(
+        X0_km_N,
+        "traj_rotating_gen_III_constant",
+        "eros_constant_poly",
+        timestep=60,
+        orbits=3,
+    )
     # generate_rotating_asteroid_trajectory(
     #     X0_km_N,
     #     "traj_rotating_gen_III_constant_no_fuse",
@@ -203,14 +204,14 @@ if __name__ == "__main__":
     #     orbits=3,
     # )
 
-    filename = "traj_rotating_gen_III_constant_dropout"
-    generate_rotating_asteroid_trajectory(
-        X0_km_N,
-        "traj_rotating_gen_III_constant_dropout",
-        "eros_constant_poly_dropout",
-        timestep=60,
-        orbits=10,
-    )
+    # filename = "traj_rotating_gen_III_constant_dropout"
+    # generate_rotating_asteroid_trajectory(
+    #     X0_km_N,
+    #     "traj_rotating_gen_III_constant_dropout",
+    #     "eros_constant_poly_dropout",
+    #     timestep=60,
+    #     orbits=10,
+    # )
 
     from Scripts.Plots.plot_asteroid_trajectory import main
 
