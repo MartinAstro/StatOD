@@ -24,11 +24,13 @@ plt.switch_backend("WebAgg")
 
 def rotating_fcn(tVec, omega, X_train, Y_train):
     BN = compute_BN(tVec, omega)
+
+    # https://stackoverflow.com/questions/26089893/understanding-numpys-einsum/33641428#33641428
     X_train_B = np.einsum(
         "ijk,ik->ij",
         BN,
         X_train,
-    )  # https://stackoverflow.com/questions/26089893/understanding-numpys-einsum/33641428#33641428
+    )
     Y_train_B = np.einsum("ijk,ik->ij", BN, Y_train)
     return X_train_B, Y_train_B
 
@@ -57,6 +59,13 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
         ),
     )
     P_diag = np.array([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-7, 1e-7, 1e-7]) ** 2
+
+    pos_sigma = 1e-2
+    vel_sigma = 1e-6*1e2
+    acc_sigma = 1e-9
+    P_diag = np.array([pos_sigma, pos_sigma, pos_sigma, 
+                       vel_sigma, vel_sigma, vel_sigma, 
+                       acc_sigma, acc_sigma, acc_sigma]) ** 2
 
     ###########################
     # Measurement information #
@@ -103,6 +112,14 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     f_args[:, -1] = ErosParams().omega
 
     Q0 = np.eye(3) * q**2
+    # Q_dt = 60.0
+    Q_dt = 0.1
+    # pos_q = 0.1*1e-3
+    # vel_q = 1.0*1e-6
+    # acc_q = 2.0*1e-9
+    # Q0 = np.array([[pos_q, 0, 0], 
+    #                [0, vel_q, 0], 
+    #                [0, 0, acc_q]])
 
     scenario = ScenarioPositions(
         {
@@ -121,7 +138,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     )
 
     scenario.initializeDynamics(f_fcn=f_fcn, dfdx_fcn=dfdx_fcn, f_args=f_args)
-    scenario.initializeNoise(q_fcn=q_fcn, q_args=q_args, Q0=Q0)
+    scenario.initializeNoise(q_fcn=q_fcn, q_args=q_args, Q0=Q0, Q_dt=Q_dt)
     scenario.initializeIC(t0=t_vec[0], x0=x0, P0=P_diag)
 
     scenario.non_dimensionalize()
@@ -165,6 +182,9 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     analysis = AnalysisBaseClass(scenario)
     analysis.true_gravity_fcn = get_hetero_poly_data
     metrics = analysis.run()
+    print('metrics')
+    print(metrics)
+
 
     os.path.dirname(StatOD.__file__) + "/../"
     metrics_dict_list = dict_values_to_list(metrics)
@@ -188,7 +208,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     extrap_exp.config["gravity_data_fcn"] = [get_hetero_poly_data]
     extrap_exp.run()
 
-    extrap_vis = ExtrapolationVisualizer(extrap_exp,  halt_formatting=True)
+    extrap_vis = ExtrapolationVisualizer(extrap_exp, halt_formatting=True)
     extrap_vis.plot_interpolation_percent_error()
     extrap_vis.save(plt.gcf(), network_dir + "/extrap_interpolation.png")
 
@@ -198,35 +218,35 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     if show:
         plt.show()
 
-    # add planes experiment and record metrics into dataframe for parallel coordinate plot (plotly)
     return model.config
 
 
 if __name__ == "__main__":
 
     import time
+
     start_time = time.time()
 
-    pinn_file = f"Data/Dataframes/eros_constant_poly_no_fuse.data"
-    pinn_file = f"Data/Dataframes/eros_constant_poly_dropout.data"
-    pinn_file = f"Data/Dataframes/eros_constant_poly.data"
+    pinn_file = "Data/Dataframes/eros_constant_poly_no_fuse.data"
+    pinn_file = "Data/Dataframes/eros_constant_poly_dropout.data"
+    pinn_file = "Data/Dataframes/eros_constant_poly.data"
 
     traj_file = "traj_rotating_gen_III_constant_no_fuse"
     traj_file = "traj_rotating_gen_III_constant_dropout"  # 10 orbits
     traj_file = "traj_rotating_gen_III_constant"
 
     hparams = {
-        "q_value": [1e-9],
-        "r_value": [1e-12],
-        "epochs": [1000],
+        "q_value": [1e-12], 
+        "r_value": [1e-3],
+        "epochs": [200], 
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
-        "measurement_noise": ["noiseless"],
+        "measurement_noise": ["noisy"],
         "eager": [False],
-        "data_fraction" : [1.0],
+        "data_fraction": [1],
     }
 
-    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False)
-    print("Total Time: " + str(time.time() -start_time))
+    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=True)
+    print("Total Time: " + str(time.time() - start_time))

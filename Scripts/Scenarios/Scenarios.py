@@ -26,6 +26,7 @@ class ScenarioPositions(ScenarioBaseClass):
         self.Y = function(self.Y, l_star)
         self.R = function(self.R, l_star**2)
         self.Q0 = function(self.Q0, self.ms2**2)
+        self.Q_dt = function(self.Q_dt, self.t_star)
         self.f_args[:, -2] = function(self.f_args[:, -2], self.t_star)  # t_i
         self.f_args[:, -1] = function(
             self.f_args[:, -1],
@@ -97,6 +98,7 @@ class ScenarioRangeRangeRate(ScenarioBaseClass):
         self.R[:, 0, 0] = function(self.R[:, 0, 0], l_star**2)
         self.R[:, 1, 1] = function(self.R[:, 1, 1], ms**2)
         self.Q0 = function(self.Q0, self.ms2**2)
+        self.Q_dt = function(self.Q_dt, self.t_star)
 
         try:
             self.tau = function(self.tau, self.ms2**2)

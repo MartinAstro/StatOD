@@ -62,7 +62,7 @@ class ScenarioBaseClass:
         self.f_args = f_args
         pass
 
-    def initializeNoise(self, q_fcn, q_args, Q0):
+    def initializeNoise(self, q_fcn, q_args, Q0, Q_dt):
         self.Q0 = Q0
 
         try:  # if sympy
@@ -74,6 +74,7 @@ class ScenarioBaseClass:
 
         self.q_fcn = q_fcn
         self.q_args = q_args
+        self.Q_dt = Q_dt
 
     def initializeIC(self, t0, x0, P0, dx0=None):
         self.t0 = t0
@@ -94,7 +95,7 @@ class ScenarioBaseClass:
             "Q_fcn": self.q_fcn,
             "Q": self.Q0,
             "Q_args": self.q_args,
-            "Q_dt": 3e-3,  # 60
+            "Q_dt": self.Q_dt
         }
 
         h_dict = {
