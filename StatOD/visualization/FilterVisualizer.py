@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.GravityModels.Polyhedral import get_poly_data
 
-from Scripts.Scenarios.helper_functions import *
+from StatOD.utils import *
 from StatOD.visualization.visualizations import VisualizationBase
 
 

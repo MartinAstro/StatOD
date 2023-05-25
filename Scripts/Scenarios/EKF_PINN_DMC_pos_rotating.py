@@ -5,18 +5,17 @@ from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_data
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 
 from Scripts.Analysis.AnalysisBaseClass import AnalysisBaseClass
-from Scripts.Scenarios.helper_functions import *
-from Scripts.Scenarios.helper_functions import get_trajectory_data
 from Scripts.Scenarios.ScenarioPositions import ScenarioPositions
-from Scripts.Visualization.FilterVisualizer import FilterVisualizer
-from Scripts.Visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 from StatOD.constants import ErosParams
 from StatOD.data import get_measurements_general
 from StatOD.dynamics import *
 from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
+from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
+from StatOD.visualization.FilterVisualizer import FilterVisualizer
+from StatOD.visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 from StatOD.visualization.visualizations import *
 
 plt.switch_backend("WebAgg")
@@ -74,7 +73,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
                 acc_sigma,
                 acc_sigma,
                 acc_sigma,
-            ]
+            ],
         )
         ** 2
     )
@@ -117,7 +116,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     ##################################
 
     eros_pos = np.zeros((6,))
-    f_fcn, dfdx_fcn, q_fcn, q_args = get_rot_DMC_zero_order()
+    f_fcn, dfdx_fcn, q_fcn, q_args = get_DMC_zero_order()
     f_args = np.hstack((model, eros_pos, 0.0, ErosParams().omega))
     f_args = np.full((len(t_vec), len(f_args)), f_args)
     f_args[:, -2] = t_vec
@@ -126,12 +125,6 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     Q0 = np.eye(3) * q**2
     # Q_dt = 60.0
     Q_dt = 0.1
-    # pos_q = 0.1*1e-3
-    # vel_q = 1.0*1e-6
-    # acc_q = 2.0*1e-9
-    # Q0 = np.array([[pos_q, 0, 0],
-    #                [0, vel_q, 0],
-    #                [0, 0, acc_q]])
 
     scenario = ScenarioPositions(
         {
@@ -158,7 +151,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     scenario.filter.atol = 1e-10
     scenario.filter.rtol = 1e-10
 
-    Eros().radius / 3 * 2 * (1 / 10.0)
+    # Eros().radius / 3 * 2 * (1 / 10.0)
     network_train_config = {
         "batch_size": batch_size,
         "epochs": epochs,
@@ -248,14 +241,14 @@ if __name__ == "__main__":
     hparams = {
         "q_value": [5e-8],
         "r_value": [1e-3],
-        "epochs": [200],
+        "epochs": [0],
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
         "measurement_noise": ["noisy"],
         "eager": [False],
-        "data_fraction": [1],
+        "data_fraction": [1.0],
     }
 
     EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=True)

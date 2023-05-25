@@ -8,7 +8,7 @@ import numpy as np
 from GravNN.GravityModels.PointMass import PointMass
 from GravNN.Trajectories.RandomDist import RandomDist
 
-from Scripts.Scenarios.helper_functions import compute_BN
+from StatOD.utils import compute_BN
 
 
 class Dataset:
@@ -135,7 +135,6 @@ class Dataset:
         COM_radius=None,
         **kwargs,
     ):
-
         X_COM_samples = np.full((num_samples, 3), X_COM)
 
         if COM_radius is not None:

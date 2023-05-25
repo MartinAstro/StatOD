@@ -9,11 +9,10 @@ from GravNN.GravityModels.Polyhedral import Polyhedral
 from scipy.integrate import solve_ivp
 
 import StatOD
-from Scripts.Scenarios.helper_functions import compute_BN
 from StatOD.constants import ErosParams
 from StatOD.dynamics import *
 from StatOD.models import pinnGravityModel
-from StatOD.utils import ProgressBar
+from StatOD.utils import ProgressBar, compute_BN
 
 
 def compute_semimajor(X, mu):

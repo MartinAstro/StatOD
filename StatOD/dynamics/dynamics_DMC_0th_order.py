@@ -1,7 +1,7 @@
 import numpy as np
 from sympy import *
 
-from Scripts.Scenarios.helper_functions import compute_BN
+from StatOD.utils import compute_BN
 
 
 def f_PINN_DMC_zero_order(x, args):

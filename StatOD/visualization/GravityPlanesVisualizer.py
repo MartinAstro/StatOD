@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
+from GravNN.CelestialBodies.Asteroids import Eros
+from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
-from Scripts.Scenarios.helper_functions import *
+from StatOD.utils import *
 
 
 class GravityPlanesVisualizer(PlanesVisualizer):

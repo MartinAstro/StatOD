@@ -4,9 +4,9 @@ from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_data
 from GravNN.Networks.Model import load_config_and_model
 
-from Scripts.Scenarios.helper_functions import *
 from Scripts.Visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 from StatOD.dynamics import *
+from StatOD.utils import *
 from StatOD.visualization.visualizations import *
 
 plt.switch_backend("WebAgg")

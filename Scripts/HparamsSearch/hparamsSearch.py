@@ -1,19 +1,20 @@
 import multiprocessing as mp
 import os
 
+from GravNN.Support.slurm_utils import get_available_cores
+
 import StatOD
 from Scripts.Experiments.EKF_PINN_DMC_pos_rotating import EKF_Rotating_Scenario
-from Scripts.Scenarios.helper_functions import *
+from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
-from GravNN.Support.slurm_utils import get_available_cores
 
 
 def run_catch(args):
     finished = False
     while not finished:
         try:
-            statOD_dir = os.path.dirname(StatOD.__file__)
-            pinn_file = f"Data/Dataframes/eros_constant_poly.data"
+            os.path.dirname(StatOD.__file__)
+            pinn_file = "Data/Dataframes/eros_constant_poly.data"
             traj_file = "traj_rotating_gen_III_constant"
             args_list = dict_values_to_list(args)
             config = EKF_Rotating_Scenario(
