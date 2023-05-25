@@ -236,7 +236,7 @@ if __name__ == "__main__":
     traj_file = "traj_rotating_gen_III_constant"
 
     hparams = {
-        "q_value": [1e-12], 
+        "q_value": [5e-8], 
         "r_value": [1e-3],
         "epochs": [200], 
         "learning_rate": [1e-4],
