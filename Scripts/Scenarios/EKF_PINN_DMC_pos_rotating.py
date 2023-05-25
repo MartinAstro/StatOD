@@ -17,7 +17,7 @@ from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
 from StatOD.utils import dict_values_to_list
-from StatOD.visualizations import *
+from StatOD.visualization.visualizations import *
 
 plt.switch_backend("WebAgg")
 
@@ -36,7 +36,6 @@ def rotating_fcn(tVec, omega, X_train, Y_train):
 
 
 def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
-
     q = hparams.get("q_value", [1e-9])[0]
     r = hparams.get("r_value", [1e-12])[0]
     epochs = hparams.get("epochs", [100])[0]
@@ -61,11 +60,24 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     P_diag = np.array([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-7, 1e-7, 1e-7]) ** 2
 
     pos_sigma = 1e-2
-    vel_sigma = 1e-6*1e2
+    vel_sigma = 1e-6 * 1e2
     acc_sigma = 1e-9
-    P_diag = np.array([pos_sigma, pos_sigma, pos_sigma, 
-                       vel_sigma, vel_sigma, vel_sigma, 
-                       acc_sigma, acc_sigma, acc_sigma]) ** 2
+    P_diag = (
+        np.array(
+            [
+                pos_sigma,
+                pos_sigma,
+                pos_sigma,
+                vel_sigma,
+                vel_sigma,
+                vel_sigma,
+                acc_sigma,
+                acc_sigma,
+                acc_sigma,
+            ]
+        )
+        ** 2
+    )
 
     ###########################
     # Measurement information #
@@ -117,8 +129,8 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     # pos_q = 0.1*1e-3
     # vel_q = 1.0*1e-6
     # acc_q = 2.0*1e-9
-    # Q0 = np.array([[pos_q, 0, 0], 
-    #                [0, vel_q, 0], 
+    # Q0 = np.array([[pos_q, 0, 0],
+    #                [0, vel_q, 0],
     #                [0, 0, acc_q]])
 
     scenario = ScenarioPositions(
@@ -182,9 +194,8 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     analysis = AnalysisBaseClass(scenario)
     analysis.true_gravity_fcn = get_hetero_poly_data
     metrics = analysis.run()
-    print('metrics')
+    print("metrics")
     print(metrics)
-
 
     os.path.dirname(StatOD.__file__) + "/../"
     metrics_dict_list = dict_values_to_list(metrics)
@@ -222,7 +233,6 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
 
 
 if __name__ == "__main__":
-
     import time
 
     start_time = time.time()
@@ -236,9 +246,9 @@ if __name__ == "__main__":
     traj_file = "traj_rotating_gen_III_constant"
 
     hparams = {
-        "q_value": [5e-8], 
+        "q_value": [5e-8],
         "r_value": [1e-3],
-        "epochs": [200], 
+        "epochs": [200],
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
