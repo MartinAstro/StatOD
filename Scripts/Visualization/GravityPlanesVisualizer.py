@@ -1,15 +1,11 @@
 import matplotlib.pyplot as plt
-import numpy as np
-from GravNN.Analysis.PlanesExperiment import PlanesExperiment
-from GravNN.GravityModels.Polyhedral import get_poly_data
 
 from Scripts.Scenarios.helper_functions import *
-from StatOD.visualizations import VisualizationBase
 
 
 class GravityPlanesVisualizer(PlanesVisualizer):
-    def __init__(self, experiment):
-        super().__init__(experiment)
+    def __init__(self, experiment, **kwargs):
+        super().__init__(experiment, **kwargs)
         pass
 
     def run(self, max_error, logger):
