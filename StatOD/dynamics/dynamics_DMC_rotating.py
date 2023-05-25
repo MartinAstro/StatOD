@@ -225,8 +225,8 @@ def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
     # A[7,7] = -1/tau
     # A[8,8] = -1/tau
 
-    # phi = eye(N) + A*dt
-    phi = exp(A * dt)
+    phi = eye(N) + A*dt
+    # phi = exp(A * dt) # only for LTI
 
     B = zeros(N, M)
 
@@ -250,66 +250,8 @@ def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
 
     return Q_i_i_m1.tolist()
 
-def get_Q_DMC_zero_order_paper(dt, x, Q, DCM, args):
-    N = len(x)
-    M = Q.shape[0]
-
-    A = zeros(N, N)
-
-    # velocities
-    A[0, 3] = 1
-    A[1, 4] = 1
-    A[2, 5] = 1
-
-    # TODO: Revisit this. If not commented, it causes the Q
-    # matrix to shrink the covariance instead of increase it.
-    # For now, make the linear approximation used in SNC instead.
-
-    # A[3:6,0:3] = model.generate_dadx(x[0:3])
-    # A[6,6] = -1/tau
-    # A[7,7] = -1/tau
-    # A[8,8] = -1/tau
-
-    phi = eye(N) - A*dt
-
-    B = zeros(N, M)
-
-    B[6, 0] = 1
-    B[7, 1] = 1
-    B[8, 2] = 1
-
-    integrand = phi * B * Q * B.T * phi.T
-
-    Q_i_i_m1 = np.zeros((N, N), dtype=np.object)
-    for i in range(N):  # f[i] differentiated
-        for j in range(i, N):  # w.r.t. X[j]
-            integrated = integrate(integrand[i, j], dt)
-            Q_i_i_m1[i, j] = integrated
-            Q_i_i_m1[j, i] = integrated
-
-    # numba can't work with arrays of sympy ints and floats in same matrix
-    # so just force sympy ints to be floats
-    Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
-    Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
-
-    return Q_i_i_m1.tolist()
-
-def get_Q_DMC_zero_order_approx(dt, x, Q, DCM, args):
-    N = len(x)
-    M = Q.shape[0]
-
-    Q_i_i_m1 = np.zeros((N, N), dtype=np.object)
-    Q_i_i_m1[-M:, -M:] = Q*dt
-    Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
-    Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
-
-    return Q_i_i_m1.tolist()
-
-
 def get_rot_DMC_zero_order():
-    # q_fcn = get_Q_DMC_zero_order
-    # q_fcn = get_Q_DMC_zero_order_approx
-    q_fcn = get_Q_DMC_zero_order_paper
+    q_fcn = get_Q_DMC_zero_order
     f_fcn = f_rot_N_PINN_DMC_zero_order
     dfdx_fcn = dfdx_rot_N_PINN_DMC_zero_order
     q_args = []
