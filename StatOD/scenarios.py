@@ -1,8 +1,12 @@
+import itertools
+import os
+import pickle
 import time
 from abc import abstractclassmethod
 
 import numpy as np
 
+import StatOD
 from Scripts.Scenarios.helper_functions import *
 from StatOD.datasets import Dataset
 from StatOD.dynamics import (
@@ -13,6 +17,66 @@ from StatOD.dynamics import (
 )
 from StatOD.filters import FilterLogger
 from StatOD.measurements import measurements
+
+
+def get_trajectory_data(data_file):
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + f"Data/Trajectories/{data_file}.data", "rb") as f:
+        data = pickle.load(f)
+    return data
+
+
+def format_args(hparams):
+    keys, values = zip(*hparams.items())
+    permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
+    args = []
+    session_num = 0
+    for hparam_inst in permutations_dicts:
+        print("--- Starting trial: %d" % session_num)
+        print({key: value for key, value in hparam_inst.items()})
+        session_num += 1
+        args.append((hparam_inst,))
+    return args
+
+
+def save_results(df_file, configs):
+    import pandas as pd
+
+    for config in configs:
+        config = dict(sorted(config.items(), key=lambda kv: kv[0]))
+        config["PINN_constraint_fcn"] = [
+            config["PINN_constraint_fcn"][0],
+        ]  # Can't have multiple args in each list
+        df = pd.DataFrame().from_dict(config).set_index("timetag")
+
+        try:
+            df_all = pd.read_pickle(df_file)
+            df_all = df_all.append(df)
+            df_all.to_pickle(df_file)
+        except:
+            df.to_pickle(df_file)
+
+
+def compute_BN(tVec, omega):
+    theta = tVec * omega
+    C00 = np.cos(theta)
+    C01 = -np.sin(theta)
+    C10 = np.sin(theta)
+    C11 = np.cos(theta)
+    Cij = np.zeros_like(C00)
+    C22 = np.zeros_like(C00) + 1
+
+    C = np.block(
+        [
+            [[C00], [C01], [Cij]],
+            [[C10], [C11], [Cij]],
+            [[Cij], [Cij], [C22]],
+        ],
+    )
+    C = np.transpose(C, axes=[2, 0, 1])
+
+    return C
 
 
 class ScenarioBaseClass:
@@ -50,7 +114,6 @@ class ScenarioBaseClass:
         self.dhdx_fcn = dhdx
 
     def initializeDynamics(self, f_fcn, dfdx_fcn, f_args):
-
         try:  # if sympy, convert to lambdas
             z0 = np.zeros((self.N_states,))
             f_fcn, dfdx_fcn = dynamics(z0, f_fcn, f_args)
@@ -95,7 +158,7 @@ class ScenarioBaseClass:
             "Q_fcn": self.q_fcn,
             "Q": self.Q0,
             "Q_args": self.q_args,
-            "Q_dt": self.Q_dt
+            "Q_dt": self.Q_dt,
         }
 
         h_dict = {
@@ -134,7 +197,6 @@ class ScenarioBaseClass:
         self.transform(lambda a, b: a / b)
 
     def run(self, train_config):
-
         batch_size = train_config.get("batch_size", 32)
         train_config.get("epochs", 32)
         BC_data = train_config.get("BC_data", False)
@@ -152,7 +214,6 @@ class ScenarioBaseClass:
         planet = self.model.planet
 
         for k in range(total_batches + 1):
-
             # Gather measurements in batch
             start_idx = k * batch_size
             end_idx = (
@@ -230,3 +291,138 @@ class ScenarioBaseClass:
 
     def save(self):
         pass
+
+
+class ScenarioPositions(ScenarioBaseClass):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def transform(self, function):
+        # Define dimensionalization constants
+        t_star = self.t_star
+        l_star = self.l_star
+        ms = self.ms
+        ms2 = self.ms2
+
+        # transform initial parameters
+        self.x0[0:3] = function(self.x0[0:3], self.l_star)
+        self.x0[3:6] = function(self.x0[3:6], self.ms)
+        self.x0[6:9] = function(self.x0[6:9], self.ms2)
+
+        self.P0[0:3, 0:3] = function(self.P0[0:3, 0:3], self.l_star**2)
+        self.P0[3:6, 3:6] = function(self.P0[3:6, 3:6], self.ms**2)
+        self.P0[6:9, 6:9] = function(self.P0[6:9, 6:9], self.ms2**2)
+
+        self.t = function(self.t, t_star)
+        self.Y = function(self.Y, l_star)
+        self.R = function(self.R, l_star**2)
+        self.Q0 = function(self.Q0, self.ms2**2)
+        self.Q_dt = function(self.Q_dt, self.t_star)
+        self.f_args[:, -2] = function(self.f_args[:, -2], self.t_star)  # t_i
+        self.f_args[:, -1] = function(
+            self.f_args[:, -1],
+            (1 / self.t_star),
+        )  # omega [rad/s]
+
+        try:
+            self.tau = function(self.tau, self.ms2**2)
+        except:
+            pass
+
+        try:
+            # transform the logger if the filter is available
+            self.filter.logger.t_i = function(self.filter.logger.t_i, t_star)
+
+            self.filter.logger.x_hat_i_plus[:, 0:3] = function(
+                self.filter.logger.x_hat_i_plus[:, 0:3],
+                l_star,
+            )
+            self.filter.logger.x_hat_i_plus[:, 3:6] = function(
+                self.filter.logger.x_hat_i_plus[:, 3:6],
+                ms,
+            )
+            self.filter.logger.x_hat_i_plus[:, 6:9] = function(
+                self.filter.logger.x_hat_i_plus[:, 6:9],
+                ms2,
+            )
+
+            self.filter.logger.P_i_plus[:, 0:3, 0:3] = function(
+                self.filter.logger.P_i_plus[:, 0:3, 0:3],
+                l_star**2,
+            )
+            self.filter.logger.P_i_plus[:, 3:6, 3:6] = function(
+                self.filter.logger.P_i_plus[:, 3:6, 3:6],
+                ms**2,
+            )
+            self.filter.logger.P_i_plus[:, 6:9, 6:9] = function(
+                self.filter.logger.P_i_plus[:, 6:9, 6:9],
+                ms2**2,
+            )
+        except:
+            pass
+
+
+class ScenarioRangeRangeRate(ScenarioBaseClass):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def transform(self, function):
+        # Define dimensionalization constants
+        t_star = self.t_star
+        l_star = self.l_star
+        ms = self.ms
+        ms2 = self.ms2
+
+        # transform initial parameters
+        self.x0[0:3] = function(self.x0[0:3], self.l_star)
+        self.x0[3:6] = function(self.x0[3:6], self.ms)
+        self.x0[6:9] = function(self.x0[6:9], self.ms2)
+
+        self.P0[0:3, 0:3] = function(self.P0[0:3, 0:3], self.l_star**2)
+        self.P0[3:6, 3:6] = function(self.P0[3:6, 3:6], self.ms**2)
+        self.P0[6:9, 6:9] = function(self.P0[6:9, 6:9], self.ms2**2)
+
+        self.t = function(self.t, t_star)
+        self.Y[:, 0] = function(self.Y[:, 0], l_star)
+        self.Y[:, 1] = function(self.Y[:, 1], ms)
+        self.R[:, 0, 0] = function(self.R[:, 0, 0], l_star**2)
+        self.R[:, 1, 1] = function(self.R[:, 1, 1], ms**2)
+        self.Q0 = function(self.Q0, self.ms2**2)
+        self.Q_dt = function(self.Q_dt, self.t_star)
+
+        try:
+            self.tau = function(self.tau, self.ms2**2)
+        except:
+            pass
+
+        try:
+            # transform the logger if the filter is available
+            self.filter.logger.t_i = function(self.filter.logger.t_i, t_star)
+
+            self.filter.logger.x_hat_i_plus[:, 0:3] = function(
+                self.filter.logger.x_hat_i_plus[:, 0:3],
+                l_star,
+            )
+            self.filter.logger.x_hat_i_plus[:, 3:6] = function(
+                self.filter.logger.x_hat_i_plus[:, 3:6],
+                ms,
+            )
+            self.filter.logger.x_hat_i_plus[:, 6:9] = function(
+                self.filter.logger.x_hat_i_plus[:, 6:9],
+                ms2,
+            )
+
+            self.filter.logger.P_i_plus[:, 0:3, 0:3] = function(
+                self.filter.logger.P_i_plus[:, 0:3, 0:3],
+                l_star**2,
+            )
+            self.filter.logger.P_i_plus[:, 3:6, 3:6] = function(
+                self.filter.logger.P_i_plus[:, 3:6, 3:6],
+                ms**2,
+            )
+            self.filter.logger.P_i_plus[:, 6:9, 6:9] = function(
+                self.filter.logger.P_i_plus[:, 6:9, 6:9],
+                ms2**2,
+            )
+        except:
+            pass
