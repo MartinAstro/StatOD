@@ -8,7 +8,7 @@ from Scripts.Analysis.AnalysisBaseClass import AnalysisBaseClass
 from Scripts.Scenarios.helper_functions import get_trajectory_data
 from Scripts.Scenarios.Scenarios import ScenarioPositions
 from StatOD.data import get_measurements_general
-from StatOD.dynamics.dynamics_DMC import get_DMC_zero_order
+from StatOD.dynamics.dynamics_DMC_0th_order import get_DMC_zero_order
 from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
