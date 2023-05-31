@@ -32,7 +32,6 @@ def invert(A):
 
 class FilterLogger:
     def __init__(self, N, samples, M=None, state_labels=None):
-
         self.state_labels = state_labels
 
         if self.state_labels is None:
@@ -126,6 +125,14 @@ class FilterLogger:
             self.theta_ti_ti_m1[idx] = data.get("theta_ti_ti_m1", empty_mat)
             self.theta_ti_t0[idx] = data.get("theta_ti_t0", empty_mat)
 
+    def compute_phi_ti_t0(self):
+        N = len(self.x_i[0])
+        phi_ti = np.eye(N)
+        for i in range(len(self.t_i)):
+            phi_ti_t0 = self.phi_ti_ti_m1[i] @ phi_ti
+            self.phi_ti_t0[i] = phi_ti_t0
+            phi_ti = phi_ti_t0
+
     def save(self, name=None):
         save_path = os.path.dirname(StatOD.__file__) + "/../Data/FilterLogs"
         os.makedirs(save_path, exist_ok=True)
@@ -142,7 +149,6 @@ class FilterLogger:
 
 class FilterBase(ABC):
     def __init__(self, f_dict, h_dict, logger, events):
-
         self.logger = logger
 
         self.f = f_dict["f"]
@@ -673,7 +679,6 @@ class NonLinearBatchFilter(FilterBase):
         while (
             np.linalg.norm(self.dx_k) > tol or self.k == 0
         ) and self.k < self.max_iterations:
-
             # Propagate the initial trajectory
             self.t = t_vec
             self.x_hat, self.phi = self.propagate_trajectory(
@@ -846,7 +851,6 @@ class SquareRootInformationFilter(FilterBase):
         return Q_i_i_m1
 
     def time_update(self, dt, db_i_m1_plus, R_i_m1_plus, phi_i, Gamma_i_i_m1, mu_i_m1):
-
         # w/ process noise
         n = len(db_i_m1_plus)
         q = len(mu_i_m1)
@@ -1385,7 +1389,6 @@ class ConsiderCovarianceFilter(FilterBase):
         R_i,
         r_i,
     ):
-
         R_inv = invert(R_i)
         M_xx_i_plus = M_xx_i_plus + phi_i.T @ H_x_i.T @ R_inv @ H_x_i @ phi_i
         M_xc_i_plus = M_xc_plus + phi_i.T @ H_x_i @ R_inv @ H_c_i
@@ -1594,7 +1597,6 @@ class SequentialConsiderCovarianceFilter(FilterBase):
         theta_i,
         Q_i_i_m1,
     ):
-
         # Covariance without knowledge of consider parameters
         P_i_minus = phi_i @ P_i_m1_plus @ phi_i.T + Q_i_i_m1
 
@@ -1643,7 +1645,6 @@ class SequentialConsiderCovarianceFilter(FilterBase):
         R_i,
         r_i,
     ):
-
         N = len(dx_i_minus)
         eye = np.eye(N)
         K_i = P_i_minus @ H_x_i.T @ invert(H_x_i @ P_i_minus @ H_x_i.T + R_i)

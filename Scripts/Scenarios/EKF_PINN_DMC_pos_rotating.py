@@ -160,6 +160,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
         "rotating_fcn": rotating_fcn,
         "synthetic_data": False,
         "num_samples": 1000,
+        # "callbacks" : None,
         # "X_COM": np.array([[new_COM, 0.0, 0.0]]),
         # # "X_COM": np.array([[10.0, 0.0, 0.0]]),
         # "COM_samples": 1,
@@ -239,16 +240,18 @@ if __name__ == "__main__":
     traj_file = "traj_rotating_gen_III_constant"
 
     hparams = {
-        "q_value": [5e-8],
+        # "q_value": [5e-8],
+        "q_value": [1e-7],
         "r_value": [1e-3],
         "epochs": [0],
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
-        "measurement_noise": ["noisy"],
+        # "measurement_noise": ["noisy"],
+        "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [1.0],
+        "data_fraction": [0.1],  # 1.0],
     }
 
     EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=True)

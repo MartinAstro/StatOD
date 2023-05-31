@@ -132,7 +132,12 @@ class ScenarioBaseClass:
     def non_dimensionalize(self):
         self.transform(lambda a, b: a / b)
 
+    def run_callbacks(self, callbacks, t_i):
+        for callback in callbacks.values():
+            callback(self.model.gravity_model, t_i)
+
     def run(self, train_config):
+        train = train_config.get("train", True)
         batch_size = train_config.get("batch_size", 32)
         train_config.get("epochs", 32)
         BC_data = train_config.get("BC_data", False)
@@ -141,6 +146,8 @@ class ScenarioBaseClass:
         synthetic_data = train_config.get("synthetic_data", False)
         empty_data = train_config.get("empty_data", False)
         COM_data = train_config.get("COM_samples", 0)
+        callbacks = train_config.get("callbacks", [])
+        intermediate_callbacks = train_config.get("intermediate_callbacks", False)
         start_time = time.time()
 
         train_idx_list = []
@@ -148,6 +155,9 @@ class ScenarioBaseClass:
         self.model.train_idx = 0
         data = Dataset(self.dim_constants)
         planet = self.model.planet
+
+        # run initial callbacks / metrics
+        self.run_callbacks(callbacks, 0.0)
 
         for k in range(total_batches + 1):
             # Gather measurements in batch
@@ -210,7 +220,7 @@ class ScenarioBaseClass:
             X_train_dim, Y_train_dim, t_train_dim = data.get_data_dim()
 
             # Don't train on the last batch of data if it's too small
-            if True:  # k != total_batches:
+            if train:  # k != total_batches:
                 self.model.train(
                     X_train_dim * 1e3,  # convert to m
                     Y_train_dim * 1e3,  # convert to m/s^2
@@ -219,11 +229,23 @@ class ScenarioBaseClass:
                 self.model.train_idx += 1
                 train_idx_list.append(end_idx)
 
+            # After the model is trained, run the callbacks
+            if intermediate_callbacks:
+                self.run_callbacks(callbacks, t_batch[-1])
+
+        # run callbacks at final step
+        self.run_callbacks(callbacks, self.t[-1])
+
         if len(train_idx_list) > 0:
             train_idx_list.pop()
         self.time_elapsed = time.time() - start_time
         self.train_idx_list = train_idx_list
+
+        self.filter.logger.compute_phi_ti_t0()
+
         print(f"Time Elapsed: {self.time_elapsed}")
+
+        return callbacks
 
     def save(self):
         pass
@@ -325,6 +347,162 @@ class ScenarioRangeRangeRate(ScenarioBaseClass):
         self.R[:, 1, 1] = function(self.R[:, 1, 1], ms**2)
         self.Q0 = function(self.Q0, self.ms2**2)
         self.Q_dt = function(self.Q_dt, self.t_star)
+
+        try:
+            self.tau = function(self.tau, self.ms2**2)
+        except:
+            pass
+
+        try:
+            # transform the logger if the filter is available
+            self.filter.logger.t_i = function(self.filter.logger.t_i, t_star)
+
+            self.filter.logger.x_hat_i_plus[:, 0:3] = function(
+                self.filter.logger.x_hat_i_plus[:, 0:3],
+                l_star,
+            )
+            self.filter.logger.x_hat_i_plus[:, 3:6] = function(
+                self.filter.logger.x_hat_i_plus[:, 3:6],
+                ms,
+            )
+            self.filter.logger.x_hat_i_plus[:, 6:9] = function(
+                self.filter.logger.x_hat_i_plus[:, 6:9],
+                ms2,
+            )
+
+            self.filter.logger.P_i_plus[:, 0:3, 0:3] = function(
+                self.filter.logger.P_i_plus[:, 0:3, 0:3],
+                l_star**2,
+            )
+            self.filter.logger.P_i_plus[:, 3:6, 3:6] = function(
+                self.filter.logger.P_i_plus[:, 3:6, 3:6],
+                ms**2,
+            )
+            self.filter.logger.P_i_plus[:, 6:9, 6:9] = function(
+                self.filter.logger.P_i_plus[:, 6:9, 6:9],
+                ms2**2,
+            )
+        except:
+            pass
+
+
+class ScenarioHF(ScenarioBaseClass):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def transform(self, function):
+        # Define dimensionalization constants
+        t_star = self.t_star
+        l_star = self.l_star
+        ms = self.ms
+        ms2 = self.ms2
+
+        # transform initial parameters
+        self.x0[0:3] = function(self.x0[0:3], self.l_star)
+        self.x0[3:6] = function(self.x0[3:6], self.ms)
+        self.x0[6:9] = function(self.x0[6:9], self.ms2)
+
+        self.P0[0:3, 0:3] = function(self.P0[0:3, 0:3], self.l_star**2)
+        self.P0[3:6, 3:6] = function(self.P0[3:6, 3:6], self.ms**2)
+        self.P0[6:9, 6:9] = function(self.P0[6:9, 6:9], self.ms2**2)
+
+        self.t = function(self.t, t_star)
+        self.Y = function(self.Y, l_star)
+        self.R = function(self.R, l_star**2)
+        self.Q0 = function(self.Q0, self.ms2**2)
+        self.Q_dt = function(self.Q_dt, self.t_star)
+
+        # Arguments
+        # self.f_args[:, 0] = function(self.f_args[:,0], self.t_star) # gravity_model,
+        self.f_args[:, 1:4] = function(self.f_args[:, 1:4], self.l_star)  # eros_pos_P,
+        self.f_args[:, 4:7] = function(self.f_args[:, 4:7], self.ms)  # eros_vel_P,
+        self.f_args[:, 7:10] = function(self.f_args[:, 7:10], self.l_star)  # sun_pos_P,
+        self.f_args[:, 10] = function(self.f_args[:, 10], self.t_star)  # area_2_mass,
+        self.f_args[:, 11] = function(self.f_args[:, 11], self.t_star)  # SRP,
+
+        # sunParams.mu_sun,
+        self.f_args[:, 12] = function(
+            self.f_args[:, 12],
+            self.l_star**3 / self.t_star**2,
+        )
+        self.f_args[:, 13] = function(self.f_args[:, 13], self.l_star)  # sunParams.AU,
+        self.f_args[:, 14] = function(self.f_args[:, 14], self.t_star)  # Cr,
+        self.f_args[:, 15] = function(self.f_args[:, 15], self.t_star)  # sunParams.c,
+        self.f_args[:, 16] = function(self.f_args[:, 16], self.t_star)  # time,
+        self.f_args[:, 17] = function(
+            self.f_args[:, 17],
+            1 / self.t_star,
+        )  # ErosParams().omega,
+
+        try:
+            self.tau = function(self.tau, self.ms2**2)
+        except:
+            pass
+
+        try:
+            # transform the logger if the filter is available
+            self.filter.logger.t_i = function(self.filter.logger.t_i, t_star)
+
+            self.filter.logger.x_hat_i_plus[:, 0:3] = function(
+                self.filter.logger.x_hat_i_plus[:, 0:3],
+                l_star,
+            )
+            self.filter.logger.x_hat_i_plus[:, 3:6] = function(
+                self.filter.logger.x_hat_i_plus[:, 3:6],
+                ms,
+            )
+            self.filter.logger.x_hat_i_plus[:, 6:9] = function(
+                self.filter.logger.x_hat_i_plus[:, 6:9],
+                ms2,
+            )
+
+            self.filter.logger.P_i_plus[:, 0:3, 0:3] = function(
+                self.filter.logger.P_i_plus[:, 0:3, 0:3],
+                l_star**2,
+            )
+            self.filter.logger.P_i_plus[:, 3:6, 3:6] = function(
+                self.filter.logger.P_i_plus[:, 3:6, 3:6],
+                ms**2,
+            )
+            self.filter.logger.P_i_plus[:, 6:9, 6:9] = function(
+                self.filter.logger.P_i_plus[:, 6:9, 6:9],
+                ms2**2,
+            )
+        except:
+            pass
+
+
+class ScenarioHFSymb(ScenarioBaseClass):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def transform(self, function):
+        # Define dimensionalization constants
+        t_star = self.t_star
+        l_star = self.l_star
+        ms = self.ms
+        ms2 = self.ms2
+
+        # transform initial parameters
+        self.x0[0:3] = function(self.x0[0:3], self.l_star)
+        self.x0[3:6] = function(self.x0[3:6], self.ms)
+        self.x0[6:9] = function(self.x0[6:9], self.ms2)
+
+        self.P0[0:3, 0:3] = function(self.P0[0:3, 0:3], self.l_star**2)
+        self.P0[3:6, 3:6] = function(self.P0[3:6, 3:6], self.ms**2)
+        self.P0[6:9, 6:9] = function(self.P0[6:9, 6:9], self.ms2**2)
+
+        self.t = function(self.t, t_star)
+        self.Y = function(self.Y, l_star)
+        self.R = function(self.R, l_star**2)
+        self.Q0 = function(self.Q0, self.ms2**2)
+        self.Q_dt = function(self.Q_dt, self.t_star)
+
+        # Arguments
+        self.f_args[:, 0] = function(
+            self.f_args[:, 0],
+            self.l_star**3 / self.t_star**2,
+        )  # gravity_model,
 
         try:
             self.tau = function(self.tau, self.ms2**2)
