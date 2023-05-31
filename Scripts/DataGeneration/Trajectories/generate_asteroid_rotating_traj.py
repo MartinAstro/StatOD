@@ -1,52 +1,19 @@
-import copy
 import pickle
 
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
-from GravNN.GravityModels.HeterogeneousPoly import HeterogeneousPoly
-from GravNN.GravityModels.PointMass import PointMass
 from GravNN.GravityModels.Polyhedral import Polyhedral
 from scipy.integrate import solve_ivp
 
 import StatOD
+from Scripts.DataGeneration.Trajectories.utils import (
+    compute_semimajor,
+    generate_heterogeneous_model,
+)
 from StatOD.constants import ErosParams
 from StatOD.dynamics import *
 from StatOD.models import pinnGravityModel
 from StatOD.utils import ProgressBar, compute_BN
-
-
-def compute_semimajor(X, mu):
-    def cross(x, y):
-        return np.cross(x, y)
-
-    r = X[0:3]
-    v = X[3:6]
-    h = cross(r, v)
-    p = np.dot(h, h) / mu
-    e = cross(v, h) / mu - r / np.linalg.norm(r)
-    a = p / (1 - np.linalg.norm(e) ** 2)
-    return a
-
-
-def generate_heterogeneous_model(planet, shape_model):
-    poly_r0_gm = HeterogeneousPoly(planet, shape_model)
-
-    # Force the following mass inhomogeneity
-    mass_1 = copy.deepcopy(planet)
-    mass_1.mu = mass_1.mu / 10
-    r_offset_1 = [mass_1.radius / 3, 0, 0]
-
-    mass_2 = copy.deepcopy(planet)
-    mass_2.mu = -mass_2.mu / 10
-    r_offset_2 = [-mass_2.radius / 3, 0, 0]
-
-    point_mass_1 = PointMass(mass_1)
-    point_mass_2 = PointMass(mass_2)
-
-    poly_r0_gm.add_point_mass(point_mass_1, r_offset_1)
-    poly_r0_gm.add_point_mass(point_mass_2, r_offset_2)
-
-    return poly_r0_gm
 
 
 def f_ivp(t, Z, model, pbar, omega):
@@ -143,25 +110,6 @@ def generate_rotating_asteroid_trajectory(
 
 
 if __name__ == "__main__":
-    ep = ErosParams()
-    X0_m_N = np.array(
-        [
-            3.16800e04,
-            0.00e00,
-            -3.00e03,
-            0.1,
-            -2.75,
-            2.25,
-        ],
-    )
-    # high altitude
-    a = ep.R * 1000 * 2  # m
-    r0 = np.array([a, 0, a])  # m
-    r_mag = np.linalg.norm(r0)
-    v_mag = np.sqrt(ep.mu * 1e9 * (2.0 / r_mag - 1.0 / a))  # m/s
-    v0 = np.array([0, v_mag, 0])  # m/s
-    X0_m_N = np.append(r0, v0)
-
     # Julio's params (the best)
     # 34000,
     # 0.001,
@@ -182,44 +130,19 @@ if __name__ == "__main__":
 
     X0_km_N = X0_m_N / 1e3
 
-    # generate_rotating_asteroid_trajectory(
-    #     X0_km_N,
-    #     "traj_rotating_gen_III",
-    #     "eros_filter_poly",
-    #     timestep=60,
-    #     orbits=3,
-    # )
-    filename = "traj_rotating_gen_III_constant"
+    pinn_file = "eros_poly_053123"
+    filename = f"traj_{pinn_file}"
     generate_rotating_asteroid_trajectory(
         X0_km_N,
         filename,
-        "eros_constant_poly",
+        pinn_file,
         timestep=60,
-        orbits=10,
-    )
-    # generate_rotating_asteroid_trajectory(
-    #     X0_km_N,
-    #     "traj_rotating_gen_III_constant_no_fuse",
-    #     "eros_constant_poly_no_fuse",
-    #     timestep=60,
-    #     orbits=3,
-    # )
-
-    # filename = "traj_rotating_gen_III_constant_dropout"
-    # generate_rotating_asteroid_trajectory(
-    #     X0_km_N,
-    #     "traj_rotating_gen_III_constant_dropout",
-    #     "eros_constant_poly_dropout",
-    #     timestep=60,
-    #     orbits=10,
-    # )
-
-    # from Scripts.Plots.plot_asteroid_trajectory import main
-    # main(f"Data/Trajectories/{filename}.data")
-
-    from Scripts.Measurements.generate_position_measurements import (
-        generate_measurements,
+        orbits=3,
     )
 
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    from Scripts.DataGeneration.Measurements.generate_position_measurements import (
+        generate_measurements,
+    )
+
     generate_measurements(f"{statOD_dir}Data/Trajectories/{filename}.data")

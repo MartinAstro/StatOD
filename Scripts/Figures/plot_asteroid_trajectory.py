@@ -10,6 +10,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 import StatOD
 from StatOD.constants import ErosParams
+from StatOD.utils import compute_BN
 
 
 class MathTextSciFormatter(mticker.Formatter):
@@ -34,7 +35,6 @@ class MathTextSciFormatter(mticker.Formatter):
 
 
 def plot_3d(rVec, traj_cm=plt.cm.jet, solid_color=None, reverse_cmap=False, **kwargs):
-
     ax = plt.gca()
     rx = [rVec[0]]
     ry = [rVec[1]]
@@ -145,29 +145,8 @@ def plot_cartesian_state_3d(X, obj_file=None, **kwargs):
         plt.gca().scatter(X[0, 0], X[0, 1], X[0, 2], s=3, c="r")
 
 
-def compute_BN(tVec, omega):
-    theta = tVec * omega
-    C00 = np.cos(theta)
-    C01 = np.sin(theta)
-    C10 = -np.sin(theta)
-    C11 = -np.cos(theta)
-    Cij = np.zeros_like(C00)
-    C22 = np.zeros_like(C00) + 1
-
-    C = np.block(
-        [
-            [[C00], [C01], [Cij]],
-            [[C10], [C11], [Cij]],
-            [[Cij], [Cij], [C22]],
-        ],
-    )
-    C = np.transpose(C, axes=[2, 0, 1])
-    return C
-
-
-def main(trajectory_file="Data/Trajectories/traj_rotating.data"):
-
-    VisualizationBase(save_directory=StatOD.__path__[0] + "/../Plots/")
+def main(trajectory_file):
+    vis = VisualizationBase(save_directory=StatOD.__path__[0] + "/../Plots/")
     with open(trajectory_file, "rb") as f:
         data = pickle.load(f)
 
@@ -186,11 +165,11 @@ def main(trajectory_file="Data/Trajectories/traj_rotating.data"):
     plot_cartesian_state_3d(X_km_B, Eros().obj_8k)
     plt.title("Body Frame")
 
-    # vis.save(plt.gcf(), "spacecraft_trajectory.pdf")
+    vis.save(plt.gcf(), "spacecraft_trajectory.pdf")
     plt.show()
 
 
 if __name__ == "__main__":
-    main("Data/Trajectories/traj_rotating.data")
-    main("Data/Trajectories/trajectory_asteroid_equitorial.data")
-    main("Data/Trajectories/trajectory_asteroid_inclined.data")
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    pinn_file = "eros_poly_053123"
+    main(f"{statOD_dir}Data/Trajectories/traj_{pinn_file}.data")
