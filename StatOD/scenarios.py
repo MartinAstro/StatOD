@@ -85,7 +85,7 @@ class ScenarioBaseClass:
             self.P0 = np.diag(self.P0)
 
     def initializeFilter(self, filter_class):
-        self.filter_type = filter_class.__class__.__name__
+        self.filter_type = filter_class.__name__
 
         f_dict = {
             "f": self.f_fcn,

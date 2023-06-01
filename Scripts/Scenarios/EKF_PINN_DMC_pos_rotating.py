@@ -12,7 +12,7 @@ from StatOD.callbacks import *
 from StatOD.constants import ErosParams
 from StatOD.data import get_measurements_general
 from StatOD.dynamics import *
-from StatOD.filters import ExtendedKalmanFilter
+from StatOD.filters import ExtendedKalmanFilter, KalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
 from StatOD.utils import *
@@ -173,6 +173,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, output_file, show=False
             traj_data["W_pinn"][0],  # + np.random.uniform(-1e-9, 1e-9, size=(3,)),
         ),
     )
+    dx0 = np.zeros_like(x0)
     P_diag = np.array([1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-7, 1e-7, 1e-7]) ** 2
 
     pos_sigma = 1e-2
@@ -208,6 +209,7 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, output_file, show=False
         data_fraction=data_frac,  # 0.001,
     )
     # t_vec[1] = 0
+    # Y_vec[0] *= np.nan
 
     R_diag = np.eye(3) * r**2
 
@@ -261,9 +263,10 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, output_file, show=False
 
     scenario.initializeDynamics(f_fcn=f_fcn, dfdx_fcn=dfdx_fcn, f_args=f_args)
     scenario.initializeNoise(q_fcn=q_fcn, q_args=q_args, Q0=Q0, Q_dt=Q_dt)
-    scenario.initializeIC(t0=t_vec[0], x0=x0, P0=P_diag)
+    scenario.initializeIC(t0=t_vec[0], x0=x0, P0=P_diag, dx0=dx0)
 
     scenario.non_dimensionalize()
+    scenario.initializeFilter(KalmanFilter)
     scenario.initializeFilter(ExtendedKalmanFilter)
     scenario.filter.atol = 1e-10
     scenario.filter.rtol = 1e-10
