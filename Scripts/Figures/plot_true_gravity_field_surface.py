@@ -21,23 +21,23 @@ def format():
 
 def main():
     planet = Eros()
-    trajectory = SurfaceDist(planet, planet.obj_200k)
+    trajectory = SurfaceDist(planet, planet.obj_8k)
 
     x_hetero_poly, a_hetero_poly, u_hetero_poly = get_hetero_poly_symmetric_data(
         trajectory,
-        planet.obj_200k,
+        planet.obj_8k,
         remove_point_mass=[False],
     )
 
     x_homo_poly, a_homo_poly, u_homo_poly = get_poly_data(
         trajectory,
-        planet.obj_200k,
+        planet.obj_8k,
         remove_point_mass=[False],
     )
 
     x_pm, a_pm, u_pm = get_pm_data(
         trajectory,
-        planet.obj_200k,
+        planet.obj_8k,
         remove_point_mass=[False],
         planet=[Eros()],
     )
@@ -50,7 +50,7 @@ def main():
     # Surface Acceleration of heterogenous
     #######################################
     vis.plot_polyhedron(
-        planet.obj_200k,
+        planet.obj_8k,
         a_hetero_poly,
         label="Acceleration [m/$s^2$]",
         log=False,
@@ -71,13 +71,13 @@ def main():
     a_error = da_norm / a_norm * 100
     a_error = a_error.reshape((-1, 1))
     vis.plot_polyhedron(
-        planet.obj_200k,
+        planet.obj_8k,
         a_error,
         label="Acceleration Errors",
         cmap="jet",
         log=False,
         percent=True,
-        max_percent=0.3,
+        max_percent=0.1,
         cmap_reverse=False,
         alpha=1,
     )
@@ -93,13 +93,13 @@ def main():
     a_error = da_norm / a_norm * 100
     a_error = a_error.reshape((-1, 1))
     vis.plot_polyhedron(
-        planet.obj_200k,
+        planet.obj_8k,
         a_error,
         label="Acceleration Errors",
         log=False,
         percent=True,
         cmap="jet",
-        max_percent=0.3,
+        max_percent=0.1,
         cmap_reverse=False,
         alpha=1,
     )

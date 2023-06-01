@@ -2,7 +2,6 @@ import os
 
 import matplotlib.pyplot as plt
 from GravNN.CelestialBodies.Asteroids import Eros
-from GravNN.GravityModels.HeterogeneousPoly import HeterogeneousPoly
 from GravNN.Trajectories.SurfaceDist import SurfaceDist
 
 import StatOD
@@ -12,7 +11,6 @@ if __name__ == "__main__":
     planet = Eros()
 
     traj = SurfaceDist(planet, planet.obj_8k)
-    gravity_model = HeterogeneousPoly(planet, planet.obj_8k, traj)
 
     model = generate_heterogeneous_model(planet, planet.obj_8k)
     r_offset_0 = model.offset_list[0]
