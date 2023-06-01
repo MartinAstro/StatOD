@@ -146,7 +146,7 @@ class ScenarioBaseClass:
         synthetic_data = train_config.get("synthetic_data", False)
         empty_data = train_config.get("empty_data", False)
         COM_data = train_config.get("COM_samples", 0)
-        callbacks = train_config.get("callbacks", [])
+        callbacks = train_config.get("callbacks", {})
         intermediate_callbacks = train_config.get("intermediate_callbacks", False)
         start_time = time.time()
 
@@ -157,7 +157,7 @@ class ScenarioBaseClass:
         planet = self.model.planet
 
         # run initial callbacks / metrics
-        self.run_callbacks(callbacks, 0.0)
+        # self.run_callbacks(callbacks, 0.0)
 
         for k in range(total_batches + 1):
             # Gather measurements in batch

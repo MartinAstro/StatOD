@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.Analysis.ExtrapolationExperiment import ExtrapolationExperiment
-from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_data
+from GravNN.CelestialBodies.Asteroids import Eros
+from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 
 from Scripts.Analysis.AnalysisBaseClass import AnalysisBaseClass
+from Scripts.DataGeneration.Trajectories.utils import generate_heterogeneous_model
 from Scripts.Scenarios.ScenarioPositions import ScenarioPositions
+from StatOD.callbacks import *
 from StatOD.constants import ErosParams
 from StatOD.data import get_measurements_general
 from StatOD.dynamics import *
@@ -34,7 +37,60 @@ def rotating_fcn(tVec, omega, X_train, Y_train):
     return X_train_B, Y_train_B
 
 
-def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
+def generate_plots(scenario, traj_data, model):
+    # Plot filter results
+    vis = FilterVisualizer(scenario)
+    vis.generate_y_hat()
+    vis.generate_filter_plots(
+        x_truth=np.hstack((traj_data["X"], traj_data["W_pinn"])),
+        w_truth=traj_data["W_pinn"],
+        y_labels=["x", "y", "z"],
+    )
+
+    # convert from N to B frame
+    logger = vis.scenario.filter.logger
+    BN = compute_BN(logger.t_i, ErosParams().omega)
+    X_B = np.einsum("ijk,ik->ij", BN, logger.x_hat_i_plus[:, 0:3])
+    vis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
+
+    # Run all the experiments on the trained model
+    analysis = AnalysisBaseClass(scenario)
+    analysis.true_gravity_fcn = get_hetero_poly_symmetric_data
+    metrics = analysis.run()
+    print("metrics")
+    print(metrics)
+
+    os.path.dirname(StatOD.__file__) + "/../"
+    metrics_dict_list = dict_values_to_list(metrics)
+    hparams.update(metrics_dict_list)
+    # prepend "hparams_" to each key in the hparams dictionary
+    hparams = {"hparams_" + key: value for key, value in hparams.items()}
+    model.config.update(hparams)
+    network_dir = model.save()  # save the network, but not into the directory right now
+
+    # save the figures into the network directory
+
+    # Plot experiment results
+    planes_vis = GravityPlanesVisualizer(analysis.planes_exp, halt_formatting=True)
+    planes_vis.run(
+        max_error=30,
+        logger=vis.scenario.filter.logger,
+    )
+    planes_vis.save_all(network_dir)
+
+    extrap_exp = ExtrapolationExperiment(model.gravity_model, model.config, points=1000)
+    extrap_exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
+    extrap_exp.run()
+
+    extrap_vis = ExtrapolationVisualizer(extrap_exp, halt_formatting=True)
+    extrap_vis.plot_interpolation_percent_error()
+    extrap_vis.save(plt.gcf(), network_dir + "/extrap_interpolation.png")
+
+    extrap_vis.plot_extrapolation_percent_error()
+    extrap_vis.save(plt.gcf(), network_dir + "/extrap_extrapolation.png")
+
+
+def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, output_file, show=False):
     q = hparams.get("q_value", [1e-9])[0]
     r = hparams.get("r_value", [1e-12])[0]
     epochs = hparams.get("epochs", [100])[0]
@@ -123,8 +179,8 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     f_args[:, -1] = ErosParams().omega
 
     Q0 = np.eye(3) * q**2
-    # Q_dt = 60.0
-    Q_dt = 0.1
+    Q_dt = 60.0
+    # Q_dt = 0.1
 
     scenario = ScenarioPositions(
         {
@@ -151,7 +207,65 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
     scenario.filter.atol = 1e-10
     scenario.filter.rtol = 1e-10
 
-    # Eros().radius / 3 * 2 * (1 / 10.0)
+    # Initialize Callbacks
+    gravity_model_true = generate_heterogeneous_model(Eros(), Eros().obj_8k)
+
+    planes_callback = PlanesCallback()
+    extrapolation_callback = ExtrapolationCallback()
+    traj_callback = TrajectoryCallback(gravity_model_true)
+
+    X_1 = np.array(
+        [
+            -19243.595703125,
+            21967.5078125,
+            17404.74609375,
+            -2.939612865447998,
+            -1.1707247495651245,
+            -1.7654979228973389,
+        ],
+    )
+    X_2 = np.array(
+        [
+            -17720.09765625,
+            29013.974609375,
+            0.0,
+            -3.0941531658172607,
+            -1.8855023384094238,
+            -0.0,
+        ],
+    )
+    X_3 = np.array(
+        [
+            -22921.6484375,
+            4955.83154296875,
+            24614.02734375,
+            -2.5665197372436523,
+            0.5549010038375854,
+            -2.496790885925293,
+        ],
+    )
+    X_4 = np.array(
+        [
+            -45843.296875,
+            9911.6630859375,
+            49228.0546875,
+            -1.8148034811019897,
+            0.3923742473125458,
+            -1.7654976844787598,
+        ],
+    )
+
+    traj_callback.add_trajectory(X_1)
+    traj_callback.add_trajectory(X_2)
+    traj_callback.add_trajectory(X_3)
+    traj_callback.add_trajectory(X_4)
+
+    callbacks_dict = {
+        "Planes": planes_callback,
+        "Extrapolation": extrapolation_callback,
+        "Trajectory": traj_callback,
+    }
+
     network_train_config = {
         "batch_size": batch_size,
         "epochs": epochs,
@@ -160,65 +274,26 @@ def EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=False):
         "rotating_fcn": rotating_fcn,
         "synthetic_data": False,
         "num_samples": 1000,
-        # "callbacks" : None,
+        "callbacks": callbacks_dict,
         # "X_COM": np.array([[new_COM, 0.0, 0.0]]),
         # # "X_COM": np.array([[10.0, 0.0, 0.0]]),
         # "COM_samples": 1,
         # "COM_radius": 1e-12,
     }
-    scenario.run(network_train_config)
+    callbacks = scenario.run(network_train_config)
     scenario.dimensionalize()
 
-    # Plot filter results
-    vis = FilterVisualizer(scenario)
-    vis.generate_y_hat()
-    vis.generate_filter_plots(
-        x_truth=np.hstack((traj_data["X"], traj_data["W_pinn"])),
-        w_truth=traj_data["W_pinn"],
-        y_labels=["x", "y", "z"],
-    )
+    # compute metrics and update the config file
+    metrics = {}
+    for name, callback in callbacks.items():
+        metrics[name] = callback.data[-1]
+    metrics = dict_values_to_list(metrics)  # ensures compatability
+    model.gravity_model.config.update(metrics)
 
-    # convert from N to B frame
-    logger = vis.scenario.filter.logger
-    BN = compute_BN(logger.t_i, ErosParams().omega)
-    X_B = np.einsum("ijk,ik->ij", BN, logger.x_hat_i_plus[:, 0:3])
-    vis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
+    # save the model + config
+    model.save(output_file)
 
-    # Run all the experiments on the trained model
-    analysis = AnalysisBaseClass(scenario)
-    analysis.true_gravity_fcn = get_hetero_poly_data
-    metrics = analysis.run()
-    print("metrics")
-    print(metrics)
-
-    os.path.dirname(StatOD.__file__) + "/../"
-    metrics_dict_list = dict_values_to_list(metrics)
-    hparams.update(metrics_dict_list)
-    # prepend "hparams_" to each key in the hparams dictionary
-    hparams = {"hparams_" + key: value for key, value in hparams.items()}
-    model.config.update(hparams)
-    network_dir = model.save()  # save the network, but not into the directory right now
-
-    # save the figures into the network directory
-
-    # Plot experiment results
-    planes_vis = GravityPlanesVisualizer(analysis.planes_exp, halt_formatting=True)
-    planes_vis.run(
-        max_error=10,
-        logger=vis.scenario.filter.logger,
-    )
-    planes_vis.save_all(network_dir)
-
-    extrap_exp = ExtrapolationExperiment(model.gravity_model, model.config, points=1000)
-    extrap_exp.config["gravity_data_fcn"] = [get_hetero_poly_data]
-    extrap_exp.run()
-
-    extrap_vis = ExtrapolationVisualizer(extrap_exp, halt_formatting=True)
-    extrap_vis.plot_interpolation_percent_error()
-    extrap_vis.save(plt.gcf(), network_dir + "/extrap_interpolation.png")
-
-    extrap_vis.plot_extrapolation_percent_error()
-    extrap_vis.save(plt.gcf(), network_dir + "/extrap_extrapolation.png")
+    # generate_plots(scenario, traj_data, model)
 
     if show:
         plt.show()
@@ -230,20 +305,15 @@ if __name__ == "__main__":
     import time
 
     start_time = time.time()
-
-    pinn_file = "Data/Dataframes/eros_constant_poly_no_fuse.data"
-    pinn_file = "Data/Dataframes/eros_constant_poly_dropout.data"
-    pinn_file = "Data/Dataframes/eros_constant_poly.data"
-
-    traj_file = "traj_rotating_gen_III_constant_no_fuse"
-    traj_file = "traj_rotating_gen_III_constant_dropout"  # 10 orbits
-    traj_file = "traj_rotating_gen_III_constant"
-
+    pinn_file = "Data/Dataframes/eros_poly_053123.data"
+    traj_file = "traj_eros_poly_053123"
+    output_file = "output_filter_060123.data"
     hparams = {
         # "q_value": [5e-8],
         "q_value": [1e-7],
-        "r_value": [1e-3],
-        "epochs": [0],
+        # "q_value": [1e-7],
+        "r_value": [1e-12],
+        "epochs": [500],
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
@@ -254,5 +324,5 @@ if __name__ == "__main__":
         "data_fraction": [0.1],  # 1.0],
     }
 
-    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, show=True)
+    EKF_Rotating_Scenario(pinn_file, traj_file, hparams, output_file, show=True)
     print("Total Time: " + str(time.time() - start_time))

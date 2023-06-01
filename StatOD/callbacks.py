@@ -1,8 +1,14 @@
 from abc import abstractclassmethod
 
+import numpy as np
 from GravNN.Analysis.ExtrapolationExperiment import ExtrapolationExperiment
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.Analysis.TrajectoryExperiment import TrajectoryExperiment
+from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
+
+from Scripts.DataGeneration.Trajectories.utils import (
+    compute_semimajor,
+)
 
 
 class CallbackBase:
@@ -20,6 +26,7 @@ class CallbackBase:
 
     @abstractclassmethod
     def run(self):
+        """Perform some assessment and return with a dictionary of metrics"""
         pass
 
     # def save(self, directory):
@@ -39,7 +46,18 @@ class PlanesCallback(CallbackBase):
         exp = PlanesExperiment(model, model.config, bounds, samples_1d=100)
         exp.run()
 
-        return exp
+        # Compute metrics
+        metrics = {}
+        metrics["percent_error_avg"] = np.nanmean(exp.percent_error_acc)
+        metrics["percent_error_std"] = np.nanstd(exp.percent_error_acc)
+        metrics["percent_error_max"] = np.nanmax(exp.percent_error_acc)
+        metrics["high_error_pixel"] = (
+            np.count_nonzero(exp.percent_error_acc > 10)
+            / len(exp.percent_error_acc)
+            * 100
+        )
+
+        return metrics
 
 
 class ExtrapolationCallback(CallbackBase):
@@ -49,18 +67,52 @@ class ExtrapolationCallback(CallbackBase):
     def run(self, model):
         exp = ExtrapolationExperiment(model, model.config, points=1000)
         exp.run()
-        return exp
+
+        vis = ExtrapolationVisualizer(exp)
+        metrics = {}
+
+        metrics["inter_avg"] = np.nanmean(
+            vis.experiment.losses["percent"][vis.idx_test][: vis.max_idx],
+        )
+        metrics["exter_avg"] = np.nanmean(
+            vis.experiment.losses["percent"][vis.idx_test],
+        )
+
+        return metrics
 
 
 class TrajectoryCallback(CallbackBase):
-    def __init__(self, truth_model, X0, T, **kwargs):
+    def __init__(self, truth_model, **kwargs):
         super().__init__(**kwargs)
         self.truth_model = truth_model
-        self.X0 = X0
-        self.T = T
+        self.X0_list = []
+        self.T_list = []
+        self.mu = truth_model.planet.mu
 
     def run(self, model):
-        exp = TrajectoryExperiment(self.truth_model, self.X0, self.T)
-        exp.add_test_model(model, "PINN", "red")
-        exp.run()
-        return exp
+        metrics = {}
+
+        for i in range(len(self.X0_list)):
+            X0 = self.X0_list[i]
+            T = self.T_list[i]
+            exp = TrajectoryExperiment(self.truth_model, X0, T)
+            exp.add_test_model(model, "PINN", "red")
+            exp.run()
+
+            metrics["dX_sum_" + str(i)] = np.linalg.norm(exp.test_models[0]["pos_diff"])
+            metrics["t_" + str(i)] = exp.test_models[0]["elapsed_time"]
+
+        return metrics
+
+    def compute_T(self, X):
+        a = compute_semimajor(X, self.mu)
+        if np.isnan(a):
+            a = 100
+        n = np.sqrt(self.mu / a**3)
+        T = 2 * np.pi / n
+        return T
+
+    def add_trajectory(self, X0):
+        T = self.compute_T(X0)
+        self.X0_list.append(X0)
+        self.T_list.append(T)

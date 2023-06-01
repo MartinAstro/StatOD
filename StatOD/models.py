@@ -154,10 +154,10 @@ class pinnGravityModel:
         history = self.gravity_model.train(dataset, initialize_optimizer=False)
         self.append_history(history)
 
-    def save(self):
+    def save(self, df_file=None):
         # save the network and config data using PINN-GM API
         saver = ModelSaver(self.gravity_model, self.history)
-        network_dir = saver.save(df_file=None)
+        network_dir = saver.save(df_file=df_file)
         return network_dir
 
 
