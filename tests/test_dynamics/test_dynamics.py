@@ -1,5 +1,3 @@
-import pickle
-
 import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
@@ -36,7 +34,11 @@ def generate_trajectory(X, f, orbits, timestep):
     N = len(X) + 3  # for DMC
     phi = np.eye(N).reshape((-1))
     w0 = np.zeros((3,))
-    Z0 = np.hstack((X, w0, phi))
+    Z0_ref = np.hstack((X, w0, phi))
+    dZ0 = np.zeros_like(Z0_ref)
+    dZ0[0:3] = np.random.normal(0, 1e-3, size=(3,))
+
+    Z0_pert = Z0_ref + dZ0
     f_fcn, dfdx_fcn, q_fcn, q_args = get_DMC_HF_zero_order()
 
     # integrate trajectory
@@ -44,34 +46,35 @@ def generate_trajectory(X, f, orbits, timestep):
     pbar = ProgressBar(t_f, enable=True)
     t_mesh = np.arange(0, t_f, step=timestep)
 
-    sol = solve_ivp(
+    sol_ref = solve_ivp(
         f_ivp,
         [0, t_f],
-        Z0,
+        Z0_ref,
         atol=1e-14,
         rtol=1e-14,
         t_eval=t_mesh,
         args=(f_fcn, dfdx_fcn, f_args, N, pbar),
     )
 
-    X_list = sol.y[:N, :].T
-    phi = sol.y[N:, :].T.reshape((-1, N, N))
-    plot_true_and_estimated_X(X_list, phi)
+    sol_pert = solve_ivp(
+        f_ivp,
+        [0, t_f],
+        Z0_pert,
+        atol=1e-14,
+        rtol=1e-14,
+        t_eval=t_mesh,
+        args=(f_fcn, dfdx_fcn, f_args, N, pbar),
+    )
 
-    data = {
-        "t": sol.t,
-        "X": X_list,
-        "phi": phi,
-    }
-    statOD_dir = os.path.dirname(StatOD.__file__) + "/.."
-    with open(f"{statOD_dir}/Data/Trajectories/{f.__name__}.data", "wb") as f:
-        pickle.dump(data, f)
+    Z0_ref_list = sol_ref.y[:N, :].T
+    phi = sol_ref.y[N:, :].T.reshape((-1, N, N))
 
-    # plot_trajectory(data["X"])
+    Z0_pert_list = sol_pert.y[:N, :].T
 
-    test_phi(data, 1)
-    test_phi(data, 10)
-    test_phi(data, -1)
+    dZ0_list = phi @ dZ0[0:9]
+    Z0_STM = Z0_ref_list + dZ0_list
+
+    plot_true_and_estimated_X(Z0_pert_list, Z0_STM)
 
     plt.show()
 

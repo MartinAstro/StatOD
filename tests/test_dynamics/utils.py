@@ -1,51 +1,45 @@
+import matplotlib.pyplot as plt
 import numpy as np
 
 
 # a function that takes in x_0 and computes x_i with the STM and plots the
 # true x_i and the propagated x_i
-def plot_true_and_estimated_X(X, phi):
-    X_0 = X[0]
-    X_i = X
-    X_i_prop = phi @ X_0
+def plot_true_and_estimated_X(X_pert, X_STM):
+    plt.figure()
+    plt.subplot(3, 2, 1)
+    plt.plot(X_pert[:, 0], label="True")
+    plt.plot(X_STM[:, 0], label="STM", linestyle="--")
+    plt.legend()
+    plt.title("x")
+    plt.subplot(3, 2, 3)
+    plt.plot(X_pert[:, 1], label="True")
+    plt.plot(X_STM[:, 1], label="STM", linestyle="--")
+    plt.title("y")
+    plt.subplot(3, 2, 5)
+    plt.plot(X_pert[:, 2], label="True")
+    plt.plot(X_STM[:, 2], label="STM", linestyle="--")
+    plt.title("z")
 
-    import matplotlib.pyplot as plt
+    plt.subplot(3, 2, 2)
+    plt.plot(X_pert[:, 3], label="True")
+    plt.plot(X_STM[:, 3], label="STM", linestyle="--")
+    plt.title("vx")
+    plt.subplot(3, 2, 4)
+    plt.plot(X_pert[:, 4], label="True")
+    plt.plot(X_STM[:, 4], label="STM", linestyle="--")
+    plt.title("vy")
+    plt.subplot(3, 2, 6)
+    plt.plot(X_pert[:, 5], label="True")
+    plt.plot(X_STM[:, 5], label="STM", linestyle="--")
+    plt.title("vz")
 
     plt.figure()
-    plt.plot(X_i[:, 0:3], label=["True" + str(i) for i in range(3)])
-    plt.plot(X_i_prop[:, 0:3], label=[str(i) for i in range(3)])
-    plt.ylabel("Position")
-    plt.legend()
-
-    plt.figure()
-    plt.plot(X_i[:, 3:6], label=["True" + str(i) for i in range(3)])
-    plt.plot(X_i_prop[:, 3:6], label=[str(i) for i in range(3)])
-    plt.ylabel("Velocity")
-    plt.legend()
-
-    # plt.figure()
-    # plt.plot(X_i[:, 6:9], label=["True" + str(i) for i in range(3)])
-    # plt.plot(X_i_prop[:, 6:9], label=[str(i) for i in range(3)])
-    # plt.ylabel("Acceleration")
-    # plt.legend()
-
-    dX = X_i[:, 0:3] - X_i_prop[:, 0:3]
-    dV = X_i[:, 3:6] - X_i_prop[:, 3:6]
-    # dA = X_i[:, 6:9] - X_i_prop[:, 6:9]
-
-    plt.figure()
-    plt.plot(dX)
-    plt.ylabel("dX")
-    plt.legend()
-
-    plt.figure()
-    plt.plot(dV)
-    plt.ylabel("dV")
-    plt.legend()
-
-    # plt.figure()
-    # plt.plot(dA)
-    # plt.ylabel("dA")
-    # plt.legend()
+    plt.subplot(2, 1, 1)
+    plt.plot(np.linalg.norm(X_pert[:, 0:3] - X_STM[:, 0:3], axis=1))
+    plt.title("Position Error")
+    plt.subplot(2, 1, 2)
+    plt.plot(np.linalg.norm(X_pert[:, 3:6] - X_STM[:, 3:6], axis=1))
+    plt.title("Velocity Error")
 
     plt.show()
 
