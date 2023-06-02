@@ -6,7 +6,7 @@ from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.Analysis.TrajectoryExperiment import TrajectoryExperiment
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 
-from Scripts.DataGeneration.Trajectories.utils import (
+from StatOD.utils import (
     compute_semimajor,
 )
 

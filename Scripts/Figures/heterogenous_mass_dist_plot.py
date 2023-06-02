@@ -5,7 +5,7 @@ from GravNN.CelestialBodies.Asteroids import Eros
 from GravNN.Trajectories.SurfaceDist import SurfaceDist
 
 import StatOD
-from Scripts.DataGeneration.Trajectories.utils import generate_heterogeneous_model
+from StatOD.utils import generate_heterogeneous_model
 
 if __name__ == "__main__":
     planet = Eros()

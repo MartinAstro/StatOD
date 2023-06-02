@@ -15,7 +15,7 @@ from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 from GravNN.Visualization.TrajectoryVisualizer import TrajectoryVisualizer
 
-from Scripts.DataGeneration.Trajectories.utils import (
+from StatOD.utils import (
     compute_semimajor,
     generate_heterogeneous_model,
 )

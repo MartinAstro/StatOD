@@ -6,7 +6,6 @@ from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_dat
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 
 from Scripts.Analysis.AnalysisBaseClass import AnalysisBaseClass
-from Scripts.DataGeneration.Trajectories.utils import generate_heterogeneous_model
 from Scripts.Scenarios.ScenarioPositions import ScenarioPositions
 from StatOD.callbacks import *
 from StatOD.constants import ErosParams
@@ -16,7 +15,7 @@ from StatOD.filters import ExtendedKalmanFilter, KalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
 from StatOD.utils import *
-from StatOD.utils import dict_values_to_list
+from StatOD.utils import dict_values_to_list, generate_heterogeneous_model
 from StatOD.visualization.FilterVisualizer import FilterVisualizer
 from StatOD.visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 from StatOD.visualization.visualizations import *

@@ -6,14 +6,15 @@ from GravNN.GravityModels.Polyhedral import Polyhedral
 from scipy.integrate import solve_ivp
 
 import StatOD
-from Scripts.DataGeneration.Trajectories.utils import (
-    compute_semimajor,
-    generate_heterogeneous_model,
-)
 from StatOD.constants import ErosParams
 from StatOD.dynamics import *
 from StatOD.models import pinnGravityModel
-from StatOD.utils import ProgressBar, compute_BN
+from StatOD.utils import (
+    ProgressBar,
+    compute_BN,
+    compute_semimajor,
+    generate_heterogeneous_model,
+)
 
 
 def f_ivp(t, Z, model, pbar, omega):
