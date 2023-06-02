@@ -2,7 +2,7 @@ import numpy as np
 from sympy import *
 
 
-def get_Q_DMC(dt, x, Q, DCM, args):
+def get_Q_DMC(t, dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
     (tau,) = args
@@ -54,7 +54,7 @@ def get_Q_DMC(dt, x, Q, DCM, args):
 
 
 # DMC with dynamics
-def f_PINN_DMC(x, args):
+def f_PINN_DMC(t, x, args):
     X_sc_ECI = x[0:6]
     w_vec = x[6:]
 
@@ -75,7 +75,7 @@ def f_PINN_DMC(x, args):
     return np.hstack((x_vel, x_acc, w_d))
 
 
-def dfdx_PINN_DMC(x, f, args):
+def dfdx_PINN_DMC(t, x, f, args):
     # f argument is needed to make interface standard
     X_sc_ECI = x
     model = args[0]
@@ -104,7 +104,7 @@ def dfdx_PINN_DMC(x, f, args):
     return dfdz
 
 
-def get_Q_PINN_DMC(dt, x, Q, DCM, args):
+def get_Q_PINN_DMC(t, dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
     tau, model = args
@@ -148,7 +148,7 @@ def get_DMC_first_order(tau=120):
     return f_fcn, dfdx_fcn, q_fcn, tau
 
 
-def get_Gamma_SRIF_DMC(dt, x, Q, DCM, args):
+def get_Gamma_SRIF_DMC(t, dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
 
@@ -182,7 +182,7 @@ def get_Gamma_SRIF_DMC(dt, x, Q, DCM, args):
 
 
 # DMC Models
-def f_J2_DMC(x, args):
+def f_J2_DMC(t, x, args):
     x, y, z, vx, vy, vz, w0, w1, w2 = x
     R, mu, J2, tau = args
 

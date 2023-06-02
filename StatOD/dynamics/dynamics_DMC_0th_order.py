@@ -4,14 +4,14 @@ from sympy import *
 from StatOD.utils import compute_BN
 
 
-def f_PINN_DMC_zero_order(x, args):
+def f_PINN_DMC_zero_order(t, x, args):
     X_sc_ECI = x[0:6]
     w_vec = x[6:]
 
     model = args[0]
     X_body_ECI = args[1:-2].astype(float)
 
-    t = float(args[-2])
+    # t = float(args[-2])
     omega = float(args[-1])
 
     x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]  # either km or [-]
@@ -39,12 +39,12 @@ def f_PINN_DMC_zero_order(x, args):
     return np.hstack((x_vel, x_acc, w_d))
 
 
-def dfdx_PINN_DMC_zero_order(x, f, args):
+def dfdx_PINN_DMC_zero_order(t, x, f, args):
     # f argument is needed to make interface standard
     X_sc_ECI = x
     model = args[0]
     X_body_ECI = args[1:-2].astype(float)
-    t = float(args[-2])
+    # t = float(args[-2])
     omega = float(args[-1])
 
     x_pos = X_sc_ECI[0:3] - X_body_ECI[0:3]  # either km or [-]
@@ -96,7 +96,7 @@ def dfdx_PINN_DMC_zero_order(x, f, args):
     return dfdz
 
 
-def get_Q_DMC_zero_order(dt, x, Q, DCM, args):
+def get_Q_DMC_zero_order(t, dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
 

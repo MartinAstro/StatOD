@@ -9,7 +9,7 @@ from StatOD.utils import compute_BN
 # N: Sun Inertial
 
 
-def f_PINN_DMC_HF_zero_order(x, args):
+def f_PINN_DMC_HF_zero_order(t, x, args):
     X_sc_P = x[0:6]
     w_vec = x[6:]
 
@@ -21,7 +21,7 @@ def f_PINN_DMC_HF_zero_order(x, args):
     mu_sun = float(args[12])
     Cr = float(args[13])
     c = float(args[14])
-    t = float(args[15])
+    # t = float(args[15])
     omega = float(args[16])
 
     x_pos = X_sc_P[0:3] - X_body_P[0:3]  # either km or [-]
@@ -78,7 +78,7 @@ def f_PINN_DMC_HF_zero_order(x, args):
     return np.hstack((x_vel, x_acc, w_d))
 
 
-def dfdx_PINN_DMC_HF_zero_order(x, f, args):
+def dfdx_PINN_DMC_HF_zero_order(t, x, f, args):
     # f argument is needed to make interface standard
     X_sc_P = x[0:6]
     x[6:]
@@ -91,7 +91,7 @@ def dfdx_PINN_DMC_HF_zero_order(x, f, args):
     mu_sun = float(args[12])
     Cr = float(args[13])
     c = float(args[14])
-    t = float(args[15])
+    # t = float(args[15])
     omega = float(args[16])
 
     x_pos = X_sc_P[0:3] - X_body_P[0:3]  # either km or [-]
@@ -193,13 +193,13 @@ def dfdx_PINN_DMC_HF_zero_order(x, f, args):
     return dfdz
 
 
-def get_Q_DMC_HF_zero_order(dt, x, Q, DCM, args):
+def get_Q_DMC_HF_zero_order(t, dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
 
     dfdx = args[0]
     f_args = args[1]
-    A = dfdx(x, None, f_args)
+    A = dfdx(t, x, None, f_args)
 
     phi = np.eye(N) + A * dt
 

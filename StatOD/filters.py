@@ -201,6 +201,7 @@ class FilterBase(ABC):
                         dt = tk_list[k] - tk_list[k - 1]
                         Q_i_i_m1 += np.array(
                             self.Q_dt_fcn(
+                                t_i,
                                 dt,
                                 x_i,
                                 self.Q_0,
@@ -210,7 +211,9 @@ class FilterBase(ABC):
                         )
                 else:
                     Q_i_i_m1 = np.array(
-                        self.Q_dt_fcn(dt, x_i, self.Q_0, self.Q_DCM(x_i), self.Q_args),
+                        self.Q_dt_fcn(
+                            t_i, dt, x_i, self.Q_0, self.Q_DCM(x_i), self.Q_args
+                        ),
                     )
         return Q_i_i_m1
 

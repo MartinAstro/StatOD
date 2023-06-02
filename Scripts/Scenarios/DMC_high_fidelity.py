@@ -136,6 +136,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
     q_args = [dfdx_fcn, f_args]
 
     f_args = np.full((len(t_vec), len(f_args)), f_args)
+    f_args[:, -2] = t_vec
 
     Q0 = np.eye(3) * q**2
     Q_dt = 60.0
