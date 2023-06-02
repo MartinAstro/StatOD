@@ -233,17 +233,18 @@ class ScenarioBaseClass:
             if intermediate_callbacks:
                 self.run_callbacks(callbacks, t_batch[-1])
 
-        # run callbacks at final step
-        self.run_callbacks(callbacks, self.t[-1])
-
         if len(train_idx_list) > 0:
             train_idx_list.pop()
         self.time_elapsed = time.time() - start_time
         self.train_idx_list = train_idx_list
 
+        # run callbacks at final step
+        self.run_callbacks(callbacks, self.t[-1])
+
         self.filter.logger.compute_phi_ti_t0()
 
-        print(f"Time Elapsed: {self.time_elapsed}")
+        print(f"Filter Time Elapsed: {self.time_elapsed}")
+        print(f"Total Time Elapsed: {time.time() - start_time}")
 
         return callbacks
 
