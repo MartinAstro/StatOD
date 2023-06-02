@@ -4,20 +4,20 @@ import os
 from GravNN.Support.slurm_utils import get_available_cores
 
 import StatOD
-from Scripts.Experiments.EKF_PINN_DMC_pos_rotating import EKF_Rotating_Scenario
+from Scripts.Scenarios.DMC_high_fidelity import DMC_high_fidelity
 from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
 
 
-def run_catch(args):
+def run_catch(args, halt=False):
     finished = False
     while not finished:
         try:
             os.path.dirname(StatOD.__file__)
-            pinn_file = "Data/Dataframes/eros_constant_poly.data"
-            traj_file = "traj_rotating_gen_III_constant"
+            # pinn_file = "Data/Dataframes/eros_constant_poly.data"
+            # traj_file = "traj_rotating_gen_III_constant"
             args_list = dict_values_to_list(args)
-            config = EKF_Rotating_Scenario(
+            config = DMC_high_fidelity(
                 pinn_file,
                 traj_file,
                 args_list,
@@ -25,7 +25,11 @@ def run_catch(args):
             )
             finished = True
         except Exception as e:
-            print(e)
+            # Try it twice, if it fails, then it's a real error
+            if halt is True:
+                print(e)
+            else:
+                run_catch(args, halt=True)
     return config
 
 
@@ -36,9 +40,10 @@ def main(noise):
         "learning_rate": [1e-4, 1e-5, 1e-6],
         "batch_size": [256, 2048, 2**15],
         "train_fcn": ["pinn_a"],
-        "data_fraction": [0.1, 0.5, 1.0],
+        "data_fraction": [1.0],
         "measurement_noise": [noise],
         "r_value": [1e-12, 1e-3],
+        # "filter_type" : ["CKF", "EKF", "UKF"],
     }
 
     save_df = (
