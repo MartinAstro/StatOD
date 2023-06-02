@@ -68,6 +68,7 @@ class ScenarioBaseClass:
             z0 = np.zeros((self.N_states,))
             q_fcn = process_noise(z0, Q0, q_fcn, q_args, use_numba=False)
         except Exception as e:
+            q_fcn = q_fcn
             print(e)
             pass
 
@@ -415,28 +416,31 @@ class ScenarioHF(ScenarioBaseClass):
 
         # Arguments
         # self.f_args[:, 0] = function(self.f_args[:,0], self.t_star) # gravity_model,
-        self.f_args[:, 1:4] = function(self.f_args[:, 1:4], self.l_star)  # eros_pos_P,
-        self.f_args[:, 4:7] = function(self.f_args[:, 4:7], self.ms)  # eros_vel_P,
-        self.f_args[:, 7:10] = function(self.f_args[:, 7:10], self.l_star)  # sun_pos_P,
-        self.f_args[:, 10] = function(self.f_args[:, 10], self.t_star)  # area_2_mass,
-        self.f_args[:, 11] = function(self.f_args[:, 11], self.t_star)  # SRP,
+        self.f_args[:, 1:4] = function(self.f_args[:, 1:4], l_star)  # eros_pos_P,
+        self.f_args[:, 4:7] = function(self.f_args[:, 4:7], ms)  # eros_vel_P,
+        self.f_args[:, 7:10] = function(self.f_args[:, 7:10], l_star)  # sun_pos_P [km],
+
+        # area_2_mass [m^2/kg],
+        self.f_args[:, 10] = function(self.f_args[:, 10], l_star**2)
+
+        # radiant_flux [W] = [kg m^2 / s^3],
+        self.f_args[:, 11] = function(self.f_args[:, 11], l_star**2 / t_star**3)
 
         # sunParams.mu_sun,
         self.f_args[:, 12] = function(
             self.f_args[:, 12],
             self.l_star**3 / self.t_star**2,
         )
-        self.f_args[:, 13] = function(self.f_args[:, 13], self.l_star)  # sunParams.AU,
-        self.f_args[:, 14] = function(self.f_args[:, 14], self.t_star)  # Cr,
-        self.f_args[:, 15] = function(self.f_args[:, 15], self.t_star)  # sunParams.c,
-        self.f_args[:, 16] = function(self.f_args[:, 16], self.t_star)  # time,
-        self.f_args[:, 17] = function(
-            self.f_args[:, 17],
+        self.f_args[:, 13] = function(self.f_args[:, 13], 1.0)  # Cr,
+        self.f_args[:, 14] = function(self.f_args[:, 14], ms)  # sunParams.c [m/s],
+        self.f_args[:, 15] = function(self.f_args[:, 15], t_star)  # time,
+        self.f_args[:, 16] = function(
+            self.f_args[:, 16],
             1 / self.t_star,
         )  # ErosParams().omega,
 
         try:
-            self.tau = function(self.tau, self.ms2**2)
+            self.tau = function(self.tau, ms2**2)
         except:
             pass
 

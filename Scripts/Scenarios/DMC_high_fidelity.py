@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from Scripts.Factories.CallbackFactory import CallbackFactory
+# from Scripts.Factories.CallbackFactory import CallbackFactory
 from Scripts.Factories.DynArgsFactory import DynArgsFactory
 from StatOD.callbacks import *
 from StatOD.constants import ErosParams
@@ -132,7 +132,10 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
 
     np.zeros((6,))
     f_fcn, dfdx_fcn, q_fcn, q_args = get_DMC_HF_zero_order()
-    f_args = DynArgsFactory.get_HF_args(model)
+    f_args = DynArgsFactory().get_HF_args(model)
+    q_args = [dfdx_fcn, f_args]
+
+    f_args = np.full((len(t_vec), len(f_args)), f_args)
 
     Q0 = np.eye(3) * q**2
     Q_dt = 60.0
@@ -163,7 +166,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
     scenario.filter.rtol = 1e-10
 
     # Initialize Callbacks
-    callbacks_dict = CallbackFactory().generate_callbacks()
+    # callbacks_dict = CallbackFactory().generate_callbacks()
 
     network_train_config = {
         "batch_size": batch_size,
@@ -173,7 +176,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
         "rotating_fcn": rotating_fcn,
         "synthetic_data": False,
         "num_samples": 1000,
-        "callbacks": callbacks_dict,
+        # "callbacks": callbacks_dict,
         # "X_COM": np.array([[new_COM, 0.0, 0.0]]),
         # # "X_COM": np.array([[10.0, 0.0, 0.0]]),
         # "COM_samples": 1,
@@ -188,6 +191,8 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
         metrics[name] = callback.data[-1]
     metrics = dict_values_to_list(metrics)  # ensures compatability
     model.gravity_model.config.update(metrics)
+
+    generate_plots(scenario, traj_data, model)
 
     # save the model + config
     model.save(output_file)
@@ -209,13 +214,13 @@ if __name__ == "__main__":
 
     hparams = {
         "q_value": [5e-8],
-        "r_value": [1e-3],
+        "r_value": [1e-12],
         "epochs": [0],
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
-        "measurement_noise": ["noisy"],
+        "measurement_noise": ["noiseless"],
         "eager": [False],
         "data_fraction": [1.0],
     }

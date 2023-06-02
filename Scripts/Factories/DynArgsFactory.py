@@ -7,12 +7,10 @@ class DynArgsFactory:
     def __init__(self):
         pass
 
-    def get_HF_args(model):
+    def get_HF_args(self, model):
         sunParams = SunParams()
 
-        SRP = sunParams.SRP_flux  # W / m^2 -- Power per unit area
-        SRP /= 1e3  # W
-        SRP *= sunParams.AU**2  # in km
+        SRP = sunParams.radiant_flux  # W of the sun
         area_2_mass = 0.01  # m^2/kg
         sun_pos_P = np.array([-2.180987e11, 0.0, 0.0]) / 1e3  # 1.4579 AU from Eros
         # sun_pos_P = np.array([-2.180987e9, 0.0, 0.0]) / 1e3  # Test to see STM work
@@ -27,7 +25,6 @@ class DynArgsFactory:
                 area_2_mass,
                 SRP,
                 sunParams.mu_sun,
-                sunParams.AU,
                 Cr,
                 sunParams.c,
                 0.0,
@@ -37,7 +34,7 @@ class DynArgsFactory:
 
         return f_args
 
-    def get_gravity_only_args(model, t_vec):
+    def get_gravity_only_args(self, model, t_vec):
         eros_pos = np.zeros((6,))
         f_args = np.hstack((model, eros_pos, 0.0, ErosParams().omega))
         f_args = np.full((len(t_vec), len(f_args)), f_args)

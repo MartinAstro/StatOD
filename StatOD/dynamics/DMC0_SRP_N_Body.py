@@ -17,13 +17,12 @@ def f_PINN_DMC_HF_zero_order(x, args):
     X_body_P = args[1:7].astype(float)
     X_sun_P = args[7:10].astype(float)
     A2M = float(args[10])
-    flux = float(args[11])
+    radiant_flux = float(args[11])
     mu_sun = float(args[12])
-    float(args[13])
-    Cr = float(args[14])
-    c = float(args[15])
-    t = float(args[16])
-    omega = float(args[17])
+    Cr = float(args[13])
+    c = float(args[14])
+    t = float(args[15])
+    omega = float(args[16])
 
     x_pos = X_sc_P[0:3] - X_body_P[0:3]  # either km or [-]
     x_vel = X_sc_P[3:6] - X_body_P[3:6]
@@ -55,8 +54,11 @@ def f_PINN_DMC_HF_zero_order(x, args):
     # a_z_grav_sun = 0.0
 
     # # SRP
-    P = flux / c
-    coef = -Cr * P / r_sc_sun_mag**2 * A2M
+    r_sc_sun_mag_m = r_sc_sun_mag * 1e3
+    irradiance = radiant_flux / (4 * np.pi * r_sc_sun_mag_m**2)
+    P = irradiance / c
+    coef = Cr * P * A2M  # SRP in m/s^2
+    coef /= 1e3  # SRP in km/s^2
     a_x_SRP = coef * (x_sc_sun / r_sc_sun_mag)
     a_y_SRP = coef * (y_sc_sun / r_sc_sun_mag)
     a_z_SRP = coef * (z_sc_sun / r_sc_sun_mag)
@@ -85,13 +87,12 @@ def dfdx_PINN_DMC_HF_zero_order(x, f, args):
     X_body_P = args[1:7].astype(float)
     X_sun_P = args[7:10].astype(float)
     A2M = float(args[10])
-    flux = float(args[11])
+    radiant_flux = float(args[11])
     mu_sun = float(args[12])
-    float(args[13])
-    Cr = float(args[14])
-    c = float(args[15])
-    t = float(args[16])
-    omega = float(args[17])
+    Cr = float(args[13])
+    c = float(args[14])
+    t = float(args[15])
+    omega = float(args[16])
 
     x_pos = X_sc_P[0:3] - X_body_P[0:3]  # either km or [-]
     BN = compute_BN(t, omega).squeeze()
@@ -137,21 +138,22 @@ def dfdx_PINN_DMC_HF_zero_order(x, f, args):
     # Add SRP
     ###############
 
-    P = flux / c
-    coef = -Cr * P / r_sc_s**2 * A2M
-    coef
+    r_sc_sun_mag_m = r_sc_s * 1e3
+    irradiance = radiant_flux / (4 * np.pi * r_sc_sun_mag_m**2)
 
     def diag_SRP(i_sc, i_s, rScS):
-        coef = A2M * Cr * flux / c
+        coef = -A2M * Cr * irradiance / c  # m/s^2
+        coef /= 1e3  # km/s^2
         return (
             coef
             * (3 * (i_sc - i_s) ** 2 - rScS**2)
-            / (rScS**4 * np.sqrt(rScS**2))
+            / (rScS**2 * np.sqrt(rScS**2))
         )
 
     def offdiag_SRP(i_sc, j_sc, i_s, j_s, rScS):
-        coef = 3 * A2M * Cr * flux / c
-        return coef * ((i_sc - i_s) * (j_sc - j_s)) / (rScS**2) ** (5 / 2)
+        coef = -3 * A2M * Cr * irradiance / c
+        coef /= 1e3  # km/s^2
+        return coef * ((i_sc - i_s) * (j_sc - j_s)) / (rScS**2) ** (3 / 2)
 
     x_diag = diag_SRP(x, x_s, r_sc_s)
     y_diag = diag_SRP(y, y_s, r_sc_s)
@@ -195,51 +197,72 @@ def get_Q_DMC_HF_zero_order(dt, x, Q, DCM, args):
     N = len(x)
     M = Q.shape[0]
 
-    A = zeros(N, N)
+    dfdx = args[0]
+    f_args = args[1]
+    A = dfdx(x, None, f_args)
 
-    # velocities
-    A[0, 3] = 1
-    A[1, 4] = 1
-    A[2, 5] = 1
+    phi = np.eye(N) + A * dt
 
-    # acceleration is just DMC
-    A[3, 6] = 1
-    A[4, 7] = 1
-    A[5, 8] = 1
-
-    # TODO: Revisit this. If not commented, it causes the Q
-    # matrix to shrink the covariance instead of increase it.
-    # For now, make the linear approximation used in SNC instead.
-
-    # A[3:6,0:3] = model.generate_dadx(x[0:3])
-    # A[6,6] = -1/tau
-    # A[7,7] = -1/tau
-    # A[8,8] = -1/tau
-
-    phi = eye(N) + A * dt
-    # phi = exp(A * dt) # only for LTI
-
-    B = zeros(N, M)
+    B = np.zeros((N, M))
 
     B[6, 0] = 1
     B[7, 1] = 1
     B[8, 2] = 1
 
-    integrand = phi * B * DCM.T * Q * DCM * B.T * phi.T
-
-    Q_i_i_m1 = np.zeros((N, N), dtype=np.object)
-    for i in range(N):  # f[i] differentiated
-        for j in range(i, N):  # w.r.t. X[j]
-            integrated = integrate(integrand[i, j], dt)
-            Q_i_i_m1[i, j] = integrated
-            Q_i_i_m1[j, i] = integrated
-
-    # numba can't work with arrays of sympy ints and floats in same matrix
-    # so just force sympy ints to be floats
-    Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
-    Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
+    Q_i_i_m1 = phi @ B @ DCM.T @ Q @ DCM @ B.T @ phi.T * dt
 
     return Q_i_i_m1.tolist()
+
+
+# def get_Q_DMC_HF_zero_order(dt, x, Q, DCM, args):
+#     N = len(x)
+#     M = Q.shape[0]
+
+#     A = zeros(N, N)
+
+#     # velocities
+#     A[0, 3] = 1
+#     A[1, 4] = 1
+#     A[2, 5] = 1
+
+#     # acceleration is just DMC
+#     A[3, 6] = 1
+#     A[4, 7] = 1
+#     A[5, 8] = 1
+
+#     # TODO: Revisit this. If not commented, it causes the Q
+#     # matrix to shrink the covariance instead of increase it.
+#     # For now, make the linear approximation used in SNC instead.
+
+#     # A[3:6,0:3] = model.generate_dadx(x[0:3])
+#     # A[6,6] = -1/tau
+#     # A[7,7] = -1/tau
+#     # A[8,8] = -1/tau
+
+#     phi = eye(N) + A * dt
+#     # phi = exp(A * dt) # only for LTI
+
+#     B = zeros(N, M)
+
+#     B[6, 0] = 1
+#     B[7, 1] = 1
+#     B[8, 2] = 1
+
+#     integrand = phi * B * DCM.T * Q * DCM * B.T * phi.T
+
+#     Q_i_i_m1 = np.zeros((N, N), dtype=np.object)
+#     for i in range(N):  # f[i] differentiated
+#         for j in range(i, N):  # w.r.t. X[j]
+#             integrated = integrate(integrand[i, j], dt)
+#             Q_i_i_m1[i, j] = integrated
+#             Q_i_i_m1[j, i] = integrated
+
+#     # numba can't work with arrays of sympy ints and floats in same matrix
+#     # so just force sympy ints to be floats
+#     Q_i_i_m1[np.where(Q_i_i_m1 == 0)] = 0.0
+#     Q_i_i_m1[np.where(Q_i_i_m1 == 1)] = 1.0
+
+#     return Q_i_i_m1.tolist()
 
 
 def get_DMC_HF_zero_order():
