@@ -117,14 +117,14 @@ class ExperimentPanelVisualizer:
             X0 = X0_list[i]
             T = T_list[i]
             exp = TrajectoryExperiment(truth_model, X0, T)
-            exp.add_test_model(self.model, "PINN", "red")
+            exp.add_test_model(self.model, "PINN", "red", "--")
             exp.run()
             traj_exps.append(exp)
         self.traj_exps = traj_exps
 
-    def plot(self, callback_idx=-1):
+    def plot(self, callback_idx=-1, X_B=None):
         vis = PlanesVisualizer(self.planes_exp, halt_formatting=True)
-        vis.max = 30
+        vis.max = 10
 
         vis.fig_size = (vis.w_full, vis.w_full * 2.0 / 5.0)
         fig = plt.figure(figsize=vis.fig_size)
@@ -142,12 +142,15 @@ class ExperimentPanelVisualizer:
         x = vis.experiment.x_test
         y = vis.experiment.percent_error_acc
 
+        X_B /= vis.radius
         plt.sca(ax1)
         vis.plot_plane(x, y, plane="xy", annotate_stats=True)
         ax1.set_xticks([])
         ax1.set_yticks([])
         ax1.set_xlabel("")
         ax1.set_ylabel("")
+        if X_B is not None:
+            ax1.plot(X_B[:, 0], X_B[:, 1], color="black", linewidth=1)
 
         plt.sca(ax2)
         vis.plot_plane(x, y, plane="xz", annotate_stats=True)
@@ -155,6 +158,8 @@ class ExperimentPanelVisualizer:
         ax2.set_yticks([])
         ax2.set_xlabel("")
         ax2.set_ylabel("")
+        if X_B is not None:
+            ax2.plot(X_B[:, 0], X_B[:, 2], color="black", linewidth=1)
 
         plt.sca(ax3)
         vis.plot_plane(x, y, plane="yz", annotate_stats=True)
@@ -162,6 +167,8 @@ class ExperimentPanelVisualizer:
         ax3.set_yticks([])
         ax3.set_xlabel("")
         ax3.set_ylabel("")
+        if X_B is not None:
+            ax3.plot(X_B[:, 1], X_B[:, 2], color="black", linewidth=1)
 
         plt.sca(ax4)
         extrap_vis = ExtrapolationVisualizer(self.extrap_exp, halt_formatting=True)

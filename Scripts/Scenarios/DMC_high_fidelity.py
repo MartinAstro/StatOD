@@ -3,6 +3,9 @@ import numpy as np
 
 # from Scripts.Factories.CallbackFactory import CallbackFactory
 from Scripts.Factories.DynArgsFactory import DynArgsFactory
+from Scripts.VisualizationTools.ExperimentPanelVisualizer import (
+    ExperimentPanelVisualizer,
+)
 from StatOD.callbacks import *
 from StatOD.constants import ErosParams
 from StatOD.data import get_measurements_general
@@ -47,6 +50,10 @@ def generate_plots(scenario, traj_data, model):
     BN = compute_BN(logger.t_i, ErosParams().omega)
     X_B = np.einsum("ijk,ik->ij", BN, logger.x_hat_i_plus[:, 0:3])
     vis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
+
+    # run the visualization suite on the model
+    vis = ExperimentPanelVisualizer(model)
+    vis.plot(X_B=X_B)
 
 
 def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
@@ -193,7 +200,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
     metrics = dict_values_to_list(metrics)  # ensures compatability
     model.gravity_model.config.update(metrics)
 
-    generate_plots(scenario, traj_data, model)
+    generate_plots(scenario, traj_data, model.gravity_model)
 
     # save the model + config
     model.save(output_file)
