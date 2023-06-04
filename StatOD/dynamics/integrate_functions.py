@@ -16,7 +16,6 @@ def dynamics_ivp(t, Z, f, dfdx, f_args):
     return Zd
 
 
-# @njit(cache=False)
 def dynamics_ivp_no_jit(t, Z, f, dfdx, f_args):
     N = int(1 / 2 * (np.sqrt(4 * len(Z) + 1) - 1))
     X_inst = Z[0:N]

@@ -216,6 +216,7 @@ if __name__ == "__main__":
     hparams = {
         "q_value": [5e-8],
         "r_value": [1e-12],
+        # "r_value": [1e-3],
         "epochs": [0],
         "learning_rate": [1e-4],
         "batch_size": [20000],
