@@ -19,13 +19,15 @@ from StatOD.dynamics import *
 from StatOD.filters import ExtendedKalmanFilter
 from StatOD.measurements import h_pos
 from StatOD.models import pinnGravityModel
-from StatOD.visualizations import *
+from StatOD.visualization.visualizations import *
 
 
 def rotating_fcn(tVec, omega, X_train, Y_train):
     BN = compute_BN(tVec, omega)
     X_train_B = np.einsum(
-        "ijk,ik->ij", BN, X_train
+        "ijk,ik->ij",
+        BN,
+        X_train,
     )  # https://stackoverflow.com/questions/26089893/understanding-numpys-einsum/33641428#33641428
     Y_train_B = np.einsum("ijk,ik->ij", BN, Y_train)
     return X_train_B, Y_train_B
@@ -47,7 +49,9 @@ def main():
     # Measurement information
     measurement_file = f"Data/Measurements/Position/{traj_file}_meas_noiseless.data"
     t_vec, Y_vec, h_args_vec = get_measurements_general(
-        measurement_file, t_gap=60, data_fraction=1
+        measurement_file,
+        t_gap=60,
+        data_fraction=1,
     )
     R_diag = np.array([1e-3, 1e-3, 1e-3]) ** 2
     R_diag = np.array([1e-12, 1e-12, 1e-12]) ** 2
@@ -79,7 +83,7 @@ def main():
             "dim_constants": [dim_constants],
             "N_states": [len(x0)],
             "model": [model],
-        }
+        },
     )
 
     scenario.initializeMeasurements(

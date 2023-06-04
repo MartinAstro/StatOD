@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.Polyhedral import get_poly_data
 
-from Scripts.Scenarios.helper_functions import *
-from StatOD.visualizations import VisualizationBase
+from StatOD.utils import *
+from StatOD.visualization.visualizations import VisualizationBase
 
 
 class FilterVisualizer:
@@ -20,7 +19,6 @@ class FilterVisualizer:
 
         y_hat_vec = np.zeros((len(t), len(self.scenario.Y[0])))
         for i in range(len(t)):
-
             if self.scenario.filter_type == "KalmanFilter":
                 y_hat_vec[i] = filter.predict_measurement(
                     logger.x_i[i],

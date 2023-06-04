@@ -1,17 +1,9 @@
-import pickle
-import inspect
-import time
-from sympy import *
-import numba
-import sys
-from numba import njit, jit, prange
-import numpy as np
-from sympy import init_printing
-from StatOD.utils import print_expression
-from StatOD.data import get_earth_position
-import StatOD
-
 import os
+
+import numba
+import numpy as np
+from sympy import *
+
 os.environ["NUMBA_CACHE_DIR"] = "./numba_cache_tmp"
 
 
@@ -43,16 +35,17 @@ def dynamics(x, f, args, cse_func=cse, use_numba=True, consider=None):
     # k = len(['R', 'mu', 'J2', 'J3']) # non-state arguments
 
     # symbolic arguments
+    t_arg = symbols('t')
     f_args = np.array(symbols('f:'+str(n)))
     x_args = np.array(symbols('x:'+str(n))) # state
     c_args = np.array(symbols('arg:'+str(k))) # parameters
 
-    f_sym = f(x_args, c_args)   
-    dfdx_sym = dfdx(x_args, f_sym, c_args)
+    f_sym = f(t_arg, x_args, c_args)   
+    dfdx_sym = dfdx(t_arg, x_args, f_sym, c_args)
 
     # Define X, R as the inputs to expression
-    lambdify_f = lambdify([x_args, c_args], f_sym, cse=cse_func, modules='numpy')
-    lambdify_dfdx = lambdify([x_args, f_args, c_args], dfdx_sym, cse=cse_func, modules='numpy')
+    lambdify_f = lambdify([t_arg, x_args, c_args], f_sym, cse=cse_func, modules='numpy')
+    lambdify_dfdx = lambdify([t_arg, x_args, f_args, c_args], dfdx_sym, cse=cse_func, modules='numpy')
 
     # return func_f, func_dfdx
     if use_numba:
@@ -62,11 +55,12 @@ def dynamics(x, f, args, cse_func=cse, use_numba=True, consider=None):
         f_func = lambdify_f
         dfdx_func = lambdify_dfdx
 
+    t_tmp = 1.0
     x_tmp = np.arange(1,n+1,1) # make values different
     f_tmp = np.arange(2,n+2,1) # to minimize risk of 
     c_tmp = np.arange(3,k+3,1) # div by zero
-    tmp = f_func(x_tmp, c_tmp)
-    tmp = dfdx_func(x_tmp, f_tmp, c_tmp)
+    f_func(t_tmp, x_tmp, c_tmp)
+    dfdx_func(t_tmp, x_tmp, f_tmp, c_tmp)
 
     # Generate consider dynamics if requested
     if consider is not None:
@@ -74,11 +68,11 @@ def dynamics(x, f, args, cse_func=cse, use_numba=True, consider=None):
         consider = np.array(consider).astype(bool)
         c_arg_subset = c_args[consider]
         required_args = np.append(x_args, c_args[~consider])
-        dfdc_sym = dfdx(c_arg_subset, f_sym, required_args)
-        lambdify_dfdc = lambdify([c_arg_subset, f_args, required_args], dfdc_sym, cse=cse_func, modules='numpy')
+        dfdc_sym = dfdx(t_arg, c_arg_subset, f_sym, required_args)
+        lambdify_dfdc = lambdify([t_arg, c_arg_subset, f_args, required_args], dfdc_sym, cse=cse_func, modules='numpy')
         dfdc_func = numba.njit(lambdify_dfdc, cache=False) if use_numba else lambdify_dfdc
-        required_tmp = np.append(x_tmp, c_tmp[~consider])
-        tmp = dfdc_func(c_tmp[consider], f_tmp, required_tmp)
+        required_tmp = np.append(t_arg, x_tmp, c_tmp[~consider])
+        dfdc_func(t_arg, c_tmp[consider], f_tmp, required_tmp)
         return f_func, dfdx_func, dfdc_func
 
     return f_func, dfdx_func

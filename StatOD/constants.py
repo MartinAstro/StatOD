@@ -33,3 +33,18 @@ class ErosParams:
             [1.995636e7, 0, 0, 0, 0, 0],
         )  # [km, km/s] Assume Eros is 0.1334 AU from Earth
         self.omega = 3.318 * 1e-4  # rad/s
+
+
+class SunParams:
+    def __init__(self):
+        # The OG parameters
+
+        # Total Solar Radiation (radiant flux) = 1357*1.495979E11**2*(4*pi) = 3.814E26 W
+        
+        # Note Wiki says 1362 W/m^2
+
+        self.AU_m = 1.495979E11 # m      / 1E3  # km
+        self.irradiance_1AU = 1357 # W/m^2 at 1 AU
+        self.radiant_flux = 1357 * 4.0*np.pi*self.AU_m**2  # W
+        self.c = 299792458  # m / s
+        self.mu_sun = 132712440017.987  # km^3/s^2

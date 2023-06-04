@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
-import numpy as np
-from GravNN.Analysis.PlanesExperiment import PlanesExperiment
-from GravNN.GravityModels.Polyhedral import get_poly_data
+from GravNN.CelestialBodies.Asteroids import Eros
+from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
-from Scripts.Scenarios.helper_functions import *
-from StatOD.visualizations import VisualizationBase
+from StatOD.utils import *
 
 
 class GravityPlanesVisualizer(PlanesVisualizer):

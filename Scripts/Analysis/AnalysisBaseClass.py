@@ -2,8 +2,6 @@ import numpy as np
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.Polyhedral import get_poly_data
 
-from Scripts.Scenarios.helper_functions import *
-
 
 class AnalysisBaseClass:
     def __init__(self, scenario):

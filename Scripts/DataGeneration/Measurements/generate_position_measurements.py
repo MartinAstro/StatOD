@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 
+import StatOD
 from StatOD.measurements import h_pos
 
 
@@ -33,7 +34,8 @@ def generate_measurements(traj_file):
         "h_args": X_asteroid,
     }
 
-    directory = "Data/Measurements/Position"
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    directory = f"{statOD_dir}Data/Measurements/Position"
     os.makedirs(directory, exist_ok=True)
     meas_file = os.path.basename(traj_file).split(".")[0] + "_meas"
     with open(f"{directory}/{meas_file}_noiseless.data", "wb") as f:
@@ -44,14 +46,7 @@ def generate_measurements(traj_file):
 
 
 if __name__ == "__main__":
-    # generate_measurements('Data/Trajectories/trajectory_asteroid_equitorial.data')
-    # generate_measurements('Data/Trajectories/trajectory_asteroid_inclined_high_alt_30_timestep.data')
-    # generate_measurements('Data/Trajectories/traj_rotating.data')
-    # generate_measurements("Data/Trajectories/traj_rotating_gen_III.data")
-    # generate_measurements("Data/Trajectories/traj_rotating_gen_III_constant.data")
-    # generate_measurements(
-    #     "Data/Trajectories/traj_rotating_gen_III_constant_no_fuse.data"
-    # )
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
     generate_measurements(
-        "Data/Trajectories/traj_rotating_gen_III_constant.data",
+        f"{statOD_dir}Data/Trajectories/traj_eros_poly_053123.data",
     )

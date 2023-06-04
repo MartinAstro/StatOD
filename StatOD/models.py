@@ -4,8 +4,8 @@ import tensorflow as tf
 from GravNN.Networks.Constraints import get_PI_constraint
 from GravNN.Networks.Data import DataSet
 from GravNN.Networks.Model import load_config_and_model
-from GravNN.Support.transformations import cart2sph, invert_projection
 from GravNN.Networks.Saver import ModelSaver
+from GravNN.Support.transformations import cart2sph, invert_projection
 
 from StatOD.utils import dict_values_to_list
 
@@ -18,7 +18,7 @@ class pinnGravityModel:
         dtype="float32",
         learning_rate=None,
         dim_constants=None,
-        eager=False
+        eager=False,
     ):
         self.history = None
         self.custom_data_dir = custom_data_dir
@@ -123,7 +123,7 @@ class pinnGravityModel:
         else:
             for key in self.history.history.keys():
                 self.history.history[key] = np.append(
-                    self.history.history[key], history.history[key]
+                    self.history.history[key], history.history[key],
                 )
 
     def train(self, X_dim, Y_dim, **kwargs):
@@ -154,10 +154,10 @@ class pinnGravityModel:
         history = self.gravity_model.train(dataset, initialize_optimizer=False)
         self.append_history(history)
 
-    def save(self):
+    def save(self, df_file=None):
         # save the network and config data using PINN-GM API
-        saver = ModelSaver(self.gravity_model, self.history, save_dir=self.custom_data_dir + "Data/")
-        network_dir = saver.save(df_file=None)
+        saver = ModelSaver(self.gravity_model, self.history)
+        network_dir = saver.save(df_file=df_file)
         return network_dir
 
 

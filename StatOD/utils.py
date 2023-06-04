@@ -1,6 +1,15 @@
+import copy
+import itertools
+import os
+import pickle
+
 import numpy as np
+from GravNN.GravityModels.HeterogeneousPoly import HeterogeneousPoly
+from GravNN.GravityModels.PointMass import PointMass
 from sympy import init_printing, print_latex
 from tqdm import tqdm
+
+import StatOD
 
 
 class ProgressBar:
@@ -30,6 +39,66 @@ class ProgressBar:
 
     def close(self):
         self.p.close()
+
+
+def get_trajectory_data(data_file):
+    package_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(package_dir + f"Data/Trajectories/{data_file}.data", "rb") as f:
+        data = pickle.load(f)
+    return data
+
+
+def format_args(hparams):
+    keys, values = zip(*hparams.items())
+    permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
+    args = []
+    session_num = 0
+    for hparam_inst in permutations_dicts:
+        print("--- Starting trial: %d" % session_num)
+        print({key: value for key, value in hparam_inst.items()})
+        session_num += 1
+        args.append((hparam_inst,))
+    return args
+
+
+def save_results(df_file, configs):
+    import pandas as pd
+
+    for config in configs:
+        config = dict(sorted(config.items(), key=lambda kv: kv[0]))
+        config["PINN_constraint_fcn"] = [
+            config["PINN_constraint_fcn"][0],
+        ]  # Can't have multiple args in each list
+        df = pd.DataFrame().from_dict(config).set_index("timetag")
+
+        try:
+            df_all = pd.read_pickle(df_file)
+            df_all = df_all.append(df)
+            df_all.to_pickle(df_file)
+        except:
+            df.to_pickle(df_file)
+
+
+def compute_BN(tVec, omega):
+    theta = tVec * omega
+    C00 = np.cos(theta)
+    C01 = -np.sin(theta)
+    C10 = np.sin(theta)
+    C11 = np.cos(theta)
+    Cij = np.zeros_like(C00)
+    C22 = np.zeros_like(C00) + 1
+
+    C = np.block(
+        [
+            [[C00], [C01], [Cij]],
+            [[C10], [C11], [Cij]],
+            [[Cij], [Cij], [C22]],
+        ],
+    )
+    C = np.transpose(C, axes=[2, 0, 1])
+
+    return C
 
 
 def print_expression(expression, prefix=""):
@@ -211,3 +280,43 @@ def dict_values_to_list(d):
         if not isinstance(v, list):
             d[k] = [v]
     return d
+
+
+def compute_semimajor(X, mu):
+    def cross(x, y):
+        return np.cross(x, y)
+
+    r = X[0:3]
+    v = X[3:6]
+    h = cross(r, v)
+    p = np.dot(h, h) / mu
+    e = cross(v, h) / mu - r / np.linalg.norm(r)
+    a = p / (1 - np.linalg.norm(e) ** 2)
+    return a
+
+
+def generate_heterogeneous_model(planet, shape_model):
+    poly_r0_gm = HeterogeneousPoly(planet, shape_model)
+
+    # Force the following mass inhomogeneity
+    mass_0 = copy.deepcopy(planet)
+    mass_0.mu = -2 * mass_0.mu / 20
+    r_offset_0 = [0, 0, 0]
+
+    mass_1 = copy.deepcopy(planet)
+    mass_1.mu = mass_1.mu / 20
+    r_offset_1 = [mass_1.radius / 2, 0, 0]
+
+    mass_2 = copy.deepcopy(planet)
+    mass_2.mu = mass_2.mu / 20
+    r_offset_2 = [-mass_2.radius / 2, 0, 0]
+
+    point_mass_0 = PointMass(mass_0)
+    point_mass_1 = PointMass(mass_1)
+    point_mass_2 = PointMass(mass_2)
+
+    poly_r0_gm.add_point_mass(point_mass_0, r_offset_0)
+    poly_r0_gm.add_point_mass(point_mass_1, r_offset_1)
+    poly_r0_gm.add_point_mass(point_mass_2, r_offset_2)
+
+    return poly_r0_gm

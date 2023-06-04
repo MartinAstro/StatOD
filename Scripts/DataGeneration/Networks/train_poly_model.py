@@ -12,10 +12,7 @@ os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 def main():
     threads = 4
 
-    # df_file = "Data/Dataframes/eros_constant_poly.data"
-    df_file = "Data/Dataframes/eros_constant_poly_no_fuse.data"
-    df_file = "Data/Dataframes/eros_constant_poly_dropout.data"
-    df_file = "Data/Dataframes/eros_constant_poly.data"
+    df_file = "Data/Dataframes/eros_poly_053123.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())

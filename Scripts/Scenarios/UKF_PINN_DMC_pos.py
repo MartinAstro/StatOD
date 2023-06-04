@@ -21,11 +21,10 @@ from StatOD.dynamics import *
 from StatOD.filters import ExtendedKalmanFilter, FilterLogger
 from StatOD.measurements import h_pos, measurements
 from StatOD.models import pinnGravityModel
-from StatOD.visualizations import *
+from StatOD.visualization.visualizations import *
 
 
 def main():
-
     dim_constants = {
         "t_star": 1e4,
         "m_star": 1e0,
@@ -191,7 +190,6 @@ def main():
     total_batches = len(Y) // batch_size
     model.train_idx = 0
     for k in range(total_batches + 1):
-
         # Gather measurements in batch
         start_idx = k * batch_size
         end_idx = None if (k + 1) * batch_size >= len(Y) else (k + 1) * batch_size
