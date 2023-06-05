@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from Scripts.Factories.CallbackFactory import CallbackFactory
+
 # from Scripts.Factories.CallbackFactory import CallbackFactory
 from Scripts.Factories.DynArgsFactory import DynArgsFactory
 from Scripts.VisualizationTools.ExperimentPanelVisualizer import (
@@ -174,7 +176,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
     scenario.filter.rtol = 1e-10
 
     # Initialize Callbacks
-    # callbacks_dict = CallbackFactory().generate_callbacks()
+    callbacks_dict = CallbackFactory().generate_callbacks()
 
     network_train_config = {
         "batch_size": batch_size,
@@ -184,7 +186,8 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
         "rotating_fcn": rotating_fcn,
         "synthetic_data": False,
         "num_samples": 1000,
-        # "callbacks": callbacks_dict,
+        "callbacks": callbacks_dict,
+        "print_interval": [100],
         # "X_COM": np.array([[new_COM, 0.0, 0.0]]),
         # # "X_COM": np.array([[10.0, 0.0, 0.0]]),
         # "COM_samples": 1,
@@ -199,11 +202,12 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
         metrics[name] = callback.data[-1]
     metrics = dict_values_to_list(metrics)  # ensures compatability
     model.gravity_model.config.update(metrics)
+    model.config.update(model.gravity_model.config)
 
-    generate_plots(scenario, traj_data, model.gravity_model)
+    # generate_plots(scenario, traj_data, model.gravity_model)
 
     # save the model + config
-    model.save(output_file)
+    model.save()
 
     if show:
         plt.show()
@@ -218,7 +222,6 @@ if __name__ == "__main__":
 
     pinn_file = "Data/Dataframes/eros_poly_053123.data"
     traj_file = "traj_eros_poly_053123"
-    output_file = "output_filter_060123.data"
 
     hparams = {
         "q_value": [5e-8],
@@ -231,8 +234,8 @@ if __name__ == "__main__":
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [1.0],
+        "data_fraction": [0.010],
     }
 
-    DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=True)
+    DMC_high_fidelity(pinn_file, traj_file, hparams, show=True)
     print("Total Time: " + str(time.time() - start_time))

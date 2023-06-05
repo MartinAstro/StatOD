@@ -14,7 +14,7 @@ class CallbackFactory:
 
         planes_callback = PlanesCallback()
         extrapolation_callback = ExtrapolationCallback()
-        traj_callback = TrajectoryCallback(gravity_model_true)
+        traj_callback = TrajectoryCallback(gravity_model_true, pbar=False)
 
         X_1 = np.array(
             [
