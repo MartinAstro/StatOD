@@ -58,7 +58,7 @@ def generate_plots(scenario, traj_data, model):
     vis.plot(X_B=X_B)
 
 
-def DMC_high_fidelity(pinn_file, traj_file, hparams, output_file, show=False):
+def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     q = hparams.get("q_value", [1e-9])[0]
     r = hparams.get("r_value", [1e-12])[0]
     epochs = hparams.get("epochs", [100])[0]
