@@ -95,7 +95,7 @@ class TrajectoryCallback(CallbackBase):
         for i in range(len(self.X0_list)):
             X0 = self.X0_list[i]
             T = self.T_list[i]
-            exp = TrajectoryExperiment(self.truth_model, X0, T)
+            exp = TrajectoryExperiment(self.truth_model, X0, T, pbar=False)
             exp.add_test_model(model, "PINN", "red")
             exp.run()
 

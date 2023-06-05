@@ -29,7 +29,7 @@ def main():
         "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [10000],
+        "epochs": [5000],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_poly_data],

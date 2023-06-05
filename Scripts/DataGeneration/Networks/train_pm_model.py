@@ -17,7 +17,7 @@ def main():
 
     df_file = "Data/Dataframes/eros_filter_poly.data"
     df_file = "Data/Dataframes/eros_filter_poly_dropout.data"
-    df_file = "Data/Dataframes/eros_filter_poly_no_epochs.data"
+    df_file = "Data/Dataframes/eros_pm_053123.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -34,11 +34,12 @@ def main():
         "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [0],
+        "epochs": [10000],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
-        "dropout": [0.1],
+        "fuse_models" : [False],
+        # "dropout": [0.1],
         # "override": [True],
     }
     args = configure_run_args(config, hparams)
@@ -63,9 +64,10 @@ def run(config):
     pprint(config)
 
     # Get data, network, optimizer, and generate model
-    DataSet(config)
+    data = DataSet(config)
     model = PINNGravityModel(config)
-    model.predict(np.array([[0.0, 0.0, 0.0]]))
+    model.train(data)
+    # model.predict(np.array([[0.0, 0.0, 0.0]]))
     saver = ModelSaver(model, history=None)
     saver.save(df_file=None)
 

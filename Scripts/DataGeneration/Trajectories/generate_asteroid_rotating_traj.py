@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     X0_km_N = X0_m_N / 1e3
 
-    pinn_file = "eros_poly_053123"
+    pinn_file = "eros_pm_053123"
     filename = f"traj_{pinn_file}"
     generate_rotating_asteroid_trajectory(
         X0_km_N,
