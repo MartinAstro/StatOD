@@ -10,8 +10,6 @@ from StatOD.utils import dict_values_to_list
 
 
 def run_catch(args):
-    os.path.dirname(StatOD.__file__)
-
     args_list = dict_values_to_list(args)
 
     if args_list["pinn_file"][0] == "pm":
@@ -49,8 +47,8 @@ def main():
     get_available_cores()
     args = format_args(hparams)
 
-    idx = sys.argv[1]
-    args_i = args[idx]
+    idx = int(sys.argv[1])
+    args_i = args[idx][0]
     run_catch(args_i)
 
 

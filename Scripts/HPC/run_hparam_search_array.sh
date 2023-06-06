@@ -3,11 +3,11 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --array=0-648
-#SBATCH --mem-per-cpu=2500M
+#SBATCH --mem-per-cpu=3G
+#SBATCH --array=649-1296
 #SBATCH --time=00:15:00
 #SBATCH --partition=amilan
-#SBATCH --output=SlurmFiles/hparam-search-%j.out
+#SBATCH --output=SlurmFiles/hparam-search-%j-%a.out
 
 module purge
 
@@ -28,6 +28,8 @@ echo "== Run data generation =="
 
 # Note the --exclusive flag ensures that only the one script can be run on the node at a time. 
 echo "Running hparams"
+
+ #$SLURM_ARRAY_TASK_ID
 srun python /projects/joma5012/StatOD/Scripts/HparamsSearch/hparamsSearchArray.py $SLURM_ARRAY_TASK_ID
 
 wait # Necessary to wait for all processes to finish
