@@ -21,3 +21,11 @@ Data/FilterLogs
 SlurmFiles/*
 *.data
 *.ipynb
+Scripts/Scratch/*
+
+# Past Work
+Data/Project2/*
+Data/project_1_observations.txt
+Data/Real/reference_traj_and_STM_w_J2.txt
+StatOD/hw_utils.py
+Data/Products/*
