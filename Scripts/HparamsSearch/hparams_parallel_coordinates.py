@@ -1,6 +1,5 @@
 import os
 
-import GravNN
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -10,16 +9,16 @@ from plotly.io import write_html, write_image
 
 import StatOD
 
+
 class ParallelCoordinatePlot:
     def __init__(self, df, metric="Percent mean", metric_max=None, metric_min=None):
         self.df = df
         self.metric = metric
         self.metric_data = self.df[self.metric]
         if metric_max is None:
-            self.metric_max = self.metric_data.mean()+ self.metric_data.std() * 2
+            self.metric_max = self.metric_data.mean() + self.metric_data.std() * 2
         if metric_min is None:
             self.metric_min = self.metric_data.min()
-
 
     def run(self):
         metric_ticks = []
@@ -28,7 +27,7 @@ class ParallelCoordinatePlot:
             metric_ticks.append(value_rounded)
 
         labels_dict = {
-             self.metric : {
+            self.metric: {
                 "range": [self.metric_min, self.metric_max],
                 "tickvals": metric_ticks,
             },
@@ -36,7 +35,10 @@ class ParallelCoordinatePlot:
 
         dimensions = []
         for column in self.df.columns:
-            values, prefix, tick_values, unique_strings = self.scale_data(self.df, column)
+            values, prefix, tick_values, unique_strings = self.scale_data(
+                self.df,
+                column,
+            )
 
             # update the label to be prettier
             column_dict = labels_dict.get(column, {})
@@ -69,7 +71,6 @@ class ParallelCoordinatePlot:
             new_list.append(["".join([f"{s}_" for s in value])[:-1]])
         return np.array(new_list).squeeze()
 
-
     def make_column_numeric(self, df, column):
         # try converting object column to float
         try:
@@ -92,7 +93,6 @@ class ParallelCoordinatePlot:
             df = df.astype({column: float})
 
         return df, unique_strings
-
 
     def scale_data(self, df, column):
         df, unique_strings = self.make_column_numeric(df, column)
@@ -148,29 +148,82 @@ class ParallelCoordinatePlot:
         return values, prefix, tick_values, unique_strings
 
 
+def make_trajectory_metric(df):
+    # Take the trajectory column, and only select
+    # the keys with dX_sum. Then average across those
+    # scalar values to compute the final metric for the trajectory
+    df = df.copy()
+    for i in range(len(df)):
+        row = df.iloc[i]
+        dX_sum = 0
+        traj_count = 0
+        for key, value in row["Trajectory"].items():
+            if "dX_sum" in key:
+                dX_sum += value
+                traj_count += 1
+        df.at[row.name, "Trajectory"] = {"avg_dX": dX_sum / traj_count}
+    return df
+
+
+def metrics_to_columns(df):
+    # Take the dictionaries in Planes, Extrapolation, and Trajectory columns
+    # and make them into their own columns
+    df = df.copy()
+    for i in range(len(df)):
+        row = df.iloc[i]
+        for column in ["Planes", "Extrapolation", "Trajectory"]:
+            for key, value in row[column].items():
+                df.loc[row.name, f"{column}_{key}"] = value
+    df.drop(columns=["Planes", "Extrapolation", "Trajectory"], inplace=True)
+    return df
+
+
+def hparams_to_columns(df):
+    # take hparams dictionary and append hparam_ to each key
+    # and save as a column in the dataframe
+    df = df.copy()
+    for i in range(len(df)):
+        row = df.iloc[i]
+        for key, value in row["hparams"].items():
+            df.loc[row.name, f"hparams_{key}"] = value[0]
+    df.drop(columns=["hparams"], inplace=True)
+    return df
+
+
 def main():
     directory = os.path.dirname(StatOD.__file__)
 
     df = pd.read_pickle(
-        directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
+        # directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
+        directory + "/../Data/Dataframes/hparam_search_060623_v2.data",
+        # + "/../Data/Dataframes/output_filter_060523.data",
     )
 
+    df = df.iloc[-4:]
+    df = make_trajectory_metric(df)
+    df = metrics_to_columns(df)
+    df = hparams_to_columns(df)
+
     # filter out only the top 10
-    query = "hparams_percent_error_avg < 10"
+    query = "Planes_percent_error_avg < 10"
     df = df.query(query)
 
-
     name_dict = {
-        "hparams_q_value": "Process Noise",
-        "hparams_epochs": "Epochs",
-        "hparams_learning_rate": "Learning Rate",
-        "hparams_batch_size": "Batch Size",
-        "hparams_train_fcn": "Training Fcn",
+        # "hparams_q_value": "Process Noise",
+        # "hparams_epochs": "Epochs",
+        # "hparams_learning_rate": "Learning Rate",
+        # "hparams_batch_size": "Batch Size",
+        # "hparams_train_fcn": "Training Fcn",
         "hparams_data_fraction": "Traj Fraction",
-        "hparams_percent_error_avg": "Percent mean",
-        "hparams_percent_error_std": "Std Error",
-        "hparams_percent_error_max": "Max Error",
-        "hparams_high_error_pixel": "Frac High Pixel",
+        "hparams_pinn_file": "Original Gravity Model",
+        "hparams_measurement_noise": "Measurement Noise",
+        "Planes_percent_error_avg": "Percent mean",
+        "Planes_percent_error_std": "Std Error",
+        "Planes_percent_error_max": "Max Error",
+        "Planes_high_error_pixel": "Frac High Pixel",
+        "Extrapolation_inter_avg": "Extrapolation Interpolation Average Error",
+        # "Extrapolation_extra_avg": "Extrapolation Extrapolation Average Error",
+        "Trajectory_avg_dX": "Trajectory Average Error",
     }
     df = df.rename(columns=name_dict)
     hparams_df = df[list(name_dict.values())]

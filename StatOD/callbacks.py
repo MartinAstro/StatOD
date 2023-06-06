@@ -74,7 +74,7 @@ class ExtrapolationCallback(CallbackBase):
         metrics["inter_avg"] = np.nanmean(
             vis.experiment.losses["percent"][vis.idx_test][: vis.max_idx],
         )
-        metrics["exter_avg"] = np.nanmean(
+        metrics["extra_avg"] = np.nanmean(
             vis.experiment.losses["percent"][vis.idx_test],
         )
 
@@ -99,7 +99,7 @@ class TrajectoryCallback(CallbackBase):
             exp.add_test_model(model, "PINN", "red")
             exp.run()
 
-            metrics["dX_sum_" + str(i)] = np.linalg.norm(exp.test_models[0]["pos_diff"])
+            metrics["dX_sum_" + str(i)] = np.sum(exp.test_models[0]["pos_diff"])
             metrics["t_" + str(i)] = exp.test_models[0]["elapsed_time"]
 
         return metrics

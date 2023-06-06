@@ -20,6 +20,7 @@ from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
 from StatOD.visualization.FilterVisualizer import FilterVisualizer
 from StatOD.visualization.visualizations import *
+from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
 
 plt.switch_backend("WebAgg")
 
@@ -203,6 +204,13 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     metrics = dict_values_to_list(metrics)  # ensures compatability
     model.gravity_model.config.update(metrics)
     model.config.update(model.gravity_model.config)
+    model.config.update(
+        {
+            "hparams": [hparams],
+            "time_elapsed": [scenario.time_elapsed],
+            "gravity_data_fcn": [get_hetero_poly_symmetric_data],
+        }
+    )
 
     # generate_plots(scenario, traj_data, model.gravity_model)
 
