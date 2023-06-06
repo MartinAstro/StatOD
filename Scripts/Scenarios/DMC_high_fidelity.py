@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
 
 from Scripts.Factories.CallbackFactory import CallbackFactory
 
@@ -20,7 +21,6 @@ from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
 from StatOD.visualization.FilterVisualizer import FilterVisualizer
 from StatOD.visualization.visualizations import *
-from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
 
 plt.switch_backend("WebAgg")
 
@@ -135,6 +135,11 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
         eager=eager,
     )
     model.set_PINN_training_fcn(pinn_constraint_fcn)
+    model.gravity_model.config.update(
+        {
+            "gravity_data_fcn": [get_hetero_poly_symmetric_data],
+        }
+    )
 
     ##################################
     # Dynamics and noise information #
@@ -209,7 +214,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
             "hparams": [hparams],
             "time_elapsed": [scenario.time_elapsed],
             "gravity_data_fcn": [get_hetero_poly_symmetric_data],
-        }
+        },
     )
 
     # generate_plots(scenario, traj_data, model.gravity_model)
