@@ -44,7 +44,7 @@ def main():
 
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../Plots/"
     vis = PolyVisualization(save_directory=statOD_dir)
-    vis.fig_size = (vis.w_half, vis.w_half)
+    vis.fig_size = (vis.w_full / 4, vis.w_full / 4)
 
     #######################################
     # Surface Acceleration of heterogenous
@@ -58,9 +58,10 @@ def main():
         cmap_reverse=False,
         percent=False,
         alpha=1,
+        cbar_orientation="vertical",
     )
     format()
-    vis.save(plt.gcf(), "eros_heterogenous_surface.pdf")
+    vis.save(plt.gcf(), "eros_heterogeneous_surface.pdf")
 
     #######################################
     # Error of homogenous assumption
@@ -80,6 +81,7 @@ def main():
         max_percent=0.1,
         cmap_reverse=False,
         alpha=1,
+        cbar_orientation="vertical",
     )
     format()
     vis.save(plt.gcf(), "eros_homo_surface_error.pdf")
@@ -102,6 +104,7 @@ def main():
         max_percent=0.1,
         cmap_reverse=False,
         alpha=1,
+        cbar_orientation="vertical",
     )
     format()
     vis.save(plt.gcf(), "eros_pm_surface_error.pdf")

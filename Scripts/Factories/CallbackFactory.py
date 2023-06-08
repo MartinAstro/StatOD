@@ -2,7 +2,6 @@ import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
 
 from StatOD.callbacks import *
-from StatOD.utils import generate_heterogeneous_model
 
 
 class CallbackFactory:

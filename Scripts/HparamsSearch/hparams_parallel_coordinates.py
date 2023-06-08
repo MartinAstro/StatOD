@@ -15,6 +15,14 @@ class ParallelCoordinatePlot:
         self.df = df
         self.metric = metric
         self.metric_data = self.df[self.metric]
+        self.linear_columns = [
+            "Interpolation",
+            "Extrapolation",
+            "Trajectory",
+            "Percent mean",
+        ]
+        self.metric_max = metric_max
+        self.metric_min = metric_min
         if metric_max is None:
             self.metric_max = self.metric_data.mean() + self.metric_data.std() * 2
         if metric_min is None:
@@ -116,7 +124,8 @@ class ParallelCoordinatePlot:
 
         # Convert to log space if min-max delta too large
         MAX_LOG_DIFF = 1.0
-        if log_diff >= MAX_LOG_DIFF and "mean" not in column:
+        linear_column = column in self.linear_columns
+        if log_diff >= MAX_LOG_DIFF and not linear_column:
             values = np.log10(values)
             tick_values = np.log10(tick_values)
             prefix = "log10 "
@@ -130,7 +139,7 @@ class ParallelCoordinatePlot:
             perturbations.append(pert)
 
         # unless it's the results
-        if "mean" in column:
+        if self.metric == column:
             perturbations = np.zeros_like(values)
 
             # tick values can't be each unique entry
@@ -190,22 +199,30 @@ def hparams_to_columns(df):
     return df
 
 
-def main():
+def main(grav_type):
     directory = os.path.dirname(StatOD.__file__)
 
     df = pd.read_pickle(
         # directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
-        directory + "/../Data/Dataframes/hparam_search_060623_v2.data",
+        directory + "/../Data/Dataframes/hparam_search_060623_v3.data",
+        # directory + "/../Data/Dataframes/hparam_060523.data",
         # + "/../Data/Dataframes/output_filter_060523.data",
     )
 
-    df = df.iloc[-4:]
+    df.dropna(subset="hparams", inplace=True)
     df = make_trajectory_metric(df)
     df = metrics_to_columns(df)
     df = hparams_to_columns(df)
 
     # filter out only the top 10
-    query = "Planes_percent_error_avg < 10"
+    if grav_type == "pm":
+        query = "Planes_percent_error_avg < 10 and hparams_pinn_file == 'pm'"
+        file_name = "hparams_point_mass"
+
+    if grav_type == "poly":
+        query = "Planes_percent_error_avg < 10 and hparams_pinn_file == 'poly'"
+        file_name = "hparams_poly"
+
     df = df.query(query)
 
     name_dict = {
@@ -214,21 +231,21 @@ def main():
         # "hparams_learning_rate": "Learning Rate",
         # "hparams_batch_size": "Batch Size",
         # "hparams_train_fcn": "Training Fcn",
-        "hparams_data_fraction": "Traj Fraction",
-        "hparams_pinn_file": "Original Gravity Model",
+        # "hparams_data_fraction": "Traj Fraction",
+        "hparams_pinn_file": "Gravity Model",
         "hparams_measurement_noise": "Measurement Noise",
         "Planes_percent_error_avg": "Percent mean",
-        "Planes_percent_error_std": "Std Error",
-        "Planes_percent_error_max": "Max Error",
-        "Planes_high_error_pixel": "Frac High Pixel",
-        "Extrapolation_inter_avg": "Extrapolation Interpolation Average Error",
-        # "Extrapolation_extra_avg": "Extrapolation Extrapolation Average Error",
-        "Trajectory_avg_dX": "Trajectory Average Error",
+        # "Planes_percent_error_std": "Std Error",
+        # "Planes_percent_error_max": "Max Error",
+        # "Planes_high_error_pixel": "Frac High Pixel",
+        "Extrapolation_inter_avg": "Interpolation",
+        "Extrapolation_extra_avg": "Extrapolation",
+        "Trajectory_avg_dX": "Trajectory",
     }
     df = df.rename(columns=name_dict)
     hparams_df = df[list(name_dict.values())]
 
-    fig = ParallelCoordinatePlot(hparams_df).run()
+    fig = ParallelCoordinatePlot(hparams_df, metric_max=10).run()
 
     DPI_factor = 3
     DPI = 100  # standard DPI for matplotlib
@@ -245,18 +262,19 @@ def main():
     directory = os.path.dirname(StatOD.__file__) + "/../Plots/"
     write_image(
         fig,
-        directory + "hparams.pdf",
+        directory + f"{file_name}.pdf",
         format="pdf",
         width=6.5 * DPI * DPI_factor,
         height=3 * DPI * DPI_factor,
     )
     write_html(
         fig,
-        directory + "hparams.html",
+        directory + f"{file_name}.html",
     )
 
     fig.show()
 
 
 if __name__ == "__main__":
-    main()
+    main("pm")
+    main("poly")

@@ -138,7 +138,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     model.gravity_model.config.update(
         {
             "gravity_data_fcn": [get_hetero_poly_symmetric_data],
-        }
+        },
     )
 
     ##################################
@@ -217,7 +217,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
         },
     )
 
-    # generate_plots(scenario, traj_data, model.gravity_model)
+    generate_plots(scenario, traj_data, model.gravity_model)
 
     # save the model + config
     model.save()
@@ -236,8 +236,11 @@ if __name__ == "__main__":
     pinn_file = "Data/Dataframes/eros_poly_053123.data"
     traj_file = "traj_eros_poly_053123"
 
+    pinn_file = "Data/Dataframes/eros_pm_053123.data"
+    traj_file = "traj_eros_pm_053123"
+
     hparams = {
-        "q_value": [5e-8],
+        # "q_value": [5e-8],
         "r_value": [1e-12],
         # "r_value": [1e-3],
         "epochs": [0],
@@ -247,7 +250,7 @@ if __name__ == "__main__":
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [0.010],
+        "data_fraction": [0.3],
     }
 
     DMC_high_fidelity(pinn_file, traj_file, hparams, show=True)

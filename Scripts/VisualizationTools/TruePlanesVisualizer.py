@@ -34,7 +34,7 @@ class TruePlanesVisualizer(PlanesVisualizer):
         else:
             self.max = max
 
-        plt.figure()
+        self.newFig()
         plt.subplot(1, 3, 1)
         self.plot_plane(x, y, plane="xy", cbar=False, cmap=cmap, **kwargs)
         plt.xticks([])

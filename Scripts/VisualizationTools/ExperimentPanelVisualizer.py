@@ -142,7 +142,7 @@ class ExperimentPanelVisualizer:
         x = vis.experiment.x_test
         y = vis.experiment.percent_error_acc
 
-        X_B /= vis.radius
+        X_B *= (1E3 / vis.radius)
         plt.sca(ax1)
         vis.plot_plane(x, y, plane="xy", annotate_stats=True)
         ax1.set_xticks([])
