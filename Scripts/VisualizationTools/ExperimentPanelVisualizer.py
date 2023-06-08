@@ -9,7 +9,7 @@ from GravNN.Analysis.ExtrapolationExperiment import ExtrapolationExperiment
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.Analysis.TrajectoryExperiment import TrajectoryExperiment
 from GravNN.CelestialBodies.Asteroids import Eros
-from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
+from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data, generate_heterogeneous_sym_model
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
@@ -17,7 +17,6 @@ from GravNN.Visualization.TrajectoryVisualizer import TrajectoryVisualizer
 
 from StatOD.utils import (
     compute_semimajor,
-    generate_heterogeneous_model,
 )
 
 
@@ -110,7 +109,7 @@ class ExperimentPanelVisualizer:
         #########################
         # Trajectories Experiment
         #########################
-        truth_model = generate_heterogeneous_model(Eros(), Eros().obj_8k)
+        truth_model = generate_heterogeneous_sym_model(Eros(), Eros().obj_8k)
         X0_list, T_list = self.get_trajectories()
         traj_exps = []
         for i in range(len(X0_list)):
