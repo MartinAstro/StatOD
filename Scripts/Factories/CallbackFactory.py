@@ -1,5 +1,6 @@
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
+from GravNN.GravityModels.HeterogeneousPoly import generate_heterogeneous_sym_model
 
 from StatOD.callbacks import *
 
@@ -9,7 +10,7 @@ class CallbackFactory:
         pass
 
     def generate_callbacks(self):
-        gravity_model_true = generate_heterogeneous_model(Eros(), Eros().obj_8k)
+        gravity_model_true = generate_heterogeneous_sym_model(Eros(), Eros().obj_8k)
 
         planes_callback = PlanesCallback()
         extrapolation_callback = ExtrapolationCallback()
