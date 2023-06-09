@@ -9,19 +9,25 @@ from GravNN.Analysis.ExtrapolationExperiment import ExtrapolationExperiment
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.Analysis.TrajectoryExperiment import TrajectoryExperiment
 from GravNN.CelestialBodies.Asteroids import Eros
-from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data, generate_heterogeneous_sym_model
+from GravNN.GravityModels.HeterogeneousPoly import (
+    generate_heterogeneous_sym_model,
+    get_hetero_poly_symmetric_data,
+)
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 from GravNN.Visualization.TrajectoryVisualizer import TrajectoryVisualizer
+from GravNN.Visualization.VisualizationBase import VisualizationBase
 
+import StatOD
 from StatOD.utils import (
     compute_semimajor,
 )
 
 
-class ExperimentPanelVisualizer:
+class ExperimentPanelVisualizer(VisualizationBase):
     def __init__(self, model, **kwargs):
+        super().__init__(**kwargs)
         self.model = model
         self.run_experiments()
 
@@ -125,7 +131,7 @@ class ExperimentPanelVisualizer:
         vis = PlanesVisualizer(self.planes_exp, halt_formatting=True)
         vis.max = 10
 
-        vis.fig_size = (vis.w_full, vis.w_full * 2.0 / 5.0)
+        vis.fig_size = (vis.w_full, vis.w_full / 5.0 * 2.0)
         fig = plt.figure(figsize=vis.fig_size)
         gs = gridspec.GridSpec(2, 5, figure=fig)
 
@@ -136,14 +142,16 @@ class ExperimentPanelVisualizer:
         ax4 = fig.add_subplot(gs[1, 0:3])
         ax5 = fig.add_subplot(gs[:, 3:5], projection="3d")
 
-        plt.rc("text", usetex=False)
+        plt.subplots_adjust(wspace=0.00, hspace=0.00)
+
+        plt.rc("text", usetex=True)
 
         x = vis.experiment.x_test
         y = vis.experiment.percent_error_acc
-
-        X_B *= (1E3 / vis.radius)
+        if X_B is not None:
+            X_B *= 1e3 / vis.radius
         plt.sca(ax1)
-        vis.plot_plane(x, y, plane="xy", annotate_stats=True)
+        vis.plot_plane(x, y, plane="xy", annotate_stats=False, cbar=False)
         ax1.set_xticks([])
         ax1.set_yticks([])
         ax1.set_xlabel("")
@@ -152,7 +160,7 @@ class ExperimentPanelVisualizer:
             ax1.plot(X_B[:, 0], X_B[:, 1], color="black", linewidth=1)
 
         plt.sca(ax2)
-        vis.plot_plane(x, y, plane="xz", annotate_stats=True)
+        vis.plot_plane(x, y, plane="xz", annotate_stats=False, cbar=False)
         ax2.set_xticks([])
         ax2.set_yticks([])
         ax2.set_xlabel("")
@@ -161,7 +169,7 @@ class ExperimentPanelVisualizer:
             ax2.plot(X_B[:, 0], X_B[:, 2], color="black", linewidth=1)
 
         plt.sca(ax3)
-        vis.plot_plane(x, y, plane="yz", annotate_stats=True)
+        vis.plot_plane(x, y, plane="yz", annotate_stats=False, cbar=False)
         ax3.set_xticks([])
         ax3.set_yticks([])
         ax3.set_xlabel("")
@@ -170,21 +178,28 @@ class ExperimentPanelVisualizer:
             ax3.plot(X_B[:, 1], X_B[:, 2], color="black", linewidth=1)
 
         plt.sca(ax4)
-        extrap_vis = ExtrapolationVisualizer(self.extrap_exp, halt_formatting=True)
+        extrap_vis = ExtrapolationVisualizer(
+            self.extrap_exp,
+            halt_formatting=False,
+            annotate=False,
+        )
         extrap_vis.plot_interpolation_percent_error(new_fig=False)
 
         plt.sca(ax5)
         for i, traj_exp in enumerate(self.traj_exps):
-            traj_vis = TrajectoryVisualizer(traj_exp, halt_formatting=True)
+            traj_vis = TrajectoryVisualizer(traj_exp, halt_formatting=False)
             # new_fig = True if i == 0 else False
             traj_vis.plot_3d_trajectory(new_fig=False)
-            plt.legend([])
+
+        # remove legend
+        ax5.get_legend().remove()
 
 
 def main():
     # load the output dataframe
 
     gravNN_dir = os.path.abspath(os.path.dirname(GravNN.__file__)) + "/../"
+    StatOD_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"
     df_file = gravNN_dir + "Data/Dataframes/output_filter_060123.data"
 
     # load the dataframe
@@ -195,7 +210,10 @@ def main():
 
     # run the visualization suite on the model
     vis = ExperimentPanelVisualizer(model)
+    vis.fig_size = (vis.w_full, None)
     vis.plot()
+    vis.save(plt.gcf(), f"{StatOD_dir}/Plots/panel_plot.pdf")
+    plt.savefig(f"{StatOD_dir}/Plots/panel_plot.pdf", format="pdf", bbox_inches="tight")
     plt.show()
 
 
