@@ -218,10 +218,12 @@ def main(grav_type):
     if grav_type == "pm":
         query = "Planes_percent_error_avg < 10 and hparams_pinn_file == 'pm'"
         file_name = "hparams_point_mass"
+        metric_max = 10
 
     if grav_type == "poly":
         query = "Planes_percent_error_avg < 10 and hparams_pinn_file == 'poly'"
         file_name = "hparams_poly"
+        metric_max = 10
 
     df = df.query(query)
 
@@ -245,7 +247,7 @@ def main(grav_type):
     df = df.rename(columns=name_dict)
     hparams_df = df[list(name_dict.values())]
 
-    fig = ParallelCoordinatePlot(hparams_df, metric_max=10).run()
+    fig = ParallelCoordinatePlot(hparams_df, metric_max=metric_max).run()
 
     DPI_factor = 3
     DPI = 100  # standard DPI for matplotlib
