@@ -88,6 +88,7 @@ class TrajectoryCallback(CallbackBase):
         self.X0_list = []
         self.T_list = []
         self.mu = truth_model.planet.mu
+        self.pbar = kwargs.get("pbar", False)
 
     def run(self, model):
         metrics = {}
@@ -95,12 +96,12 @@ class TrajectoryCallback(CallbackBase):
         for i in range(len(self.X0_list)):
             X0 = self.X0_list[i]
             T = self.T_list[i]
-            exp = TrajectoryExperiment(self.truth_model, X0, T, pbar=False)
+            exp = TrajectoryExperiment(self.truth_model, X0, T, pbar=self.pbar)
             exp.add_test_model(model, "PINN", "red")
             exp.run()
 
             metrics["dX_sum_" + str(i)] = np.sum(exp.test_models[0]["pos_diff"])
-            metrics["t_" + str(i)] = exp.test_models[0]["elapsed_time"]
+            metrics["t_" + str(i)] = exp.test_models[0]["elapsed_time"][-1]
 
         return metrics
 

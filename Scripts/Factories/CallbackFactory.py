@@ -9,12 +9,12 @@ class CallbackFactory:
     def __init__(self):
         pass
 
-    def generate_callbacks(self):
+    def generate_callbacks(self, pbar=False):
         gravity_model_true = generate_heterogeneous_sym_model(Eros(), Eros().obj_8k)
 
         planes_callback = PlanesCallback()
         extrapolation_callback = ExtrapolationCallback()
-        traj_callback = TrajectoryCallback(gravity_model_true, pbar=False)
+        traj_callback = TrajectoryCallback(gravity_model_true, pbar=pbar)
 
         X_1 = np.array(
             [
