@@ -1,7 +1,6 @@
-import pickle
-
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
+from GravNN.GravityModels.HeterogeneousPoly import generate_heterogeneous_sym_model
 from scipy.integrate import solve_ivp
 
 import StatOD
@@ -13,7 +12,6 @@ from StatOD.utils import (
     ProgressBar,
     compute_BN,
     compute_semimajor,
-    generate_heterogeneous_model,
 )
 
 
@@ -29,7 +27,12 @@ class ModelWrapper:
         ms2 = l_star / t_star**2
         X_dim = X * self.dim_constants["l_star"]
 
-        return self.model.compute_acceleration(X_dim.reshape((-1, 3)) * 1e3) / 1e3 / ms2
+        X_dim_m = X_dim.reshape((-1, 3)) * 1e3
+        A_dim_ms2 = self.model.compute_acceleration(X_dim_m)
+        A_dim_km_s2 = A_dim_ms2 / 1e3
+        A_non_dim = A_dim_km_s2 / ms2
+
+        return A_non_dim
 
     def generate_dadx(self, X):
         t_star = self.dim_constants["t_star"]
@@ -79,9 +82,9 @@ def generate_rotating_asteroid_trajectory(
     T = 2 * np.pi / n
 
     # generate true gravity model
-    dim_constants = {"l_star": 1.0, "t_star": 1.0}
+    dim_constants = {"t_star": 1.0, "l_star": 1.0}
     eros = Eros()
-    gravity_model_true = generate_heterogeneous_model(eros, eros.obj_8k)
+    gravity_model_true = generate_heterogeneous_sym_model(eros, eros.obj_8k)
     gravity_model_true = ModelWrapper(gravity_model_true, dim_constants)
     # gravity_model_true = Polyhedral(eros, eros.obj_8k)
 
@@ -93,13 +96,14 @@ def generate_rotating_asteroid_trajectory(
     f, dfdx, q, q_args = get_DMC_HF_zero_order()
     f_integrate = dynamics_ivp_f_only
 
-    Z0 = np.hstack((X0_km_N, np.zeros((3,))))
+    w0 = np.array([0.0, 0.0, 0.0])
+    Z0_km = np.hstack((X0_km_N, w0))
 
     t_mesh = np.arange(0, t_f, step=timestep)
     sol = solve_ivp(
         f_integrate,
         [0, t_f],
-        Z0,
+        Z0_km,
         atol=1e-12,
         rtol=1e-12,
         t_eval=t_mesh,
@@ -107,10 +111,17 @@ def generate_rotating_asteroid_trajectory(
     )
 
     # compute body frame accelerations along trajectory
-    R_N = sol.y[0:3, :].T * 1e3
+    R_N_km = sol.y[0:3, :].T
+    R_N_m = R_N_km * 1e3
     BN = compute_BN(sol.t, ep.omega)
-    R_B = np.einsum("ijk,ik->ij", BN, R_N)
-    acc_grav_B_m = gravity_model_true.compute_acceleration(R_B).reshape((-1, 3))
+    R_B_km = np.einsum("ijk,ik->ij", BN, R_N_km)
+    R_B_m = np.einsum("ijk,ik->ij", BN, R_N_m)
+
+    # You have to pass in km to the true model
+    acc_grav_only_B_km = gravity_model_true.compute_acceleration(R_B_km).reshape(
+        (-1, 3)
+    )
+    acc_grav_only_B_m = acc_grav_only_B_km * 1e3
 
     # compute body frame accelerations along trajectory using other models
     statOD_dir = os.path.dirname(StatOD.__file__)
@@ -118,11 +129,11 @@ def generate_rotating_asteroid_trajectory(
         f"{statOD_dir}/../Data/Dataframes/{model_file}.data",
     )
 
-    acc_pinn_B_m = gravity_model_pinn.compute_acceleration(R_B).reshape((-1, 3))
+    acc_pinn_B_m = gravity_model_pinn.compute_acceleration(R_B_m).reshape((-1, 3))
 
     # compute inertial frame accelerations along trajectory
     NB = np.transpose(BN, axes=[0, 2, 1])
-    acc_grav_N_m = np.einsum("ijk,ik->ij", NB, acc_grav_B_m)
+    acc_grav_only_N_m = np.einsum("ijk,ik->ij", NB, acc_grav_only_B_m)
     acc_pinn_N_m = np.einsum("ijk,ik->ij", NB, acc_pinn_B_m)
 
     Z_i = sol.y.T
@@ -132,27 +143,30 @@ def generate_rotating_asteroid_trajectory(
             for i in range(len(t_mesh))
         ],
     )
-    acc_true_km = Zd[:, 3:6]
+    acc_true_N_km = Zd[:, 3:6]
 
     # convert to kilometers
-    acc_grav_km = acc_grav_N_m / 1e3
-    acc_pinn_km = acc_pinn_N_m / 1e3
+    R_B_km = R_B_m / 1e3
+
+    acc_grav_only_N_km = acc_grav_only_N_m / 1e3
+    acc_pinn_N_km = acc_pinn_N_m / 1e3
+    acc_grav_only_B_km = acc_grav_only_B_m / 1e3
 
     N = len(X0_km_N)
-    data = {
+    {
         "t": sol.t,
         "X": sol.y[:N, :].T,  # state in km and km/s
-        "X_B": R_B,  # position in km
-        "A_B": acc_grav_B_m,  # acceleration in km/s^2
+        "X_B": R_B_km,  # position in km
+        "A_B": acc_grav_only_B_km,  # acceleration in km/s^2
         # # true unmodeled acceleration in km/s^2
-        "W": acc_true_km - acc_grav_km,
+        "W": acc_true_N_km - acc_grav_only_N_km,
         # # estimated unmodeled acceleration in km/s^2
-        "W_pinn": acc_true_km - acc_pinn_km,
+        "W_pinn": acc_true_N_km - acc_pinn_N_km,
     }
 
     statOD_dir = os.path.dirname(StatOD.__file__) + "/.."
-    with open(f"{statOD_dir}/Data/Trajectories/{filename}.data", "wb") as f:
-        pickle.dump(data, f)
+    # with open(f"{statOD_dir}/Data/Trajectories/{filename}.data", "wb") as f:
+    #     pickle.dump(data, f)
 
 
 if __name__ == "__main__":
