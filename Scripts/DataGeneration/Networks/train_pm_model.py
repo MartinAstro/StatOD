@@ -2,7 +2,6 @@ import multiprocessing as mp
 import os
 from pprint import pprint
 
-import numpy as np
 from GravNN.GravityModels.PointMass import get_pm_data
 from GravNN.Networks.Configs import *
 from GravNN.Networks.script_utils import save_training
@@ -12,12 +11,12 @@ os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
 
 def main():
-
     threads = 4
 
     df_file = "Data/Dataframes/eros_filter_poly.data"
     df_file = "Data/Dataframes/eros_filter_poly_dropout.data"
     df_file = "Data/Dataframes/eros_pm_053123.data"
+    df_file = "Data/Dataframes/eros_pm_061023.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -38,7 +37,7 @@ def main():
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
-        "fuse_models" : [False],
+        "fuse_models": [False],
         # "dropout": [0.1],
         # "override": [True],
     }
@@ -51,7 +50,6 @@ def main():
 
 
 def run(config):
-
     from GravNN.Networks.Data import DataSet
     from GravNN.Networks.Model import PINNGravityModel
     from GravNN.Networks.Saver import ModelSaver

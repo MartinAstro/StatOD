@@ -201,10 +201,21 @@ def get_circular_state(pinn_file):
     return X0_m_N, filename
 
 
-def main(a, e, pinn_file):
+def main(pinn_file):
     # X0_m_N, filename = get_circular_state(pinn_file)
+    # X0_m_N, filename = get_elliptic_state(pinn_file)
 
-    X0_m_N, filename = get_elliptic_state(pinn_file)
+    # Load in the initial conditions
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/.."
+    with open(f"{statOD_dir}/Data/InitialConditions/ICs.data", "rb") as f:
+        ICs = pickle.load(f)
+
+    idx = 0
+    X0_m_N = np.array(ICs[idx]["X"])
+    a = ICs[idx]["a"]
+    e = ICs[idx]["e"]
+
+    filename = f"traj_{pinn_file}_{a}_{e}"
 
     X0_km_N = X0_m_N / 1e3
 
@@ -229,4 +240,4 @@ if __name__ == "__main__":
     pinn_file = "eros_pm_061023"
     pinn_file = "eros_poly_061023"
     # pinn_file = "eros_poly_061023_dropout"
-    main()
+    main(pinn_file)

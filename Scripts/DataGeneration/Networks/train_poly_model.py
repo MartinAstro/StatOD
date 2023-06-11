@@ -13,6 +13,7 @@ def main():
     threads = 4
 
     df_file = "Data/Dataframes/eros_poly_053123.data"
+    df_file = "Data/Dataframes/eros_poly_061023.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
