@@ -168,13 +168,13 @@ def generate_rotating_asteroid_trajectory(
 def main(pinn_file):
     # load the initial conditions
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
-    with open(f"{statOD_dir}/Data/InitialConditions/ICs.data", "rb") as f:
+    with open(f"{statOD_dir}Data/InitialConditions/ICs.data", "rb") as f:
         IC_list = pickle.load(f)
 
     # take the command line argument as the index
     idx = int(sys.argv[1])
     IC = IC_list[idx]
-    X0_m_N = IC["X"]
+    X0_m_N = np.array(IC["X"])
     a = IC["a"]
     e = IC["e"]
 
