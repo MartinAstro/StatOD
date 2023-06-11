@@ -29,10 +29,11 @@ def f_PINN_DMC_HF_zero_order(t, x, args):
 
     # Gravity
     # scaling occurs within the gravity model
+    # come out as non_dim from km + s
     BP = compute_BN(t, omega).squeeze()
     x_pos_B = BP @ x_pos
-    x_dd_grav_m_B = model.compute_acceleration(x_pos_B).reshape((-1,))
-    x_dd_grav_m = BP.T @ x_dd_grav_m_B
+    x_dd_grav_B = model.compute_acceleration(x_pos_B).reshape((-1,))
+    x_dd_grav = BP.T @ x_dd_grav_B
 
     # 3BP Perturbation
     x_sun_P = X_sun_P[0]
@@ -67,9 +68,9 @@ def f_PINN_DMC_HF_zero_order(t, x, args):
     # a_z_SRP = 0.0
 
     # Totals
-    x_dd = x_dd_grav_m[0] + a_x_grav_sun + a_x_SRP + w_vec[0]
-    y_dd = x_dd_grav_m[1] + a_y_grav_sun + a_y_SRP + w_vec[1]
-    z_dd = x_dd_grav_m[2] + a_z_grav_sun + a_z_SRP + w_vec[2]
+    x_dd = x_dd_grav[0] + a_x_grav_sun + a_x_SRP + w_vec[0]
+    y_dd = x_dd_grav[1] + a_y_grav_sun + a_y_SRP + w_vec[1]
+    z_dd = x_dd_grav[2] + a_z_grav_sun + a_z_SRP + w_vec[2]
 
     x_acc = np.hstack((x_dd, y_dd, z_dd))
 
