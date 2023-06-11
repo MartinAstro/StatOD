@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
 from GravNN.GravityModels.HeterogeneousPoly import generate_heterogeneous_sym_model
@@ -163,49 +165,23 @@ def generate_rotating_asteroid_trajectory(
         pickle.dump(data, f)
 
 
-def get_elliptic_state(pinn_file):
-    # Julio's parameters but e = 0.1
-    X0_m_N = np.array(
-        [
-            -24336.171875,
-            19408.798828125,
-            13827.63671875,
-            -2.717930555343628,
-            -1.3936699628829956,
-            -1.9365609884262085,
-        ],
-    )
-    filename = f"traj_{pinn_file}_elliptic"
-    return X0_m_N, filename
+def main(pinn_file):
+    # load the initial conditions
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    with open(f"{statOD_dir}/Data/InitialConditions/ICs.data", "rb") as f:
+        IC_list = pickle.load(f)
 
+    # take the command line argument as the index
+    idx = int(sys.argv[1])
+    IC = IC_list[idx]
+    X0_m_N = IC["X"]
+    a = IC["a"]
+    e = IC["e"]
 
-def get_circular_state(pinn_file):
-    # Julio's params (the best)
-    # 34000,
-    # 0.001,
-    # np.pi / 4,
-    # np.deg2rad(48.2),
-    # np.deg2rad(347.8),
-    # np.deg2rad(85.3),
-    X0_m_N = np.array(
-        [
-            -19243.595703125,
-            21967.5078125,
-            17404.74609375,
-            -2.939612865447998,
-            -1.1707247495651245,
-            -1.7654979228973389,
-        ],
-    )
-    filename = f"traj_{pinn_file}"
-    return X0_m_N, filename
+    # make filename contain the semi-major axis, eccentricity, and model
+    filename = f"traj_{pinn_file}_{a}_{e}"
 
-
-def main(a, e, pinn_file):
-    # X0_m_N, filename = get_circular_state(pinn_file)
-
-    X0_m_N, filename = get_elliptic_state(pinn_file)
-
+    # convert to km and km/s
     X0_km_N = X0_m_N / 1e3
 
     generate_rotating_asteroid_trajectory(
@@ -213,7 +189,7 @@ def main(a, e, pinn_file):
         filename,
         pinn_file,
         timestep=60,
-        orbits=3,
+        orbits=10,
     )
 
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
@@ -225,8 +201,9 @@ def main(a, e, pinn_file):
 
 
 if __name__ == "__main__":
-    pinn_file = "eros_pm_053123"
-    pinn_file = "eros_pm_061023"
-    pinn_file = "eros_poly_061023"
-    # pinn_file = "eros_poly_061023_dropout"
-    main()
+    # select the model
+    pinn_poly_file = "eros_poly_061023"
+    pinn_pm_file = "eros_pm_061023"
+
+    main(pinn_poly_file)
+    main(pinn_pm_file)
