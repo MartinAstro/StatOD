@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
+from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
 from Scripts.Factories.CallbackFactory import CallbackFactory
 
@@ -36,6 +37,23 @@ def rotating_fcn(tVec, omega, X_train, Y_train):
     )
     Y_train_B = np.einsum("ijk,ik->ij", BN, Y_train)
     return X_train_B, Y_train_B
+
+
+def plot_planes(gravity_model, config):
+    planet = config["planet"][0]
+    points = 100
+    radius_bounds = [-2 * planet.radius, 2 * planet.radius]
+    planes_exp = PlanesExperiment(
+        gravity_model,
+        config,
+        radius_bounds,
+        points,
+        remove_error=True,
+    )
+    planes_exp.run()
+
+    vis = PlanesVisualizer(planes_exp)
+    vis.plot(percent_max=10, annotate_stats=True)
 
 
 def generate_plots(scenario, traj_data, model):
@@ -182,7 +200,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     scenario.filter.rtol = 1e-10
 
     # Initialize Callbacks
-    callbacks_dict = CallbackFactory().generate_callbacks()
+    callbacks_dict = CallbackFactory().generate_callbacks(radius_multiplier=2)
 
     network_train_config = {
         "batch_size": batch_size,
@@ -194,10 +212,9 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
         "num_samples": 1000,
         "callbacks": callbacks_dict,
         "print_interval": [100],
-        # "X_COM": np.array([[new_COM, 0.0, 0.0]]),
-        # # "X_COM": np.array([[10.0, 0.0, 0.0]]),
-        # "COM_samples": 1,
-        # "COM_radius": 1e-12,
+        "COM_samples": 1,
+        "X_COM": np.array([[0.0, 0.0, 0.0]]),
+        "COM_radius": None,
     }
     callbacks = scenario.run(network_train_config)
     scenario.dimensionalize()
@@ -217,7 +234,17 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
         },
     )
 
-    generate_plots(scenario, traj_data, model.gravity_model)
+    # generate_plots(scenario, traj_data, model.gravity_model)
+
+    # plot_planes(model.gravity_model, model.gravity_model.config)
+
+    pprint(metrics["Extrapolation"])
+    pprint(metrics["Planes"][0])
+    dX_sum = 0
+    for key, value in metrics["Trajectory"][0].items():
+        if "dX_sum" in key:
+            dX_sum += value
+    print(dX_sum / 4)
 
     # save the model + config
     model.save()
@@ -233,24 +260,27 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    pinn_file = "Data/Dataframes/eros_poly_053123.data"
-    traj_file = "traj_eros_poly_053123"
+    # pinn_file = "Data/Dataframes/eros_poly_053123.data"
+    # traj_file = "traj_eros_poly_053123"
 
-    pinn_file = "Data/Dataframes/eros_pm_053123.data"
-    traj_file = "traj_eros_pm_053123"
+    # pinn_file = "Data/Dataframes/eros_pm_053123.data"
+    # traj_file = "traj_eros_pm_053123"
+
+    pinn_file = "Data/Dataframes/eros_poly_061023.data"
+    traj_file = "traj_eros_poly_061023_32000.0_0.2"
 
     hparams = {
         # "q_value": [5e-8],
         "r_value": [1e-12],
         # "r_value": [1e-3],
-        "epochs": [0],
+        "epochs": [1000],
         "learning_rate": [1e-4],
         "batch_size": [20000],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [0.3],
+        "data_fraction": [0.1],
     }
 
     DMC_high_fidelity(pinn_file, traj_file, hparams, show=True)

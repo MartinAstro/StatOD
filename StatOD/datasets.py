@@ -140,11 +140,7 @@ class Dataset:
         if COM_radius is not None:
             X_COM_samples += np.random.normal(0, COM_radius, size=X_COM_samples.shape)
 
-        Y_COM_samples = np.zeros_like(X_COM_samples) + np.random.normal(
-            0,
-            1e-10,
-            size=X_COM_samples.shape,
-        )
+        Y_COM_samples = np.zeros_like(X_COM_samples) + 1e-16
         # 1e-10
 
         # convert to km

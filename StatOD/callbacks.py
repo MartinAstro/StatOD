@@ -35,7 +35,7 @@ class CallbackBase:
 
 
 class PlanesCallback(CallbackBase):
-    def __init__(self, radius_multiplier=5, **kwargs):
+    def __init__(self, radius_multiplier=2, **kwargs):
         super().__init__(**kwargs)
         self.radius_multiplier = radius_multiplier
 

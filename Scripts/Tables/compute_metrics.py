@@ -16,7 +16,7 @@ from Scripts.Factories.CallbackFactory import CallbackFactory
 
 
 def compute_metrics(model):
-    callbacks = CallbackFactory().generate_callbacks(pbar=True)
+    callbacks = CallbackFactory().generate_callbacks(pbar=True, radius_multiplier=2)
 
     # run the callbacks
     t_i_dummy = 0.0  # dummy
