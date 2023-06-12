@@ -13,11 +13,11 @@ def run_catch(args):
     args_list = dict_values_to_list(args)
 
     if args_list["pinn_file"][0] == "pm":
-        pinn_file = "Data/Dataframes/eros_pm_053123.data"
-        traj_file = "traj_eros_pm_053123"
+        pinn_file = "Data/Dataframes/eros_pm_061023.data"
+        traj_file = "traj_eros_pm_061023_32000.0_0.2"
     else:
-        pinn_file = "Data/Dataframes/eros_poly_053123.data"
-        traj_file = "traj_eros_poly_053123"
+        pinn_file = "Data/Dataframes/eros_poly_061023.data"
+        traj_file = "traj_eros_poly_061023_32000.0_0.2"
 
     config = DMC_high_fidelity(
         pinn_file,

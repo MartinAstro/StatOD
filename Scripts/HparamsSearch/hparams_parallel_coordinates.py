@@ -20,6 +20,8 @@ class ParallelCoordinatePlot:
             "Extrapolation",
             "Trajectory",
             "Percent mean",
+            "Max Error",
+            "Std Error"
         ]
         self.metric_max = metric_max
         self.metric_min = metric_min
@@ -139,7 +141,7 @@ class ParallelCoordinatePlot:
             perturbations.append(pert)
 
         # unless it's the results
-        if self.metric == column:
+        if self.metric == column or linear_column:
             perturbations = np.zeros_like(values)
 
             # tick values can't be each unique entry
@@ -204,7 +206,7 @@ def main(grav_type):
 
     df = pd.read_pickle(
         # directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
-        directory + "/../Data/Dataframes/hparam_search_060623_v3.data",
+        directory + "/../Data/Dataframes/hparam_061123.data",
         # directory + "/../Data/Dataframes/hparam_060523.data",
         # + "/../Data/Dataframes/output_filter_060523.data",
     )
@@ -228,17 +230,17 @@ def main(grav_type):
     df = df.query(query)
 
     name_dict = {
-        # "hparams_q_value": "Process Noise",
-        # "hparams_epochs": "Epochs",
-        # "hparams_learning_rate": "Learning Rate",
-        # "hparams_batch_size": "Batch Size",
-        # "hparams_train_fcn": "Training Fcn",
+        "hparams_q_value": "Process Noise",
+        "hparams_epochs": "Epochs",
+        "hparams_learning_rate": "Learning Rate",
+        "hparams_batch_size": "Batch Size",
+        "hparams_train_fcn": "Training Fcn",
         # "hparams_data_fraction": "Traj Fraction",
         "hparams_pinn_file": "Gravity Model",
         "hparams_measurement_noise": "Measurement Noise",
         "Planes_percent_error_avg": "Percent mean",
-        # "Planes_percent_error_std": "Std Error",
-        # "Planes_percent_error_max": "Max Error",
+        "Planes_percent_error_std": "Std Error",
+        "Planes_percent_error_max": "Max Error",
         # "Planes_high_error_pixel": "Frac High Pixel",
         "Extrapolation_inter_avg": "Interpolation",
         "Extrapolation_extra_avg": "Extrapolation",

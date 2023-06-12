@@ -37,7 +37,7 @@ def generate_measurements(traj_file):
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
     directory = f"{statOD_dir}Data/Measurements/Position"
     os.makedirs(directory, exist_ok=True)
-    meas_file = os.path.basename(traj_file).split(".")[0] + "_meas"
+    meas_file = os.path.basename(traj_file).split(".data")[0] + "_meas"
     with open(f"{directory}/{meas_file}_noiseless.data", "wb") as f:
         pickle.dump(true_measurements, f)
 
