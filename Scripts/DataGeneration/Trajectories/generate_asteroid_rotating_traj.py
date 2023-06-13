@@ -210,7 +210,7 @@ def main(pinn_file):
     with open(f"{statOD_dir}/Data/InitialConditions/ICs.data", "rb") as f:
         ICs = pickle.load(f)
 
-    idx = 0
+    idx = 4
     X0_m_N = np.array(ICs[idx]["X"])
     a = ICs[idx]["a"]
     e = ICs[idx]["e"]
@@ -224,7 +224,7 @@ def main(pinn_file):
         filename,
         pinn_file,
         timestep=60,
-        orbits=3,
+        orbits=10,
     )
 
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
@@ -236,8 +236,6 @@ def main(pinn_file):
 
 
 if __name__ == "__main__":
-    pinn_file = "eros_pm_053123"
     pinn_file = "eros_pm_061023"
     pinn_file = "eros_poly_061023"
-    # pinn_file = "eros_poly_061023_dropout"
     main(pinn_file)

@@ -171,5 +171,6 @@ def main(trajectory_file):
 
 if __name__ == "__main__":
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
-    pinn_file = "eros_poly_053123"
-    main(f"{statOD_dir}Data/Trajectories/traj_{pinn_file}.data")
+    main(
+        f"{statOD_dir}Data/Trajectories/traj_eros_poly_061023_32000.0_0.45.data",
+    )
