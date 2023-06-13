@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=1G
 #SBATCH --array=0-100
-#SBATCH --time=00:30:00
+#SBATCH --time=00:45:00
 #SBATCH --partition=amilan
 #SBATCH --output=SlurmFiles/Traj/trajectory-%j-%a.out
 
