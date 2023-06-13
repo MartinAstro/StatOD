@@ -7,11 +7,7 @@ from Scripts.Factories.CallbackFactory import CallbackFactory
 
 # from Scripts.Factories.CallbackFactory import CallbackFactory
 from Scripts.Factories.DynArgsFactory import DynArgsFactory
-from Scripts.VisualizationTools.ExperimentPanelVisualizer import (
-    ExperimentPanelVisualizer,
-)
 from StatOD.callbacks import *
-from StatOD.constants import ErosParams
 from StatOD.data import get_measurements_general
 from StatOD.dynamics import *
 from StatOD.filters import ExtendedKalmanFilter
@@ -56,6 +52,17 @@ def plot_planes(gravity_model, config):
     vis.plot(percent_max=10, annotate_stats=True)
 
 
+def print_metrics(metrics):
+    pprint(metrics["Extrapolation"])
+    pprint(metrics["Planes"][0])
+    dX_sum = 0
+    for key, value in metrics["Trajectory"][0].items():
+        if "dX_sum" in key:
+            dX_sum += value
+    print(dX_sum / 4)
+    return
+
+
 def generate_plots(scenario, traj_data, model):
     # Plot filter results
     vis = FilterVisualizer(scenario)
@@ -67,14 +74,15 @@ def generate_plots(scenario, traj_data, model):
     )
 
     # convert from N to B frame
-    logger = vis.scenario.filter.logger
-    BN = compute_BN(logger.t_i, ErosParams().omega)
-    X_B = np.einsum("ijk,ik->ij", BN, logger.x_hat_i_plus[:, 0:3])
-    vis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
+    # logger = vis.scenario.filter.logger
+    # BN = compute_BN(logger.t_i, ErosParams().omega)
+    # X_B = np.einsum("ijk,ik->ij", BN, logger.x_hat_i_plus[:, 0:3])
+    # vis.scenario.filter.logger.x_hat_i_plus[:, 0:3] = X_B
+    # vis.generate_filter_plots(traj_data["X"], traj_data["W_pinn"])
 
-    # run the visualization suite on the model
-    vis = ExperimentPanelVisualizer(model)
-    vis.plot(X_B=X_B)
+    # # run the visualization suite on the model
+    # vis = ExperimentPanelVisualizer(model)
+    # vis.plot(X_B=X_B)
 
 
 def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
@@ -95,7 +103,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     traj_data = get_trajectory_data(traj_file)
     x0 = np.hstack(
         (
-            traj_data["X"][0],  # + np.random.uniform(-1e-6, 1e-6, size=(6,)),
+            traj_data["X"][0],
             traj_data["W_pinn"][0],  # + np.random.uniform(-1e-9, 1e-9, size=(3,)),
         ),
     )
@@ -201,6 +209,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
 
     # Initialize Callbacks
     callbacks_dict = CallbackFactory().generate_callbacks(radius_multiplier=2)
+    # callbacks_dict = {}
 
     network_train_config = {
         "batch_size": batch_size,
@@ -235,16 +244,8 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     )
 
     # generate_plots(scenario, traj_data, model.gravity_model)
-
     # plot_planes(model.gravity_model, model.gravity_model.config)
-
-    pprint(metrics["Extrapolation"])
-    pprint(metrics["Planes"][0])
-    dX_sum = 0
-    for key, value in metrics["Trajectory"][0].items():
-        if "dX_sum" in key:
-            dX_sum += value
-    print(dX_sum / 4)
+    print_metrics(metrics)
 
     # save the model + config
     model.save()
@@ -260,19 +261,12 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    # pinn_file = "Data/Dataframes/eros_poly_053123.data"
-    # traj_file = "traj_eros_poly_053123"
-
-    # pinn_file = "Data/Dataframes/eros_pm_053123.data"
-    # traj_file = "traj_eros_pm_053123"
-
     pinn_file = "Data/Dataframes/eros_poly_061023.data"
     traj_file = "traj_eros_poly_061023_32000.0_0.2"
 
     hparams = {
-        # "q_value": [5e-8],
+        "q_value": [1e-8],
         "r_value": [1e-12],
-        # "r_value": [1e-3],
         "epochs": [1000],
         "learning_rate": [1e-4],
         "batch_size": [20000],
