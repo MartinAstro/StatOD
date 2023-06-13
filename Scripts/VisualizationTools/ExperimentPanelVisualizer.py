@@ -127,9 +127,9 @@ class ExperimentPanelVisualizer(VisualizationBase):
             traj_exps.append(exp)
         self.traj_exps = traj_exps
 
-    def plot(self, callback_idx=-1, X_B=None):
+    def plot(self, callback_idx=-1, X_B=None, max=10):
         vis = PlanesVisualizer(self.planes_exp, halt_formatting=True)
-        vis.max = 10
+        vis.max = max
 
         vis.fig_size = (vis.w_full, vis.w_full / 5.0 * 2.0)
         fig = plt.figure(figsize=vis.fig_size)
