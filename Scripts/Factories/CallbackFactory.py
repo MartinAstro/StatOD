@@ -9,7 +9,12 @@ class CallbackFactory:
     def __init__(self):
         pass
 
-    def generate_callbacks(self, radius_multiplier=2, pbar=False):
+    def generate_callbacks(
+        self,
+        radius_multiplier=2,
+        pbar=False,
+        skip_trajectory=False,
+    ):
         gravity_model_true = generate_heterogeneous_sym_model(Eros(), Eros().obj_8k)
 
         planes_callback = PlanesCallback(radius_multiplier=radius_multiplier)
@@ -67,4 +72,8 @@ class CallbackFactory:
             "Extrapolation": extrapolation_callback,
             "Trajectory": traj_callback,
         }
+
+        if skip_trajectory:
+            del callbacks_dict["Trajectory"]
+
         return callbacks_dict

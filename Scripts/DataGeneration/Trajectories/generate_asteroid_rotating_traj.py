@@ -236,6 +236,6 @@ def main(pinn_file):
 
 
 if __name__ == "__main__":
-    pinn_file = "eros_pm_061023"
-    pinn_file = "eros_poly_061023"
+    pinn_file = "eros_pm_061323"
+    pinn_file = "eros_poly_061323"
     main(pinn_file)

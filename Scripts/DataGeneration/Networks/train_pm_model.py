@@ -13,10 +13,7 @@ os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 def main():
     threads = 4
 
-    df_file = "Data/Dataframes/eros_filter_poly.data"
-    df_file = "Data/Dataframes/eros_filter_poly_dropout.data"
-    df_file = "Data/Dataframes/eros_pm_053123.data"
-    df_file = "Data/Dataframes/eros_pm_061023.data"
+    df_file = "Data/Dataframes/eros_pm_061323.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -27,7 +24,6 @@ def main():
         "N_val": [5000],
         "num_units": [20],
         "loss_fcns": [["percent"]],
-        # "loss_fcns": [["percent", "rms"]],
         "jit_compile": [True],
         "lr_anneal": [False],
         "eager": [False],
@@ -38,8 +34,6 @@ def main():
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
         "fuse_models": [False],
-        # "dropout": [0.1],
-        # "override": [True],
     }
     args = configure_run_args(config, hparams)
 
@@ -65,7 +59,6 @@ def run(config):
     data = DataSet(config)
     model = PINNGravityModel(config)
     model.train(data)
-    # model.predict(np.array([[0.0, 0.0, 0.0]]))
     saver = ModelSaver(model, history=None)
     saver.save(df_file=None)
 

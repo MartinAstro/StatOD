@@ -12,8 +12,7 @@ os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 def main():
     threads = 4
 
-    df_file = "Data/Dataframes/eros_poly_053123.data"
-    df_file = "Data/Dataframes/eros_poly_061023.data"
+    df_file = "Data/Dataframes/eros_poly_061323.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -24,7 +23,6 @@ def main():
         "N_val": [5000],
         "num_units": [20],
         "loss_fcns": [["percent"]],
-        # "loss_fcns": [["percent", "rms"]],
         "jit_compile": [True],
         "lr_anneal": [False],
         "eager": [False],
@@ -37,10 +35,6 @@ def main():
         "dropout": [0.0],
         "fuse_models": [False],
         "print_interval": [10],
-        # "decay_rate": [0.5],
-        # "override": [True],
-        # "eager": [True],
-        # "jit_compile": [False],
     }
     args = configure_run_args(config, hparams)
 

@@ -208,7 +208,10 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     scenario.filter.rtol = 1e-10
 
     # Initialize Callbacks
-    callbacks_dict = CallbackFactory().generate_callbacks(radius_multiplier=2)
+    callbacks_dict = CallbackFactory().generate_callbacks(
+        radius_multiplier=2,
+        skip_trajectory=True,
+    )
     # callbacks_dict = {}
 
     network_train_config = {
@@ -244,7 +247,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     )
 
     # generate_plots(scenario, traj_data, model.gravity_model)
-    # plot_planes(model.gravity_model, model.gravity_model.config)
+    plot_planes(model.gravity_model, model.gravity_model.config)
     print_metrics(metrics)
 
     # save the model + config
@@ -261,8 +264,8 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    pinn_file = "Data/Dataframes/eros_poly_061023.data"
-    traj_file = "traj_eros_poly_061023_32000.0_0.2"
+    pinn_file = "Data/Dataframes/eros_poly_061323.data"
+    traj_file = "traj_eros_poly_061323_32000.0_0.2"
 
     hparams = {
         "q_value": [1e-8],
