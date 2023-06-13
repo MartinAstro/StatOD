@@ -204,7 +204,6 @@ class ScenarioBaseClass:
                     train_config.get("X_COM"),
                     train_config.get("COM_samples", 1),
                     train_config.get("COM_radius", 0),
-                    **self.model.config,
                 )
 
             # rotate the values based on spin of asteroid

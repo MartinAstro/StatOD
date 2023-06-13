@@ -133,7 +133,6 @@ class Dataset:
         X_COM,
         num_samples,
         COM_radius=None,
-        **kwargs,
     ):
         X_COM_samples = np.full((num_samples, 3), X_COM)
 
