@@ -8,7 +8,7 @@ import sigfig
 from plotly.io import write_html, write_image
 
 import StatOD
-
+from Scripts.utils.metrics_formatting import *
 
 class ParallelCoordinatePlot:
     def __init__(self, df, metric="Percent mean", metric_max=None, metric_min=None):
@@ -159,54 +159,13 @@ class ParallelCoordinatePlot:
         return values, prefix, tick_values, unique_strings
 
 
-def make_trajectory_metric(df):
-    # Take the trajectory column, and only select
-    # the keys with dX_sum. Then average across those
-    # scalar values to compute the final metric for the trajectory
-    df = df.copy()
-    for i in range(len(df)):
-        row = df.iloc[i]
-        dX_sum = 0
-        traj_count = 0
-        for key, value in row["Trajectory"].items():
-            if "dX_sum" in key:
-                dX_sum += value
-                traj_count += 1
-        df.at[row.name, "Trajectory"] = {"avg_dX": dX_sum / traj_count}
-    return df
-
-
-def metrics_to_columns(df):
-    # Take the dictionaries in Planes, Extrapolation, and Trajectory columns
-    # and make them into their own columns
-    df = df.copy()
-    for i in range(len(df)):
-        row = df.iloc[i]
-        for column in ["Planes", "Extrapolation", "Trajectory"]:
-            for key, value in row[column].items():
-                df.loc[row.name, f"{column}_{key}"] = value
-    df.drop(columns=["Planes", "Extrapolation", "Trajectory"], inplace=True)
-    return df
-
-
-def hparams_to_columns(df):
-    # take hparams dictionary and append hparam_ to each key
-    # and save as a column in the dataframe
-    df = df.copy()
-    for i in range(len(df)):
-        row = df.iloc[i]
-        for key, value in row["hparams"].items():
-            df.loc[row.name, f"hparams_{key}"] = value[0]
-    df.drop(columns=["hparams"], inplace=True)
-    return df
-
 
 def main(grav_type):
     directory = os.path.dirname(StatOD.__file__)
 
     df = pd.read_pickle(
         # directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
-        directory + "/../Data/Dataframes/hparam_061123.data",
+        directory + "/../Data/Dataframes/hparam_061423.data",
         # directory + "/../Data/Dataframes/hparam_060523.data",
         # + "/../Data/Dataframes/output_filter_060523.data",
     )
@@ -218,14 +177,14 @@ def main(grav_type):
 
     # filter out only the top 10
     if grav_type == "pm":
-        query = "Planes_percent_error_avg < 10 and hparams_pinn_file == 'pm'"
+        query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'pm'"
         file_name = "hparams_point_mass"
-        metric_max = 10
+        metric_max = 30*2
 
     if grav_type == "poly":
-        query = "Planes_percent_error_avg < 10 and hparams_pinn_file == 'poly'"
+        query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'poly'"
         file_name = "hparams_poly"
-        metric_max = 10
+        metric_max = 5.7*2
 
     df = df.query(query)
 

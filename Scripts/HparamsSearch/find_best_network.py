@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 import StatOD
-
+from Scripts.utils.metrics_formatting import * 
 
 def main():
 
@@ -12,9 +12,20 @@ def main():
     df = pd.read_pickle(
         directory + "/../Data/Dataframes/hparam_061423.data",
     )
+    df.dropna(subset="hparams", inplace=True)
+    df = hparams_to_columns(df)
+    df = make_trajectory_metric(df)
+    df = metrics_to_columns(df)
+
+    # only filter the point mass cases
+    query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'pm'"
+    df = df.query(query)
+
+
 
     # sort the dataframe by hparams_percent_mean_avg
-    df = df.sort_values(by=['hparams_percent_error_avg'])
+    df = df.sort_values(by=['Planes_percent_error_avg'])
+    # df = df.sort_values(by=['Trajectory_avg_dX'])
 
     # for the best model, print the columns that have the "hparams" in the key
     for key in df.columns:

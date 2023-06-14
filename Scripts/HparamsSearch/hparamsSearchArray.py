@@ -13,10 +13,10 @@ def run_catch(args):
     args_list = dict_values_to_list(args)
 
     if args_list["pinn_file"][0] == "pm":
-        pinn_file = "Data/Dataframes/eros_pm_061023.data"
+        pinn_file = "Data/Dataframes/eros_pm_061323.data"
         traj_file = "traj_eros_pm_061023_32000.0_0.2"
     else:
-        pinn_file = "Data/Dataframes/eros_poly_061023.data"
+        pinn_file = "Data/Dataframes/eros_poly_061323.data"
         traj_file = "traj_eros_poly_061023_32000.0_0.2"
 
     config = DMC_high_fidelity(
@@ -36,7 +36,7 @@ def main():
         "learning_rate": [1e-4, 1e-5, 1e-6],
         "batch_size": [256, 2048, 2**15],
         "train_fcn": ["pinn_a", "pinn_al"],
-        "data_fraction": [0.3],
+        "data_fraction": [1.0],
         "measurement_noise": ["noiseless", "noisy"],
         "pinn_file": ["pm", "poly"],
         "r_value": [1e-12, 1e-3],
