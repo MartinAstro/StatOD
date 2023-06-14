@@ -3,10 +3,10 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --array=649-1296
-#SBATCH --time=00:15:00
+#SBATCH --array=0-100
+#SBATCH --time=00:20:00
 #SBATCH --partition=amilan
-#SBATCH --output=SlurmFiles/hparam-search-%j-%a.out
+#SBATCH --output=SlurmFiles/Altitude/hparam-search-%j-%a.out
 
 module purge
 

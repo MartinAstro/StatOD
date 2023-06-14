@@ -59,8 +59,8 @@ def main(pinn_model):
 
 
 if __name__ == "__main__":
-    pinn_model = "eros_poly_061023"
+    pinn_model = "eros_poly_061323"
     main(pinn_model)
 
-    pinn_model = "eros_pm_061023"
+    pinn_model = "eros_pm_061323"
     main(pinn_model)
