@@ -10,6 +10,7 @@ from plotly.io import write_html, write_image
 import StatOD
 from Scripts.utils.metrics_formatting import *
 
+
 class ParallelCoordinatePlot:
     def __init__(self, df, metric="Percent mean", metric_max=None, metric_min=None):
         self.df = df
@@ -21,7 +22,7 @@ class ParallelCoordinatePlot:
             "Trajectory",
             "Percent mean",
             "Max Error",
-            "Std Error"
+            "Std Error",
         ]
         self.metric_max = metric_max
         self.metric_min = metric_min
@@ -29,6 +30,9 @@ class ParallelCoordinatePlot:
             self.metric_max = self.metric_data.mean() + self.metric_data.std() * 2
         if metric_min is None:
             self.metric_min = self.metric_data.min()
+
+    def set_custom_formats(self, formats):
+        self.set_custom_formats = formats
 
     def run(self):
         metric_ticks = []
@@ -78,7 +82,7 @@ class ParallelCoordinatePlot:
     def concat_strings(self, values):
         new_list = []
         for value in values:
-            new_list.append(["".join([f"{s}_" for s in value])[:-1]])
+            new_list.append(["".join([f"{s}_" for s in value.split(" ")])[:-1]])
         return np.array(new_list).squeeze()
 
     def make_column_numeric(self, df, column):
@@ -151,13 +155,25 @@ class ParallelCoordinatePlot:
                 val_rounded = sigfig.round(value, sigfigs=3)
                 tick_values.append(val_rounded)
 
+        # or unless there are specified bounds for the key
+        if column in self.custom_formats.keys():
+            perturbations = np.zeros_like(values)
+            max_val = self.custom_formats[column].get("max_val", max_val)
+            min_val = self.custom_formats[column].get("min_val", min_val)
+
+            # tick values can't be each unique entry
+            # so divide into 8
+            tick_values = []
+            for value in np.linspace(min_val, max_val, 8):
+                val_rounded = sigfig.round(value, sigfigs=3)
+                tick_values.append(val_rounded)
+
         # clip results to sit within tick bounds
         min_tick = np.min(tick_values)
         max_tick = np.max(tick_values)
         values += np.array(perturbations)
         values = np.clip(values, min_tick, max_tick)
         return values, prefix, tick_values, unique_strings
-
 
 
 def main(grav_type):
@@ -179,24 +195,46 @@ def main(grav_type):
     if grav_type == "pm":
         query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'pm'"
         file_name = "hparams_point_mass"
-        metric_max = 30*2
+        metric_max = 30 * 2
 
     if grav_type == "poly":
         query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'poly'"
         file_name = "hparams_poly"
-        metric_max = 5.7*2
+        metric_max = 5.7 * 2
+        metric_max = 15
+
+        custom_formats = {
+            "Trajectory": {
+                "max_val": 1000000,
+            },
+            "Percent mean": {
+                "max_val": 15,
+            },
+            "Std Error": {
+                "max_val": 100,
+            },
+            "Max Error": {
+                "max_val": 1000,
+            },
+            "Interpolation": {
+                "max_val": 0.5,
+            },
+            "Extrapolation": {
+                "max_val": 0.2,
+            },
+        }
 
     df = df.query(query)
 
     name_dict = {
         "hparams_q_value": "Process Noise",
+        "hparams_measurement_noise": "Measurement Noise",
         "hparams_epochs": "Epochs",
         "hparams_learning_rate": "Learning Rate",
         "hparams_batch_size": "Batch Size",
         "hparams_train_fcn": "Training Fcn",
         # "hparams_data_fraction": "Traj Fraction",
-        "hparams_pinn_file": "Gravity Model",
-        "hparams_measurement_noise": "Measurement Noise",
+        # "hparams_pinn_file": "Gravity Model",
         "Planes_percent_error_avg": "Percent mean",
         "Planes_percent_error_std": "Std Error",
         "Planes_percent_error_max": "Max Error",
@@ -209,6 +247,7 @@ def main(grav_type):
     hparams_df = df[list(name_dict.values())]
 
     fig = ParallelCoordinatePlot(hparams_df, metric_max=metric_max).run()
+    fig.set_custom_formats(custom_formats)
 
     DPI_factor = 3
     DPI = 100  # standard DPI for matplotlib
