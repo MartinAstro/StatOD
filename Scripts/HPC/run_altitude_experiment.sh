@@ -29,7 +29,7 @@ echo "== Run data generation =="
 echo "Running hparams"
 
  #$SLURM_ARRAY_TASK_ID
-srun python /projects/joma5012/StatOD/Scripts/HparamsSearch/hparamsSearchArray.py $SLURM_ARRAY_TASK_ID
+srun python /projects/joma5012/StatOD/Scripts/AltitudeExperiments/run_filter_ae_pairs.py $SLURM_ARRAY_TASK_ID
 
 wait # Necessary to wait for all processes to finish
 echo "== End of Job =="

@@ -33,13 +33,13 @@ def main(pinn_model):
     traj_files = []
     for a in a_list:
         for e in e_list:
-            traj_file = f"traj_eros_pm_061023_{a}_{e}"
+            traj_file = f"traj_{pinn_model}_{a}_{e}"
             traj_files.append(traj_file)
 
     # use command line argument to select the index
     idx = int(sys.argv[1])
     traj_file = traj_files[idx]
-    
+
     # get orbital elements from trajectory
     e = float(traj_file.split("_")[-1])
     a = float(traj_file.split("_")[-2])
@@ -54,9 +54,9 @@ def main(pinn_model):
 
     # get hparams from config
     metrics = {}
-    metrics.update({"Planes" : config["Planes"]})
-    metrics.update({"Trajectory" : config["Trajectory"]})
-    metrics.update({"Extrapolation" : config["Extrapolation"]})
+    metrics.update({"Planes": config["Planes"]})
+    metrics.update({"Trajectory": config["Trajectory"]})
+    metrics.update({"Extrapolation": config["Extrapolation"]})
 
     # save the data
     statOD_dir = os.path.dirname(StatOD.__file__) + "/.."
