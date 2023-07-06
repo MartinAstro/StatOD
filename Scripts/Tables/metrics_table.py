@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pandas as pd
 
 import StatOD
@@ -14,25 +13,25 @@ def main():
 
     # replace values in percent_error_avg, percent_error_std, and percent_error_max with
     # nans if they are greater than 1000
-    metrics_df.loc[metrics_df["percent_error_avg"] > 1000, "percent_error_avg"] = np.nan
-    metrics_df.loc[metrics_df["percent_error_std"] > 1000, "percent_error_std"] = np.nan
-    metrics_df.loc[metrics_df["percent_error_max"] > 1000, "percent_error_max"] = np.nan
+    # metrics_df.loc[metrics_df["percent_error_avg"] > 1000, "percent_error_avg"] = np.nan
+    # metrics_df.loc[metrics_df["percent_error_std"] > 1000, "percent_error_std"] = np.nan
+    # metrics_df.loc[metrics_df["percent_error_max"] > 1000, "percent_error_max"] = np.nan
 
     # Format columns to scientific notation
-    metrics_df["dX_sum"] = metrics_df["dX_sum"].map("{:.2e}".format)
+    metrics_df["dX_sum"] = metrics_df["dX_sum"].map("{:.1f}".format)
     metrics_df["percent_error_avg"] = metrics_df["percent_error_avg"].map(
-        "{:.2f}".format,
+        "{:.1f}".format,
     )
     metrics_df["percent_error_std"] = metrics_df["percent_error_std"].map(
-        "{:.2f}".format,
+        "{:.1f}".format,
     )
     metrics_df["percent_error_max"] = metrics_df["percent_error_max"].map(
-        "{:.2f}".format,
+        "{:.1f}".format,
     )
 
     # Make a single column for the planes
     metrics_df["new_col"] = metrics_df.apply(
-        lambda row: f"{row['percent_error_avg']} +/- {row['percent_error_std']} ({row['percent_error_max']})",
+        lambda row: f"{row['percent_error_avg']}",  # +/- {row['percent_error_std']} ({row['percent_error_max']})",
         axis=1,
     )
 

@@ -72,10 +72,10 @@ class ExtrapolationCallback(CallbackBase):
         metrics = {}
 
         metrics["inter_avg"] = np.nanmean(
-            vis.experiment.losses["percent"][vis.idx_test][: vis.max_idx],
+            vis.experiment.losses["percent"][vis.idx_test][: vis.max_idx] * 100,
         )
         metrics["extra_avg"] = np.nanmean(
-            vis.experiment.losses["percent"][vis.idx_test],
+            vis.experiment.losses["percent"][vis.idx_test][vis.max_idx :] * 100,
         )
 
         return metrics
