@@ -39,7 +39,7 @@ def main(regress_deg):
 
     vis = TruePlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.h_tri)  # 3 columns of 4
-    vis.plot(percent_error=True, max=10)
+    vis.plot(percent_error=True, max=10, log=False)
     vis.save(
         plt.gcf(),
         f"{statOD_dir}/../Plots/SH{regress_deg}_gravity_field_planes.pdf",

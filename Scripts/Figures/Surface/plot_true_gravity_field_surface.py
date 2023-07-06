@@ -59,6 +59,7 @@ def main():
         percent=False,
         alpha=1,
         cbar_orientation="vertical",
+        cbar=None,  # just remove colorbar
     )
     format()
     vis.save(plt.gcf(), "eros_heterogeneous_surface.pdf")
@@ -82,9 +83,10 @@ def main():
         cmap_reverse=False,
         alpha=1,
         cbar_orientation="vertical",
+        cbar=None,  # just remove colorbar
     )
     format()
-    vis.save(plt.gcf(), "eros_homo_surface_error.pdf")
+    vis.save(plt.gcf(), "eros_homogeneous_surface_error.pdf")
 
     #######################################
     # Error of PM model
@@ -105,6 +107,7 @@ def main():
         cmap_reverse=False,
         alpha=1,
         cbar_orientation="vertical",
+        cbar=None,  # just remove colorbar
     )
     format()
     vis.save(plt.gcf(), "eros_pm_surface_error.pdf")

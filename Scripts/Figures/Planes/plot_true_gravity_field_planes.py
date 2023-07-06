@@ -57,7 +57,7 @@ def main():
 
     vis = TruePlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.h_tri)  # 3 columns of 4
-    vis.plot(percent_error=True, max=10)
+    vis.plot(percent_error=True, max=10, log=False)
     vis.save(plt.gcf(), f"{statOD_dir}poly_gravity_field_planes.pdf")
 
     ###############################
@@ -71,7 +71,7 @@ def main():
 
     vis = TruePlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.h_tri)  # 3 columns of 4
-    vis.plot(percent_error=True, max=10)
+    vis.plot(percent_error=True, max=10, log=False)
     vis.save(plt.gcf(), f"{statOD_dir}pm_gravity_field_planes.pdf")
 
     plt.show()

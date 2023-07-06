@@ -27,6 +27,7 @@ def plot_planes(model, config):
     exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
     exp.run()
 
+    # plot the error of the model
     vis = TruePlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
     vis.plot(percent_error=True, max=10)
@@ -35,14 +36,7 @@ def plot_planes(model, config):
         f"{plots_dir}{model_name}_gravity_field_planes_error.pdf",
     )
 
-    vis = TruePlanesVisualizer(exp)
-    vis.fig_size = (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
-    vis.plot(percent_error=False, max=None)
-    vis.save(
-        plt.gcf(),
-        f"{plots_dir}{model_name}_gravity_field_planes_truth.pdf",
-    )
-
+    # Plot the true gravity field
     vis = TruePlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
     vis.plot(percent_error=False, max=None)
