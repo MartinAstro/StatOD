@@ -1,3 +1,6 @@
+import os
+
+import GravNN
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -14,25 +17,29 @@ class pinnGravityModel:
     def __init__(
         self,
         df_file,
-        custom_data_dir=None,
         dtype="float32",
         learning_rate=None,
         dim_constants=None,
         eager=False,
     ):
         self.history = None
-        self.custom_data_dir = custom_data_dir
 
         if eager:
             tf.config.run_functions_eagerly(True)
-        if custom_data_dir is not None:
-            df = pd.read_pickle(custom_data_dir + df_file)
-        else:
-            df = pd.read_pickle(df_file)
+
+        # assume the dataframe is in GravNN/Data directory
+        data_dir = os.path.dirname(GravNN.__file__) + "/../Data/"
+
+        # unless there is a /Data/ dir that is within the df_path
+        if type(df_file) == str and "/Data/" in df_file and os.path.isabs(df_file):
+            data_dir = df_file.split("/Data/")[0] + "/Data/"
+
+        df_file_basename = os.path.basename(df_file)
+        df = pd.read_pickle(f"{data_dir}/Dataframes/{df_file_basename}")
 
         config, gravity_model = load_config_and_model(
             df.id.values[-1],
-            df,
+            f"{data_dir}/Dataframes/{df_file_basename}",
             custom_dtype=dtype,
             only_weights=True,
         )
@@ -123,11 +130,11 @@ class pinnGravityModel:
         else:
             for key in self.history.history.keys():
                 self.history.history[key] = np.append(
-                    self.history.history[key], history.history[key],
+                    self.history.history[key],
+                    history.history[key],
                 )
 
     def train(self, X_dim, Y_dim, **kwargs):
-
         # # save X_dim and Y_dim to a pickle file
         # import pickle
 
@@ -156,7 +163,10 @@ class pinnGravityModel:
 
     def save(self, df_file=None):
         # save the network and config data using PINN-GM API
-        saver = ModelSaver(self.gravity_model, self.history)
+        saver = ModelSaver(
+            self.gravity_model,
+            self.history,
+        )
         network_dir = saver.save(df_file=df_file)
         return network_dir
 

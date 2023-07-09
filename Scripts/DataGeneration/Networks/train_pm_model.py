@@ -1,19 +1,17 @@
-import multiprocessing as mp
 import os
 from pprint import pprint
 
 from GravNN.GravityModels.PointMass import get_pm_data
 from GravNN.Networks.Configs import *
-from GravNN.Networks.script_utils import save_training
-from GravNN.Networks.utils import configure_run_args
+
+import StatOD
 
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
 
 def main():
-    threads = 4
-
-    df_file = "Data/Dataframes/eros_pm_061323.data"
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    df_file = statOD_dir + "Data/Dataframes/eros_pm_061023.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -29,21 +27,19 @@ def main():
         "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [10000],
+        "epochs": [10],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
-        "fuse_models": [False],
+        # "fuse_models": [False],
+        # "enforce_bc": [False],
+        # "scale_nn_potential": [False],
     }
-    args = configure_run_args(config, hparams)
-
-    with mp.Pool(threads) as pool:
-        results = pool.starmap_async(run, args)
-        configs = results.get()
-    save_training(df_file, configs)
+    config.update(hparams)
+    run(config, df_file)
 
 
-def run(config):
+def run(config, df_file=None):
     from GravNN.Networks.Data import DataSet
     from GravNN.Networks.Model import PINNGravityModel
     from GravNN.Networks.Saver import ModelSaver
@@ -58,9 +54,17 @@ def run(config):
     # Get data, network, optimizer, and generate model
     data = DataSet(config)
     model = PINNGravityModel(config)
-    model.train(data)
-    saver = ModelSaver(model, history=None)
-    saver.save(df_file=None)
+    if config["epochs"][0] == 0:
+        model.predict(data.train_data)
+        history = None
+    else:
+        history = model.train(data)
+
+    saver = ModelSaver(
+        model,
+        history=history,
+    )
+    saver.save(df_file=df_file)
 
     print(f"Model ID: [{model.config['id']}]")
     return model.config

@@ -4,6 +4,7 @@ import sys
 import numpy as np
 from GravNN.CelestialBodies.Asteroids import Eros
 
+import StatOD
 from Scripts.Scenarios.DMC_high_fidelity import DMC_high_fidelity
 from StatOD.utils import *
 
@@ -11,24 +12,27 @@ from StatOD.utils import *
 def get_model_params():
     hparams = {
         "r_value": [1e-12],
-        "epochs": [1000],
+        "epochs": [500],
         "learning_rate": [1e-4],
         "batch_size": [2**19],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [1.0],
+        "data_fraction": [0.1],
+        # "COM_samples": 1,
+        # "X_COM": np.array([[0.0, 0.0, 0.0]]),
     }
     return hparams
 
 
-def main(pinn_model):
+def main(pinn_file, idx, show=False, df_file=None):
     radius = Eros().radius
     a_list = np.arange(2, 3, 0.1) * radius
     e_list = np.arange(0.0, 0.5, 0.05)
 
-    pinn_file = f"Data/Dataframes/{pinn_model}.data"
+    pinn_model = os.path.basename(pinn_file).split(".")[0]
+    # returns eros_pm_061323
 
     traj_files = []
     for a in a_list:
@@ -37,7 +41,6 @@ def main(pinn_model):
             traj_files.append(traj_file)
 
     # use command line argument to select the index
-    idx = int(sys.argv[1])
     traj_file = traj_files[idx]
 
     # get orbital elements from trajectory
@@ -45,11 +48,13 @@ def main(pinn_model):
     a = float(traj_file.split("_")[-2])
 
     # run the DMC experiment
+
     config = DMC_high_fidelity(
         pinn_file,
         traj_file,
         get_model_params(),
-        show=False,
+        show,
+        df_file=df_file,
     )
 
     # get hparams from config
@@ -65,9 +70,24 @@ def main(pinn_model):
         pickle.dump(metrics, f)
 
 
-if __name__ == "__main__":
-    # pinn_model = "eros_poly_061323"
-    # main(pinn_model)
+def local_main():
+    idx = 6
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    pinn_file = f"{statOD_dir}Data/Dataframes/eros_pm_061023.data"
+    # pinn_file = f"{statOD_dir}Data/Dataframes/eros_poly_061023.data"
+    # model = "eros_poly_061323"
 
-    pinn_model = "eros_pm_061323"
-    main(pinn_model)
+    df_file = f"{statOD_dir}Data/Dataframes/ae_pair_results.data"
+    main(pinn_file, idx, show=True, df_file=df_file)
+
+
+def HPC_main():
+    model = sys.argv[1]
+    idx = int(sys.argv[2])
+
+    main(model, idx)
+
+
+if __name__ == "__main__":
+    # HPC_main()
+    local_main()

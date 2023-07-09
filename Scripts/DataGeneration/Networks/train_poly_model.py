@@ -1,18 +1,16 @@
-import multiprocessing as mp
 import os
 from pprint import pprint
 
 from GravNN.Networks.Configs import *
-from GravNN.Networks.script_utils import save_training
-from GravNN.Networks.utils import configure_run_args
+
+import StatOD
 
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
 
 def main():
-    threads = 4
-
-    df_file = "Data/Dataframes/eros_poly_061323.data"
+    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
+    df_file = statOD_dir + "Data/Dataframes/eros_poly_061023.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
@@ -28,23 +26,17 @@ def main():
         "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [5000],
+        "epochs": [2000],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_poly_data],
-        "dropout": [0.0],
-        "fuse_models": [False],
-        "print_interval": [10],
+        "fuse_models": [True],
     }
-    args = configure_run_args(config, hparams)
-    configs = [run(*args[0])]
-    # with mp.Pool(threads) as pool:
-    #     results = pool.starmap_async(run, args)
-    #     configs = results.get()
-    save_training(df_file, configs)
+    config.update(hparams)
+    run(config, df_file)
 
 
-def run(config):
+def run(config, df_file=None):
     from GravNN.Networks.Data import DataSet
     from GravNN.Networks.Model import PINNGravityModel
     from GravNN.Networks.Saver import ModelSaver
@@ -60,8 +52,8 @@ def run(config):
     data = DataSet(config)
     model = PINNGravityModel(config)
     history = model.train(data)
-    saver = ModelSaver(model, history)
-    saver.save(df_file=None)
+    saver = ModelSaver(model, history=history)
+    saver.save(df_file=df_file)
 
     print(f"Model ID: [{model.config['id']}]")
     return model.config

@@ -56,10 +56,13 @@ def print_metrics(metrics):
     pprint(metrics["Extrapolation"])
     pprint(metrics["Planes"][0])
     dX_sum = 0
-    for key, value in metrics["Trajectory"][0].items():
-        if "dX_sum" in key:
-            dX_sum += value
-    print(dX_sum / 4)
+    try:
+        for key, value in metrics["Trajectory"][0].items():
+            if "dX_sum" in key:
+                dX_sum += value
+        print(dX_sum / 4)
+    except:
+        pass
     return
 
 
@@ -85,7 +88,7 @@ def generate_plots(scenario, traj_data, model):
     # vis.plot(X_B=X_B)
 
 
-def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
+def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
     q = hparams.get("q_value", [1e-9])[0]
     r = hparams.get("r_value", [1e-12])[0]
     epochs = hparams.get("epochs", [100])[0]
@@ -151,13 +154,11 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
 
     dim_constants_pinn = dim_constants.copy()
     dim_constants_pinn["l_star"] *= 1e3
-    statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
 
     model = pinnGravityModel(
         pinn_file,
         learning_rate=lr,
         dim_constants=dim_constants_pinn,
-        custom_data_dir=statOD_dir,
         eager=eager,
     )
     model.set_PINN_training_fcn(pinn_constraint_fcn)
@@ -166,6 +167,8 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
             "gravity_data_fcn": [get_hetero_poly_symmetric_data],
         },
     )
+
+    plot_planes(model.gravity_model, model.gravity_model.config)
 
     ##################################
     # Dynamics and noise information #
@@ -224,8 +227,8 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
         "num_samples": 1000,
         "callbacks": callbacks_dict,
         "print_interval": [100],
-        "COM_samples": 1,
-        "X_COM": np.array([[0.0, 0.0, 0.0]]),
+        # "COM_samples": 1,
+        # "X_COM": np.array([[0.0, 0.0, 0.0]]),
         "COM_radius": None,
     }
     callbacks = scenario.run(network_train_config)
@@ -251,7 +254,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False):
     print_metrics(metrics)
 
     # save the model + config
-    model.save()
+    model.save(df_file)
 
     if show:
         plt.show()
@@ -264,8 +267,10 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    pinn_file = "Data/Dataframes/eros_poly_061323.data"
-    traj_file = "traj_eros_poly_061323_32000.0_0.2"
+    # model = "eros_poly_061323"
+    model = "eros_pm_061323"
+    pinn_file = f"Data/Dataframes/{model}.data"
+    traj_file = f"traj_{model}_32000.0_0.2"
 
     hparams = {
         "q_value": [1e-8],
@@ -277,7 +282,7 @@ if __name__ == "__main__":
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [0.1],
+        "data_fraction": [0.01],
     }
 
     DMC_high_fidelity(pinn_file, traj_file, hparams, show=True)
