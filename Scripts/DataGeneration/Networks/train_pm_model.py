@@ -22,18 +22,22 @@ def main():
         "N_val": [5000],
         "num_units": [20],
         "loss_fcns": [["percent"]],
-        "jit_compile": [True],
         "lr_anneal": [False],
-        "eager": [False],
         "learning_rate": [0.001],
         "batch_size": [2**16],
-        "epochs": [10],
+        # "epochs": [500],
+        "epochs": [0],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
         # "fuse_models": [False],
         # "enforce_bc": [False],
         # "scale_nn_potential": [False],
+        
+        # "jit_compile": [False],
+        # "eager": [True],
+        # "jit_compile": [True],
+        # "eager": [False],
     }
     config.update(hparams)
     run(config, df_file)
