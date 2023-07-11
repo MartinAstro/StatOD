@@ -32,7 +32,7 @@ class ParallelCoordinatePlot:
             self.metric_min = self.metric_data.min()
 
     def set_custom_formats(self, formats):
-        self.set_custom_formats = formats
+        self.custom_formats = formats
 
     def run(self):
         metric_ticks = []
@@ -82,7 +82,7 @@ class ParallelCoordinatePlot:
     def concat_strings(self, values):
         new_list = []
         for value in values:
-            new_list.append(["".join([f"{s}_" for s in value.split(" ")])[:-1]])
+            new_list.append(["".join([f"{s}_" for s in value])[:-1]])
         return np.array(new_list).squeeze()
 
     def make_column_numeric(self, df, column):
@@ -181,7 +181,9 @@ def main(grav_type):
 
     df = pd.read_pickle(
         # directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
-        directory + "/../Data/Dataframes/hparam_061423.data",
+        # directory + "/../Data/Dataframes/hparam_search_060623_v3.data",
+        directory + "/../Data/Dataframes/hparam_071123.data",
+        # directory + "/../Data/Dataframes/hparam_061423.data",
         # directory + "/../Data/Dataframes/hparam_060523.data",
         # + "/../Data/Dataframes/output_filter_060523.data",
     )
@@ -191,6 +193,26 @@ def main(grav_type):
     df = metrics_to_columns(df)
     df = hparams_to_columns(df)
 
+    custom_formats = {
+        "Trajectory": {
+            "max_val": 1000000.0,
+        },
+        "Percent mean": {
+            "max_val": 15.0,
+        },
+        "Std Error": {
+            "max_val": 100.0,
+        },
+        "Max Error": {
+            "max_val": 1000.0,
+        },
+        "Interpolation": {
+            "max_val": 0.5,
+        },
+        "Extrapolation": {
+            "max_val": 0.2,
+        },
+    }
     # filter out only the top 10
     if grav_type == "pm":
         query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'pm'"
@@ -201,28 +223,6 @@ def main(grav_type):
         query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'poly'"
         file_name = "hparams_poly"
         metric_max = 5.7 * 2
-        metric_max = 15
-
-        custom_formats = {
-            "Trajectory": {
-                "max_val": 1000000,
-            },
-            "Percent mean": {
-                "max_val": 15,
-            },
-            "Std Error": {
-                "max_val": 100,
-            },
-            "Max Error": {
-                "max_val": 1000,
-            },
-            "Interpolation": {
-                "max_val": 0.5,
-            },
-            "Extrapolation": {
-                "max_val": 0.2,
-            },
-        }
 
     df = df.query(query)
 
@@ -236,7 +236,7 @@ def main(grav_type):
         # "hparams_data_fraction": "Traj Fraction",
         # "hparams_pinn_file": "Gravity Model",
         "Planes_percent_error_avg": "Percent mean",
-        "Planes_percent_error_std": "Std Error",
+        # "Planes_percent_error_std": "Std Error",
         "Planes_percent_error_max": "Max Error",
         # "Planes_high_error_pixel": "Frac High Pixel",
         "Extrapolation_inter_avg": "Interpolation",
@@ -246,8 +246,9 @@ def main(grav_type):
     df = df.rename(columns=name_dict)
     hparams_df = df[list(name_dict.values())]
 
-    fig = ParallelCoordinatePlot(hparams_df, metric_max=metric_max).run()
-    fig.set_custom_formats(custom_formats)
+    plot = ParallelCoordinatePlot(hparams_df, metric_max=metric_max)
+    plot.set_custom_formats(custom_formats)
+    fig = plot.run()
 
     DPI_factor = 3
     DPI = 100  # standard DPI for matplotlib
