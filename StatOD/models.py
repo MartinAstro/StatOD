@@ -28,11 +28,11 @@ class pinnGravityModel:
             tf.config.run_functions_eagerly(True)
 
         # assume the dataframe is in GravNN/Data directory
-        data_dir = os.path.dirname(GravNN.__file__) + "/../Data/"
+        data_dir = os.path.dirname(GravNN.__file__) + "/../Data"
 
         # unless there is a /Data/ dir that is within the df_path
         if type(df_file) == str and "/Data/" in df_file and os.path.isabs(df_file):
-            data_dir = df_file.split("/Data/")[0] + "/Data/"
+            data_dir = df_file.split("/Data/")[0] + "/Data"
 
         df_file_basename = os.path.basename(df_file)
         df = pd.read_pickle(f"{data_dir}/Dataframes/{df_file_basename}")
