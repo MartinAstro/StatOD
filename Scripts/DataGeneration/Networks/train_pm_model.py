@@ -11,33 +11,25 @@ os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
 def main():
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
-    df_file = statOD_dir + "Data/Dataframes/eros_pm_061023.data"
+    df_file = statOD_dir + "Data/Dataframes/eros_pm_071123.data"
     config = get_default_eros_config()
     config.update(PINN_III())
     config.update(ReduceLrOnPlateauConfig())
 
     hparams = {
         "N_dist": [50000],
-        "N_train": [4500],
+        "N_train": [45000],
         "N_val": [5000],
         "num_units": [20],
-        "loss_fcns": [["percent"]],
+        "loss_fcns": [["percent", "rms"]],
         "lr_anneal": [False],
         "learning_rate": [0.001],
-        "batch_size": [2**16],
-        # "epochs": [500],
+        "batch_size": [2**14],
         "epochs": [0],
         "preprocessing": [["pines", "r_inv"]],
         "PINN_constraint_fcn": ["pinn_a"],
         "gravity_data_fcn": [get_pm_data],
-        # "fuse_models": [False],
-        # "enforce_bc": [False],
-        # "scale_nn_potential": [False],
-        
-        # "jit_compile": [False],
-        # "eager": [True],
-        # "jit_compile": [True],
-        # "eager": [False],
+        "fuse_models": [True],
     }
     config.update(hparams)
     run(config, df_file)
