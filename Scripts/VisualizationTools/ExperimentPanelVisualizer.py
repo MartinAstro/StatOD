@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import GravNN
 import matplotlib.gridspec as gridspec
@@ -29,7 +30,8 @@ class ExperimentPanelVisualizer(VisualizationBase):
     def __init__(self, model, **kwargs):
         super().__init__(**kwargs)
         self.model = model
-        self.run_experiments()
+        load_exp = kwargs.get("load_exp", False)
+        self.run_experiments(load_exp)
 
     def get_trajectories(self):
         X_1 = np.array(
@@ -86,7 +88,14 @@ class ExperimentPanelVisualizer(VisualizationBase):
         T_list = np.array([compute_T(X, mu) for X in X_list])
         return X_list, T_list
 
-    def run_experiments(self):
+    def run_experiments(self, load_exp=False):
+        if load_exp:
+            with open("best_model_exp.data", "rb") as f:
+                self.planes_exp = pickle.load(f)
+                self.extrap_exp = pickle.load(f)
+                self.traj_exps = pickle.load(f)
+            return
+
         #####################
         # Planes Experiment
         #####################
@@ -98,6 +107,7 @@ class ExperimentPanelVisualizer(VisualizationBase):
                 self.model.config["planet"][0].radius * 2,
             ],
             100,
+            omit_train_data=True,
         )
         planes_exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
         planes_exp.run()
@@ -106,7 +116,7 @@ class ExperimentPanelVisualizer(VisualizationBase):
         #########################
         # Extrapolation Experiment
         #########################
-        extrap_exp = ExtrapolationExperiment(self.model, self.model.config, points=1000)
+        extrap_exp = ExtrapolationExperiment(self.model, self.model.config, points=1000, omit_train_data=True,)
         extrap_exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
         extrap_exp.run()
 
@@ -127,12 +137,28 @@ class ExperimentPanelVisualizer(VisualizationBase):
             traj_exps.append(exp)
         self.traj_exps = traj_exps
 
+        # save the experiments to a pickle file
+        with open("best_model_exp.data", "wb") as f:
+            del planes_exp.model
+            del extrap_exp.model
+            for traj in traj_exps:
+                for test_models in traj.test_models:
+                    try:
+                        test_models.pop('model')
+                    except:
+                        pass
+   
+
+            pickle.dump(planes_exp, f)
+            pickle.dump(extrap_exp, f)
+            pickle.dump(traj_exps, f)
+
     def plot(self, callback_idx=-1, X_B=None, max=10):
         vis = PlanesVisualizer(self.planes_exp, halt_formatting=True)
         vis.max = max
 
-        vis.fig_size = (vis.w_full, vis.w_full / 5.0 * 2.0)
-        fig = plt.figure(figsize=vis.fig_size)
+        vis.fig_size = (vis.w_full, vis.w_full / 2.0)
+        fig = plt.figure(figsize=self.fig_size)
         gs = gridspec.GridSpec(2, 5, figure=fig)
 
         ax1 = fig.add_subplot(gs[0, 0])
@@ -180,6 +206,7 @@ class ExperimentPanelVisualizer(VisualizationBase):
         plt.sca(ax4)
         extrap_vis = ExtrapolationVisualizer(
             self.extrap_exp,
+            plot_fcn=plt.semilogy,
             halt_formatting=False,
             annotate=False,
         )
@@ -199,8 +226,15 @@ def main():
     # load the output dataframe
 
     gravNN_dir = os.path.abspath(os.path.dirname(GravNN.__file__)) + "/../"
-    StatOD_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"
-    df_file = gravNN_dir + "Data/Dataframes/output_filter_060123.data"
+    df_file = gravNN_dir + "Data/Dataframes/ae_pair_results.data"
+    
+    # Testing
+    gravNN_dir = os.path.abspath(os.path.dirname(GravNN.__file__)) + "/../"
+    df_file = gravNN_dir + "Data/Dataframes/eros_poly_071123.data"
+
+    # Deploy 
+    gravNN_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"
+    df_file = gravNN_dir + "Data/Dataframes/best_case_model_071123.data"
 
     # load the dataframe
     df = pd.read_pickle(df_file)
@@ -209,9 +243,11 @@ def main():
     config, model = load_config_and_model(df.id.values[-1], df, only_weights=True)
 
     # run the visualization suite on the model
-    vis = ExperimentPanelVisualizer(model)
-    vis.fig_size = (vis.w_full, None)
+    vis = ExperimentPanelVisualizer(model, load_exp=False)
+    vis.fig_size = (vis.w_full, vis.w_full/5*2)
     vis.plot()
+
+    StatOD_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"
     vis.save(plt.gcf(), f"{StatOD_dir}/Plots/panel_plot.pdf")
     plt.savefig(f"{StatOD_dir}/Plots/panel_plot.pdf", format="pdf", bbox_inches="tight")
     plt.show()

@@ -168,7 +168,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
         },
     )
 
-    plot_planes(model.gravity_model, model.gravity_model.config)
+    # plot_planes(model.gravity_model, model.gravity_model.config)
 
     ##################################
     # Dynamics and noise information #
@@ -213,7 +213,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
     # Initialize Callbacks
     callbacks_dict = CallbackFactory().generate_callbacks(
         radius_multiplier=2,
-        skip_trajectory=True,
+        skip_trajectory=False,
     )
     # callbacks_dict = {}
 
@@ -250,7 +250,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
     )
 
     # generate_plots(scenario, traj_data, model.gravity_model)
-    plot_planes(model.gravity_model, model.gravity_model.config)
+    # plot_planes(model.gravity_model, model.gravity_model.config)
     print_metrics(metrics)
 
     # save the model + config
@@ -267,23 +267,26 @@ if __name__ == "__main__":
 
     start_time = time.time()
 
-    # model = "eros_poly_061323"
-    model = "eros_pm_061323"
+    # model = "eros_poly_071123"
+    model = "eros_poly_071123"
     pinn_file = f"Data/Dataframes/{model}.data"
-    traj_file = f"traj_{model}_32000.0_0.2"
+    traj_file = f"traj_eros_poly_061023_32000.0_0.35000000000000003"
+
+    statOD_dir = os.path.dirname(StatOD.__file__)
+    df_file = statOD_dir + f"/../Data/Dataframes/best_case_model_071123.data"
 
     hparams = {
-        "q_value": [1e-8],
+        "q_value": [1e-9],
         "r_value": [1e-12],
         "epochs": [1000],
         "learning_rate": [1e-4],
-        "batch_size": [20000],
+        "batch_size": [32768],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [0.01],
+        "data_fraction": [1.0],
     }
 
-    DMC_high_fidelity(pinn_file, traj_file, hparams, show=True)
+    DMC_high_fidelity(pinn_file, traj_file, hparams, show=True, df_file=df_file)
     print("Total Time: " + str(time.time() - start_time))

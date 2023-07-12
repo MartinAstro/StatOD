@@ -40,10 +40,11 @@ class PlanesCallback(CallbackBase):
         self.radius_multiplier = radius_multiplier
 
     def run(self, model):
+        print("running Planes")
         planet = model.config["planet"][0]
         multiplier = self.radius_multiplier
         bounds = [-multiplier * planet.radius, multiplier * planet.radius]
-        exp = PlanesExperiment(model, model.config, bounds, samples_1d=100)
+        exp = PlanesExperiment(model, model.config, bounds, samples_1d=100, omit_train_data=True)
         exp.run()
 
         # Compute metrics
@@ -65,7 +66,8 @@ class ExtrapolationCallback(CallbackBase):
         super().__init__(**kwargs)
 
     def run(self, model):
-        exp = ExtrapolationExperiment(model, model.config, points=1000)
+        print("running Extrap")
+        exp = ExtrapolationExperiment(model, model.config, points=1000, omit_train_data=True)
         exp.run()
 
         vis = ExtrapolationVisualizer(exp)
@@ -91,6 +93,8 @@ class TrajectoryCallback(CallbackBase):
         self.pbar = kwargs.get("pbar", False)
 
     def run(self, model):
+        print("running Traj")
+
         metrics = {}
 
         for i in range(len(self.X0_list)):
