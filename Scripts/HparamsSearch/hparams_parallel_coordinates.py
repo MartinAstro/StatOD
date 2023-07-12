@@ -9,6 +9,17 @@ from plotly.io import write_html, write_image
 
 import StatOD
 from Scripts.utils.metrics_formatting import *
+from screeninfo import get_monitors
+
+def get_dpi():
+    monitor = get_monitors()[0]
+    width_in = 23.54 #27 inch with 16:9 ratio
+    dpi = monitor.width / width_in
+    return dpi
+
+
+
+N_TICKS = 6
 
 
 class ParallelCoordinatePlot:
@@ -36,7 +47,7 @@ class ParallelCoordinatePlot:
 
     def run(self):
         metric_ticks = []
-        for value in np.linspace(self.metric_min, self.metric_max, 8):
+        for value in np.linspace(self.metric_min, self.metric_max, N_TICKS):
             value_rounded = sigfig.round(value, sigfigs=3)
             metric_ticks.append(value_rounded)
 
@@ -82,7 +93,8 @@ class ParallelCoordinatePlot:
     def concat_strings(self, values):
         new_list = []
         for value in values:
-            new_list.append(["".join([f"{s}_" for s in value])[:-1]])
+            words = value.split("_")
+            new_list.append(["".join([f"{word.capitalize()} " for word in words])[:-1]])
         return np.array(new_list).squeeze()
 
     def make_column_numeric(self, df, column):
@@ -134,6 +146,7 @@ class ParallelCoordinatePlot:
         if log_diff >= MAX_LOG_DIFF and not linear_column:
             values = np.log10(values)
             tick_values = np.log10(tick_values)
+            tick_values = np.array([sigfig.round(x, sigfigs=3) for x in tick_values.tolist()])
             prefix = "log10 "
 
         # add noise to the data for enhanced visibility
@@ -151,7 +164,7 @@ class ParallelCoordinatePlot:
             # tick values can't be each unique entry
             # so divide into 8
             tick_values = []
-            for value in np.linspace(min_val, max_val, 8):
+            for value in np.linspace(min_val, max_val, N_TICKS):
                 val_rounded = sigfig.round(value, sigfigs=3)
                 tick_values.append(val_rounded)
 
@@ -164,7 +177,7 @@ class ParallelCoordinatePlot:
             # tick values can't be each unique entry
             # so divide into 8
             tick_values = []
-            for value in np.linspace(min_val, max_val, 8):
+            for value in np.linspace(min_val, max_val, N_TICKS):
                 val_rounded = sigfig.round(value, sigfigs=3)
                 tick_values.append(val_rounded)
 
@@ -195,10 +208,10 @@ def main(grav_type):
 
     custom_formats = {
         "Trajectory": {
-            "max_val": 1000000.0,
+            # "max_val": 1000000.0,
         },
         "Percent mean": {
-            "max_val": 15.0,
+            # "max_val": 15.0,
         },
         "Std Error": {
             "max_val": 100.0,
@@ -207,10 +220,10 @@ def main(grav_type):
             "max_val": 1000.0,
         },
         "Interpolation": {
-            "max_val": 0.5,
+            # "max_val": 0.5,
         },
         "Extrapolation": {
-            "max_val": 0.2,
+            # "max_val": 0.2,
         },
     }
     # filter out only the top 10
@@ -227,8 +240,9 @@ def main(grav_type):
     df = df.query(query)
 
     name_dict = {
-        "hparams_q_value": "Process Noise",
-        "hparams_measurement_noise": "Measurement Noise",
+        "hparams_q_value": "Proc. Noise (q)",
+        "hparams_r_value": "Meas. Noise (r)",
+        "hparams_measurement_noise": "Meas. Type",
         "hparams_epochs": "Epochs",
         "hparams_learning_rate": "Learning Rate",
         "hparams_batch_size": "Batch Size",
@@ -237,7 +251,7 @@ def main(grav_type):
         # "hparams_pinn_file": "Gravity Model",
         "Planes_percent_error_avg": "Percent mean",
         # "Planes_percent_error_std": "Std Error",
-        "Planes_percent_error_max": "Max Error",
+        # "Planes_percent_error_max": "Max Error",
         # "Planes_high_error_pixel": "Frac High Pixel",
         "Extrapolation_inter_avg": "Interpolation",
         "Extrapolation_extra_avg": "Extrapolation",
@@ -250,17 +264,24 @@ def main(grav_type):
     plot.set_custom_formats(custom_formats)
     fig = plot.run()
 
-    DPI_factor = 3
-    DPI = 100  # standard DPI for matplotlib
+    fig.update_traces(labelangle=30)
+    fig.update_traces(labelside='bottom')
+
+    fig.update_layout(margin=dict(b=100))
+    # Get the DPI values of the connected monitors
+
+
+    DPI_factor = 1
+    DPI = get_dpi()
     fig.update_layout(
         # autosize=True,
-        height=2.7 * DPI * DPI_factor,
-        width=6.5 * DPI * DPI_factor,
         template="none",
         font={
             "family": "serif",
-            "size": 20,  # *DPI_factor
+            "size": 20,  
         },
+        width=6.5 * DPI * DPI_factor,
+        height=3.0 * DPI * DPI_factor,
     )
     directory = os.path.dirname(StatOD.__file__) + "/../Plots/"
     write_image(
@@ -268,7 +289,7 @@ def main(grav_type):
         directory + f"{file_name}.pdf",
         format="pdf",
         width=6.5 * DPI * DPI_factor,
-        height=3 * DPI * DPI_factor,
+        height=3.0 * DPI * DPI_factor,
     )
     write_html(
         fig,
