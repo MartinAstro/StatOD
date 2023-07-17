@@ -94,6 +94,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
     epochs = hparams.get("epochs", [100])[0]
     lr = hparams.get("learning_rate", [1e-4])[0]
     batch_size = hparams.get("batch_size", [1024])[0]
+    meas_batch_size = hparams.get("meas_batch_size", [1024])[0]
     pinn_constraint_fcn = hparams.get("train_fcn", ["pinn_a"])[0]
     bc_data = hparams.get("boundary_condition_data", [False])[0]
     measurement_noise = hparams.get("measurement_noise", ["noiseless"])[0]
@@ -219,6 +220,7 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
 
     network_train_config = {
         "batch_size": batch_size,
+        "meas_batch_size": meas_batch_size,
         "epochs": epochs,
         "BC_data": bc_data,
         "rotating": True,
@@ -278,14 +280,15 @@ if __name__ == "__main__":
     hparams = {
         "q_value": [1e-9],
         "r_value": [1e-12],
-        "epochs": [1000],
+        "epochs": [10000],
         "learning_rate": [1e-4],
-        "batch_size": [32768],
+        "meas_batch_size": [32768],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
         "data_fraction": [1.0],
+        "batch_size" : [1024*2]
     }
 
     DMC_high_fidelity(pinn_file, traj_file, hparams, show=True, df_file=df_file)

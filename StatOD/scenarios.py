@@ -139,7 +139,8 @@ class ScenarioBaseClass:
 
     def run(self, train_config):
         train = train_config.get("train", True)
-        batch_size = train_config.get("batch_size", 32)
+        batch_size = train_config.get("batch_size")
+        meas_batch_size = train_config.get("meas_batch_size", batch_size)
         train_config.get("epochs", 32)
         BC_data = train_config.get("BC_data", False)
         rotating = train_config.get("rotating", False)
@@ -152,7 +153,7 @@ class ScenarioBaseClass:
         start_time = time.time()
 
         train_idx_list = []
-        total_batches = len(self.Y) // batch_size
+        total_batches = len(self.Y) // meas_batch_size
         self.model.train_idx = 0
         data = Dataset(self.dim_constants)
         planet = self.model.planet
@@ -162,9 +163,9 @@ class ScenarioBaseClass:
 
         for k in range(total_batches + 1):
             # Gather measurements in batch
-            start_idx = k * batch_size
+            start_idx = k * meas_batch_size
             end_idx = (
-                None if (k + 1) * batch_size >= len(self.Y) else (k + 1) * batch_size
+                None if (k + 1) * meas_batch_size >= len(self.Y) else (k + 1) * meas_batch_size
             )
             t_batch = self.t[start_idx:end_idx]
             Y_batch = self.Y[start_idx:end_idx]
