@@ -19,9 +19,12 @@ Data/Networks
 Data/Dataframes
 Data/FilterLogs
 SlurmFiles/*
-*.data
+# *.data
+Data/Trajectories/*
+Data/Measurements/*
 *.ipynb
 Scripts/Scratch/*
+Data/TrajMetrics/*
 
 # Past Work
 Data/Project2/*
