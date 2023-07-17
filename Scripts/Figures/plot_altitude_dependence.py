@@ -6,10 +6,10 @@ import pandas as pd
 from GravNN.Visualization.HeatmapVisualizer import Heatmap3DVisualizer
 import os
 import StatOD
+from matplotlib.ticker import ScalarFormatter
 import numpy as np
-def main():
-    # Glob all of the trajectory metrics data
-    traj_files = glob.glob("Data/TrajMetrics/*.data")
+
+def gen_dataframe(traj_files):
 
     # Create a dataframe to store the data
     df = pd.DataFrame()
@@ -64,28 +64,41 @@ def main():
         df = df.append(all_metrics, ignore_index=True)
 
     df = df.replace([np.inf, -np.inf], np.nan)
+    return df 
+
+def main():
+    # Glob all of the trajectory metrics data
+    statOD_dir = os.path.dirname(StatOD.__file__)
+    traj_files = glob.glob(statOD_dir + "/../Data/TrajMetrics/*.data")
+    df = gen_dataframe(traj_files)
     
     # Use the 3D Histogram Plot
-    heatmap_vis = Heatmap3DVisualizer(df, halt_formatting=True)
-    heatmap_vis.fig_size = (heatmap_vis.w_half, heatmap_vis.w_half)
+    heatmap_vis = Heatmap3DVisualizer(df, halt_formatting=False)
+    heatmap_vis.fig_size = (heatmap_vis.w_full, heatmap_vis.w_tri*2)
+
+
+
+    ####################
+    # Planes Experiment
+    ####################
     heatmap_vis.plot(
         x="a",
         y="e",
         z="percent_error_avg",
-        cbarlabel="Percent Error",
+        cbarlabel="Percent Error (%)",
         query="model == 'pm'",
         cmap="viridis",
         alpha=1.0,
         newFig=True,
-        azim=135,
+        azim=135+180,
         base2=False,
-        vmin=20.0
+        vmin=df.percent_error_avg.min(),
     )
-
-
-    statOD_dir = statOD_dir = os.path.dirname(StatOD.__file__) 
     heatmap_vis.save(plt.gcf(), f"{statOD_dir}/../Plots/altitude_planes_metrics.pdf")
 
+    ####################
+    # Traj Experiment
+    ####################
     heatmap_vis.plot(
         x="a",
         y="e",
@@ -95,12 +108,60 @@ def main():
         cmap="viridis",
         alpha=1.0,
         newFig=True,
+        el=30,
         azim=135,
         base2=False,
+        vmin = df.Trajectory.min(),
     )
-
-    statOD_dir = statOD_dir = os.path.dirname(StatOD.__file__) 
+    # format z axis with scientific notation
+    formatter = ScalarFormatter(useMathText=True)
+    formatter.set_powerlimits((3, 7))
+    plt.gca().zaxis.set_major_formatter(formatter)
+    plt.gca().set_zlabel(r"$|d\mathbf{X}|$ [m]", labelpad=0.0)
+    plt.gca().set_xlabel("Semi-major Axis [m]")
+    plt.gca().set_ylabel("Eccentricity [-]")
     heatmap_vis.save(plt.gcf(), f"{statOD_dir}/../Plots/altitude_traj_metrics.pdf")
+
+
+    ###########################
+    # Interpolation Experiment
+    ###########################
+    heatmap_vis.plot(
+        x="a",
+        y="e",
+        z="inter_avg",
+        cbarlabel="Interpolation Error (%)",
+        query="model == 'pm'",
+        cmap="viridis",
+        alpha=1.0,
+        newFig=True,
+        azim=135,
+        base2=False,
+        vmin = df.inter_avg.min(),
+    )
+    heatmap_vis.save(plt.gcf(), f"{statOD_dir}/../Plots/altitude_interp_metrics.pdf")
+
+
+
+    ###########################
+    # Extrapolation Experiment
+    ###########################
+    heatmap_vis.plot(
+        x="a",
+        y="e",
+        z="extra_avg",
+        cbarlabel="Extrapolation Error (%)",
+        query="model == 'pm'",
+        cmap="viridis",
+        alpha=1.0,
+        newFig=True,
+        azim=135,
+        base2=False,
+        vmin = df.extra_avg.min(),
+    )
+    heatmap_vis.save(plt.gcf(), f"{statOD_dir}/../Plots/altitude_extrap_metrics.pdf")
+
+    
     plt.show()
 
 
