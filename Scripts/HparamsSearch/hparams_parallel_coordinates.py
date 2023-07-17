@@ -11,9 +11,8 @@ import StatOD
 from Scripts.utils.metrics_formatting import *
 from screeninfo import get_monitors
 
-def get_dpi():
+def get_dpi(width_in):
     monitor = get_monitors()[0]
-    width_in = 23.54 #27 inch with 16:9 ratio
     dpi = monitor.width / width_in
     return dpi
 
@@ -228,12 +227,12 @@ def main(grav_type):
     }
     # filter out only the top 10
     if grav_type == "pm":
-        query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'pm'"
+        query = "hparams_measurement_noise == 'noisy' and hparams_pinn_file == 'pm'"
         file_name = "hparams_point_mass"
         metric_max = 30 * 2
 
     if grav_type == "poly":
-        query = "Planes_percent_error_avg < 100 and hparams_pinn_file == 'poly'"
+        query = "hparams_measurement_noise == 'noiseless' and hparams_pinn_file == 'poly'"
         file_name = "hparams_poly"
         metric_max = 5.7 * 2
 
@@ -242,7 +241,7 @@ def main(grav_type):
     name_dict = {
         "hparams_q_value": "Proc. Noise (q)",
         "hparams_r_value": "Meas. Noise (r)",
-        "hparams_measurement_noise": "Meas. Type",
+        # "hparams_measurement_noise": "Meas. Type",
         "hparams_epochs": "Epochs",
         "hparams_learning_rate": "Learning Rate",
         "hparams_batch_size": "Batch Size",
@@ -272,7 +271,10 @@ def main(grav_type):
 
 
     DPI_factor = 1
-    DPI = get_dpi()
+    width_in = 23.54 #27 inch with 16:9 ratio
+    width_in = 11.3 #27 inch with 16:9 ratio
+
+    DPI = get_dpi(width_in)
     fig.update_layout(
         # autosize=True,
         template="none",
