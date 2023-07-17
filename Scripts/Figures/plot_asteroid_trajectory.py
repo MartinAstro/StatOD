@@ -104,12 +104,6 @@ def plot_3d(rVec, traj_cm=plt.cm.jet, solid_color=None, reverse_cmap=False, **kw
 
 
 def plot_cartesian_state_3d(X, obj_file=None, **kwargs):
-    """Plot the cartesian state vector in subplots
-
-    Args:
-        t (np.array): time vector
-        X (np.array): state vector [N x 6]
-    """
     options = {
         "cmap": plt.cm.winter,
         "plot_start_point": True,
@@ -118,13 +112,12 @@ def plot_cartesian_state_3d(X, obj_file=None, **kwargs):
     }
     options.update(kwargs)
 
-    if options["new_fig"]:
-        vis = VisualizationBase()
-        fig, ax = vis.new3DFig(**kwargs)
-    else:
-        plt.gca()
-
     plot_3d(X[:, 0:3].T, obj_file=obj_file, traj_cm=options["cmap"], **options)
+
+    # set x, y, and z labels to state [x, y, z] in m
+    plt.gca().set_xlabel("x [m]")
+    plt.gca().set_ylabel("y [m]")
+    plt.gca().set_zlabel("z [m]")
 
     # Import the asteroid shape model if appropriate.
     if obj_file is not None:
@@ -145,32 +138,46 @@ def plot_cartesian_state_3d(X, obj_file=None, **kwargs):
         plt.gca().scatter(X[0, 0], X[0, 1], X[0, 2], s=3, c="r")
 
 
-def main(trajectory_file):
+def main(trajectory_file, fraction=1.0):
     vis = VisualizationBase(save_directory=StatOD.__path__[0] + "/../Plots/")
+    vis.fig_size = (vis.w_half, vis.w_half)
     with open(trajectory_file, "rb") as f:
         data = pickle.load(f)
-
     X_km = data["X"] * 1e3
-    plot_cartesian_state_3d(X_km, Eros().obj_8k)
-    plt.title("Inertial Frame")
 
+    # only use a fraction of the data
+    N = int(fraction * len(X_km))
+    X_km = X_km[0:N, :]
+
+    ################
+    # INERTIAL FRAME
+    ################
+
+    fig, ax = vis.new3DFig()
+    plot_cartesian_state_3d(X_km, Eros().obj_8k)
+    plt.gca().view_init(35, 45)
+    vis.save(plt.gcf(), "spacecraft_trajectory_N.pdf")
+
+    ##############
+    # BODY FRAME #
+    ##############
     ep = ErosParams()
-    BN = compute_BN(data["t"], ep.omega)
+    BN = compute_BN(data["t"], ep.omega)[:N, :, :]
     X_km_B = np.einsum(
         "ijk,ik->ij",
         BN,
         X_km[:, 0:3],
     )  # https://stackoverflow.com/questions/26089893/understanding-numpys-einsum/33641428#33641428
 
+    fig, ax = vis.new3DFig()
     plot_cartesian_state_3d(X_km_B, Eros().obj_8k)
-    plt.title("Body Frame")
-
-    vis.save(plt.gcf(), "spacecraft_trajectory.pdf")
+    plt.gca().view_init(35, 45)
+    vis.save(plt.gcf(), "spacecraft_trajectory_B.pdf")
     plt.show()
 
 
 if __name__ == "__main__":
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
     main(
-        f"{statOD_dir}Data/Trajectories/traj_eros_poly_061023_32000.0_0.45.data",
+        f"{statOD_dir}Data/Trajectories/traj_eros_poly_061023_32000.0_0.35000000000000003.data", 0.33
     )
