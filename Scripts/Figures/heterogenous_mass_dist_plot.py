@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 from GravNN.CelestialBodies.Asteroids import Eros
 from GravNN.Trajectories.SurfaceDist import SurfaceDist
-
+from GravNN.GravityModels.HeterogeneousPoly import generate_heterogeneous_sym_model
 import StatOD
 
 if __name__ == "__main__":
@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     traj = SurfaceDist(planet, planet.obj_8k)
 
-    model = generate_heterogeneous_model(planet, planet.obj_8k)
+    model = generate_heterogeneous_sym_model(planet, planet.obj_8k)
     r_offset_0 = model.offset_list[0]
     r_offset_1 = model.offset_list[1]
     r_offset_2 = model.offset_list[2]
