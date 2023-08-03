@@ -83,7 +83,7 @@ def main():
     # # # PINN trained on Point Mass
     # df = pd.read_pickle(dir + "Data/Dataframes/eros_point_mass_v4.data")
     # model_id = df["id"].values[model_idx] # ALC without extra
-    # config, model = load_config_and_model(model_id, df)
+    # config, model = load_config_and_model(df, model_id)
     # planes_exp = run_planes_exp(model, config, radius, density)
     # fig_list = generate_plot(planes_exp, max_percent)
     # for idx, fig in enumerate(fig_list):
@@ -99,8 +99,8 @@ def main():
     # df = pd.read_pickle(dir + "Data/Dataframes/hparams_rotating.data")
     # model_id = df["id"].values[261] # best
     config, model = load_config_and_model(
-        model_id,
         df,
+        model_id,
         custom_data_dir=os.path.dirname(GravNN.__file__) + "/../Data",
     )
     planes_exp = run_planes_exp(model, config, radius, density)

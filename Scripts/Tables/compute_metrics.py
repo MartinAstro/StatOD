@@ -60,8 +60,8 @@ def main():
     df = pd.read_pickle(pinn_file)
 
     config, model = load_config_and_model(
-        df.id.values[-1],
         df,
+        df.id.values[-1],
         custom_dtype="float32",
         only_weights=True,
     )

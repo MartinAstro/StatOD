@@ -38,8 +38,8 @@ class pinnGravityModel:
         df = pd.read_pickle(f"{data_dir}/Dataframes/{df_file_basename}")
 
         config, gravity_model = load_config_and_model(
-            df.id.values[-1],
             f"{data_dir}/Dataframes/{df_file_basename}",
+            df.id.values[-1],
             custom_dtype=dtype,
             only_weights=True,
         )

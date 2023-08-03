@@ -1,30 +1,22 @@
 import os
 import pickle
 
-import GravNN
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from GravNN.Analysis.ExtrapolationExperiment import ExtrapolationExperiment
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
-from GravNN.Analysis.TrajectoryExperiment import TrajectoryExperiment
 from GravNN.CelestialBodies.Asteroids import Eros
 from GravNN.GravityModels.HeterogeneousPoly import (
-    generate_heterogeneous_sym_model,
     get_hetero_poly_symmetric_data,
 )
 from GravNN.GravityModels.Polyhedral import Polyhedral
 from GravNN.Networks.Model import load_config_and_model
 from GravNN.Visualization.ExtrapolationVisualizer import ExtrapolationVisualizer
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
-from GravNN.Visualization.TrajectoryVisualizer import TrajectoryVisualizer
 from GravNN.Visualization.VisualizationBase import VisualizationBase
 
 import StatOD
-from StatOD.utils import (
-    compute_semimajor,
-)
 
 
 class PlanesComparisonVisualizer(VisualizationBase):
@@ -153,7 +145,8 @@ class PlanesComparisonVisualizer(VisualizationBase):
             )
 
         original_vis = PlanesVisualizer(
-            self.original_exp["planes"], halt_formatting=True
+            self.original_exp["planes"],
+            halt_formatting=True,
         )
         original_vis.max = max
         x = original_vis.experiment.x_test
@@ -190,7 +183,11 @@ class PlanesComparisonVisualizer(VisualizationBase):
             annotate=False,
         )
         extrap_vis.plot_interpolation_percent_error(
-            new_fig=False, plot_max=False, plot_std=False, label="PINN", color="blue"
+            new_fig=False,
+            plot_max=False,
+            plot_std=False,
+            label="PINN",
+            color="blue",
         )
 
         extrap_vis = ExtrapolationVisualizer(
@@ -200,7 +197,11 @@ class PlanesComparisonVisualizer(VisualizationBase):
             annotate=False,
         )
         extrap_vis.plot_interpolation_percent_error(
-            new_fig=False, plot_max=False, plot_std=False, label="Poly", color="green"
+            new_fig=False,
+            plot_max=False,
+            plot_std=False,
+            label="Poly",
+            color="green",
         )
         plt.legend()
 
@@ -214,7 +215,7 @@ def main():
     df = pd.read_pickle(df_file)
 
     # load model and config
-    config, pinn_model = load_config_and_model(df.id.values[-1], df, only_weights=True)
+    config, pinn_model = load_config_and_model(df, df.id.values[-1], only_weights=True)
 
     # load the constant density polyhedral model
     poly_model = Polyhedral(Eros(), Eros().obj_200k)
@@ -227,7 +228,9 @@ def main():
     StatOD_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"
     vis.save(plt.gcf(), f"{StatOD_dir}/Plots/panel_plot_new.pdf")
     plt.savefig(
-        f"{StatOD_dir}/Plots/panel_plot_new.pdf", format="pdf", bbox_inches="tight"
+        f"{StatOD_dir}/Plots/panel_plot_new.pdf",
+        format="pdf",
+        bbox_inches="tight",
     )
     plt.show()
 

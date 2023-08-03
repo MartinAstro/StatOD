@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
+from Scripts.VisualizationTools.TruePlanesVisualizer import TruePlanesVisualizer
 
 from Scripts.Factories.CallbackFactory import CallbackFactory
 
@@ -18,6 +19,7 @@ from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
 from StatOD.visualization.FilterVisualizer import FilterVisualizer
 from StatOD.visualization.visualizations import *
+import matplotlib.cm as cm
 
 plt.switch_backend("WebAgg")
 
@@ -45,11 +47,52 @@ def plot_planes(gravity_model, config):
         radius_bounds,
         points,
         remove_error=True,
+        omit_train_data=True,
     )
     planes_exp.run()
 
-    vis = PlanesVisualizer(planes_exp)
-    vis.plot(percent_max=10, annotate_stats=True)
+    # vis = TruePlanesVisualizer(planes_exp)
+    # vis.plot(max=10, annotate_stats=True)
+
+    def annotate(vis):
+        values = vis.experiment.percent_error_acc
+        avg = sigfig.round(np.nanmean(values), sigfigs=2)
+        std = sigfig.round(np.nanstd(values), sigfigs=2)
+        max = sigfig.round(np.nanmax(values), sigfigs=2)
+
+        if avg > 1e3:
+            stat_str = f"%.1E ± %.1E (%.1E)" % (avg, std, max)
+        else:
+            stat_str = f"{avg}±{std} ({max})"
+        plt.sca(plt.gcf().axes[1])
+        plt.gca().annotate(
+            stat_str,
+            xy=(0.5, 0.1),
+            ha="center",
+            va="center",
+            xycoords="axes fraction",
+            bbox=dict(boxstyle="round", fc="w"),
+            fontsize=12,
+        )
+
+    min, max = 1e-1, 10
+    log = False
+    vis = TruePlanesVisualizer(planes_exp)
+    scale = 1
+    vis.fig_size = (
+        vis.full_page_default[0] * scale * 3.05,
+        vis.full_page_default[0] * scale,
+    )  # (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
+    vis.plot(
+        percent_error=True,
+        max=max,
+        cmap=cm.jet,
+        log=log,
+        z_min=min,
+        annotate_stats=False,
+        colorbar_label="Acceleration Percent Error \%",
+    )
+    annotate(vis)
 
 
 def print_metrics(metrics):
@@ -169,7 +212,9 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
         },
     )
 
-    # plot_planes(model.gravity_model, model.gravity_model.config)
+    plot_planes(model.gravity_model, model.gravity_model.config)
+    statOD_dir = os.path.dirname(StatOD.__file__)
+    plt.savefig(statOD_dir + "/../Plots/eros_planes_pm_pre.pdf")
 
     ##################################
     # Dynamics and noise information #
@@ -252,7 +297,9 @@ def DMC_high_fidelity(pinn_file, traj_file, hparams, show=False, df_file=None):
     )
 
     # generate_plots(scenario, traj_data, model.gravity_model)
-    # plot_planes(model.gravity_model, model.gravity_model.config)
+    plot_planes(model.gravity_model, model.gravity_model.config)
+    plt.savefig(statOD_dir + "/../Plots/eros_planes_pm_post.pdf")
+
     print_metrics(metrics)
 
     # save the model + config
@@ -268,27 +315,36 @@ if __name__ == "__main__":
     import time
 
     start_time = time.time()
+    statOD_dir = os.path.dirname(StatOD.__file__)
 
     # model = "eros_poly_071123"
     model = "eros_poly_071123"
-    pinn_file = f"Data/Dataframes/{model}.data"
-    traj_file = f"traj_eros_poly_061023_32000.0_0.35000000000000003"
-
-    statOD_dir = os.path.dirname(StatOD.__file__)
     df_file = statOD_dir + f"/../Data/Dataframes/best_case_model_071123.data"
+    noise = "noiseless"
+    pinn_file = f"Data/Dataframes/{model}.data"
+
+    model = "eros_statOD_pm_071123"
+    df_file = statOD_dir + f"/../Data/Dataframes/worst_case_model_071123.data"
+    noise = "noisy"
+    pinn_file = f"{statOD_dir}/../Data/Dataframes/{model}.data"
+
+    traj_file = f"traj_eros_poly_061023_32000.0_0.35000000000000003"
 
     hparams = {
         "q_value": [1e-9],
         "r_value": [1e-12],
-        "epochs": [10000],
         "learning_rate": [1e-4],
         "meas_batch_size": [32768],
-        "train_fcn": ["pinn_a"],
+        "train_fcn": ["pinn_al"],
         "boundary_condition_data": [False],
-        "measurement_noise": ["noiseless"],
+        "measurement_noise": [noise],
         "eager": [False],
         "data_fraction": [1.0],
-        "batch_size" : [1024*2]
+        "epochs": [10000],
+        "batch_size": [1024 * 16],
+        # "data_fraction": [0.05],
+        # "epochs": [100],
+        # "batch_size": [1024 * 2],
     }
 
     DMC_high_fidelity(pinn_file, traj_file, hparams, show=True, df_file=df_file)

@@ -116,7 +116,12 @@ class ExperimentPanelVisualizer(VisualizationBase):
         #########################
         # Extrapolation Experiment
         #########################
-        extrap_exp = ExtrapolationExperiment(self.model, self.model.config, points=1000, omit_train_data=True,)
+        extrap_exp = ExtrapolationExperiment(
+            self.model,
+            self.model.config,
+            points=1000,
+            omit_train_data=True,
+        )
         extrap_exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
         extrap_exp.run()
 
@@ -144,10 +149,9 @@ class ExperimentPanelVisualizer(VisualizationBase):
             for traj in traj_exps:
                 for test_models in traj.test_models:
                     try:
-                        test_models.pop('model')
+                        test_models.pop("model")
                     except:
                         pass
-   
 
             pickle.dump(planes_exp, f)
             pickle.dump(extrap_exp, f)
@@ -227,12 +231,12 @@ def main():
 
     gravNN_dir = os.path.abspath(os.path.dirname(GravNN.__file__)) + "/../"
     df_file = gravNN_dir + "Data/Dataframes/ae_pair_results.data"
-    
+
     # Testing
     gravNN_dir = os.path.abspath(os.path.dirname(GravNN.__file__)) + "/../"
     df_file = gravNN_dir + "Data/Dataframes/eros_poly_071123.data"
 
-    # Deploy 
+    # Deploy
     gravNN_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"
     df_file = gravNN_dir + "Data/Dataframes/best_case_model_071123.data"
 
@@ -240,11 +244,11 @@ def main():
     df = pd.read_pickle(df_file)
 
     # load model and config
-    config, model = load_config_and_model(df.id.values[-1], df, only_weights=True)
+    config, model = load_config_and_model(df, df.id.values[-1], only_weights=True)
 
     # run the visualization suite on the model
     vis = ExperimentPanelVisualizer(model, load_exp=False)
-    vis.fig_size = (vis.w_full, vis.w_full/5*2)
+    vis.fig_size = (vis.w_full, vis.w_full / 5 * 2)
     vis.plot()
 
     StatOD_dir = os.path.abspath(os.path.dirname(StatOD.__file__)) + "/../"

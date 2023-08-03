@@ -12,6 +12,7 @@ import StatOD
 
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
+
 def plot_planes(model, config):
     planet = config["planet"][0]
     points = 100
@@ -30,7 +31,6 @@ def plot_planes(model, config):
     vis = PlanesVisualizer(planes_exp)
     vis.plot(percent_max=100, annotate_stats=True, log=True)
     plt.show()
-
 
 
 def main():
@@ -60,7 +60,7 @@ def main():
     config.update(hparams)
     run(config, df_file)
 
-    # config, model = load_config_and_model(config['id'][0], df_file)
+    # config, model = load_config_and_model(df_file, config['id'][0])
     # plot_planes(model, config)
 
 
@@ -79,10 +79,9 @@ def run(config, df_file=None):
     # Get data, network, optimizer, and generate model
     data = DataSet(config)
     model = PINNGravityModel(config)
-    history = model.train(data)    
+    history = model.train(data)
     saver = ModelSaver(model, history=history)
     saver.save(df_file=df_file)
-
 
     print(f"Model ID: [{model.config['id']}]")
     return model.config

@@ -1,10 +1,13 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
-from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_data
+from GravNN.GravityModels.HeterogeneousPoly import (
+    get_hetero_poly_data,
+    get_hetero_poly_symmetric_data,
+)
 from GravNN.Networks.Model import load_config_and_model
 
-from Scripts.Visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
+from StatOD.visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 from StatOD.dynamics import *
 from StatOD.utils import *
 from StatOD.visualization.visualizations import *
@@ -15,7 +18,7 @@ plt.switch_backend("WebAgg")
 def plot(df):
     model_ids = df.id.values
     for model_id in model_ids:
-        config, model = load_config_and_model(model_id, df)
+        config, model = load_config_and_model(df, model_id)
         planes_exp = PlanesExperiment(
             model.gravity_model,
             model.config,
@@ -25,7 +28,7 @@ def plot(df):
             ],
             100,
         )
-        planes_exp.config["gravity_data_fcn"] = [get_hetero_poly_data]
+        planes_exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
         planes_exp.run()
 
         # Plot experiment results
@@ -50,7 +53,7 @@ if __name__ == "__main__":
     directory = os.path.dirname(StatOD.__file__)
 
     df = pd.read_pickle(
-        directory + "/../Data/Dataframes/hparam_test.data",
+        directory + "/../Data/Dataframes/hparam_071123.data",
     )
 
     # filter out only the top 10

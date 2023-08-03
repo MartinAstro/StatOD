@@ -20,7 +20,7 @@ def main():
     df = pd.read_pickle(df_file)
 
     # load model and config
-    config, model = load_config_and_model(df.id.values[-1], df, only_weights=True)
+    config, model = load_config_and_model(df, df.id.values[-1], only_weights=True)
 
     # run the visualization suite on the model
     vis = ExperimentPanelVisualizer(model)
