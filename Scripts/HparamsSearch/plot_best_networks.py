@@ -2,12 +2,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from GravNN.Analysis.PlanesExperiment import PlanesExperiment
 from GravNN.GravityModels.HeterogeneousPoly import (
-    get_hetero_poly_data,
     get_hetero_poly_symmetric_data,
 )
 from GravNN.Networks.Model import load_config_and_model
+from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
-from StatOD.visualization.GravityPlanesVisualizer import GravityPlanesVisualizer
 from StatOD.dynamics import *
 from StatOD.utils import *
 from StatOD.visualization.visualizations import *
@@ -32,10 +31,8 @@ def plot(df):
         planes_exp.run()
 
         # Plot experiment results
-        planes_vis = GravityPlanesVisualizer(planes_exp, halt_formatting=True)
-        planes_vis.run(
-            max_error=10,
-        )
+        planes_vis = PlanesVisualizer(planes_exp, halt_formatting=True)
+        planes_vis.plot(z_max=10)
 
         bs = config["batch_size"][0]
         epochs = config["epochs"][0]

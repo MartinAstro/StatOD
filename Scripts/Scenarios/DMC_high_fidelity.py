@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from GravNN.GravityModels.HeterogeneousPoly import get_hetero_poly_symmetric_data
 from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
-from Scripts.VisualizationTools.TruePlanesVisualizer import TruePlanesVisualizer
 
 from Scripts.Factories.CallbackFactory import CallbackFactory
 
@@ -19,7 +18,6 @@ from StatOD.utils import *
 from StatOD.utils import dict_values_to_list
 from StatOD.visualization.FilterVisualizer import FilterVisualizer
 from StatOD.visualization.visualizations import *
-import matplotlib.cm as cm
 
 plt.switch_backend("WebAgg")
 
@@ -51,9 +49,6 @@ def plot_planes(gravity_model, config):
     )
     planes_exp.run()
 
-    # vis = TruePlanesVisualizer(planes_exp)
-    # vis.plot(max=10, annotate_stats=True)
-
     def annotate(vis):
         values = vis.experiment.percent_error_acc
         avg = sigfig.round(np.nanmean(values), sigfigs=2)
@@ -61,7 +56,7 @@ def plot_planes(gravity_model, config):
         max = sigfig.round(np.nanmax(values), sigfigs=2)
 
         if avg > 1e3:
-            stat_str = f"%.1E ± %.1E (%.1E)" % (avg, std, max)
+            stat_str = "%.1E ± %.1E (%.1E)" % (avg, std, max)
         else:
             stat_str = f"{avg}±{std} ({max})"
         plt.sca(plt.gcf().axes[1])
@@ -77,20 +72,17 @@ def plot_planes(gravity_model, config):
 
     min, max = 1e-1, 10
     log = False
-    vis = TruePlanesVisualizer(planes_exp)
+    vis = PlanesVisualizer(planes_exp)
     scale = 1
     vis.fig_size = (
         vis.full_page_default[0] * scale * 3.05,
         vis.full_page_default[0] * scale,
     )  # (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
     vis.plot(
-        percent_error=True,
-        max=max,
-        cmap=cm.jet,
+        z_max=max,
         log=log,
         z_min=min,
         annotate_stats=False,
-        colorbar_label="Acceleration Percent Error \%",
     )
     annotate(vis)
 
@@ -319,16 +311,16 @@ if __name__ == "__main__":
 
     # model = "eros_poly_071123"
     model = "eros_poly_071123"
-    df_file = statOD_dir + f"/../Data/Dataframes/best_case_model_071123.data"
+    df_file = statOD_dir + "/../Data/Dataframes/best_case_model_071123.data"
     noise = "noiseless"
     pinn_file = f"Data/Dataframes/{model}.data"
 
     model = "eros_statOD_pm_071123"
-    df_file = statOD_dir + f"/../Data/Dataframes/worst_case_model_071123.data"
+    df_file = statOD_dir + "/../Data/Dataframes/worst_case_model_071123.data"
     noise = "noisy"
     pinn_file = f"{statOD_dir}/../Data/Dataframes/{model}.data"
 
-    traj_file = f"traj_eros_poly_061023_32000.0_0.35000000000000003"
+    traj_file = "traj_eros_poly_061023_32000.0_0.35000000000000003"
 
     hparams = {
         "q_value": [1e-9],

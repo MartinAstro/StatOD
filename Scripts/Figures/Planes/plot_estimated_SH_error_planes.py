@@ -9,9 +9,9 @@ from GravNN.GravityModels.HeterogeneousPoly import (
 )
 from GravNN.GravityModels.SphericalHarmonics import SphericalHarmonics
 from GravNN.Networks.Model import load_config_and_model
+from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
 import StatOD
-from Scripts.VisualizationTools.TruePlanesVisualizer import TruePlanesVisualizer
 
 
 def main(regress_deg):
@@ -37,9 +37,9 @@ def main(regress_deg):
     exp.config["gravity_data_fcn"] = [get_hetero_poly_symmetric_data]
     exp.run()
 
-    vis = TruePlanesVisualizer(exp)
+    vis = PlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.h_tri)  # 3 columns of 4
-    vis.plot(percent_error=True, max=10, log=False)
+    vis.plot(z_max=10, log=False)
     vis.save(
         plt.gcf(),
         f"{statOD_dir}/../Plots/SH{regress_deg}_gravity_field_planes.pdf",

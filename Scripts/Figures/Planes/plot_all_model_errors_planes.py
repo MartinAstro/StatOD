@@ -12,9 +12,9 @@ from GravNN.GravityModels.PointMass import PointMass
 from GravNN.GravityModels.Polyhedral import Polyhedral
 from GravNN.GravityModels.SphericalHarmonics import SphericalHarmonics
 from GravNN.Networks.Model import load_config_and_model
+from GravNN.Visualization.PlanesVisualizer import PlanesVisualizer
 
 import StatOD
-from Scripts.VisualizationTools.TruePlanesVisualizer import TruePlanesVisualizer
 
 
 def plot_planes(model, config):
@@ -28,18 +28,18 @@ def plot_planes(model, config):
     exp.run()
 
     # plot the error of the model
-    vis = TruePlanesVisualizer(exp)
+    vis = PlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
-    vis.plot(percent_error=True, max=10)
+    vis.plot(z_max=10)
     vis.save(
         plt.gcf(),
         f"{plots_dir}{model_name}_gravity_field_planes_error.pdf",
     )
 
     # Plot the true gravity field
-    vis = TruePlanesVisualizer(exp)
+    vis = PlanesVisualizer(exp)
     vis.fig_size = (vis.w_quad * 3, vis.w_quad)  # 3 columns of 4
-    vis.plot(percent_error=False, max=None)
+    vis.plot_gravity_field(z_max=None)
     vis.save(
         plt.gcf(),
         f"{plots_dir}{model_name}_gravity_field_planes_truth.pdf",
