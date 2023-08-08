@@ -55,10 +55,13 @@ def main():
     planet = Eros()
 
     statOD_dir = os.path.dirname(StatOD.__file__)
-    pinn_file = f"{statOD_dir}/../Data/Dataframes/eros_constant_poly.data"
 
+    ############################################
+    # Plot the Best Case PINN Model
+    ############################################
+
+    pinn_file = f"{statOD_dir}/../Data/Dataframes/best_case_model_071123.data"
     df = pd.read_pickle(pinn_file)
-
     config, model = load_config_and_model(
         df,
         df.id.values[-1],
@@ -70,6 +73,32 @@ def main():
             "gravity_data_fcn": [get_hetero_poly_symmetric_data],
         },
     )
+
+    model.config = config
+    metrics = compute_metrics(model)
+    metrics_list.append(metrics)
+
+    ############################################
+    # Plot the Worst Case PINN Model
+    ############################################
+
+    pinn_file = f"{statOD_dir}/../Data/Dataframes/worst_case_model_071123.data"
+    df = pd.read_pickle(pinn_file)
+    config, model = load_config_and_model(
+        df,
+        df.id.values[-1],
+        custom_dtype="float32",
+        only_weights=True,
+    )
+    config.update(
+        {
+            "gravity_data_fcn": [get_hetero_poly_symmetric_data],
+        },
+    )
+
+    model.config = config
+    metrics = compute_metrics(model)
+    metrics_list.append(metrics)
 
     ############################################
     # Plot the True Model
@@ -92,7 +121,7 @@ def main():
     # Plot the Spherical Harmonics Model
     ############################################
 
-    regress_deg = 8
+    regress_deg = 16
     file_name = f"{statOD_dir}/../Data/Products/SH_Eros_model_{regress_deg}.csv"
     model = SphericalHarmonics(file_name, regress_deg)
     model.config = config
