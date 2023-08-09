@@ -11,26 +11,26 @@ import StatOD
 from Scripts.utils.metrics_formatting import *
 from screeninfo import get_monitors
 
+
 def get_dpi(width_in):
     monitor = get_monitors()[0]
     dpi = monitor.width / width_in
     return dpi
 
 
-
 N_TICKS = 6
 
 
 class ParallelCoordinatePlot:
-    def __init__(self, df, metric="Percent mean", metric_max=None, metric_min=None):
+    def __init__(self, df, metric="Planes %", metric_max=None, metric_min=None):
         self.df = df
         self.metric = metric
         self.metric_data = self.df[self.metric]
         self.linear_columns = [
-            "Interpolation",
-            "Extrapolation",
-            "Trajectory",
-            "Percent mean",
+            "Interior %",
+            "Exterior %",
+            "dX Sum [m]",
+            "Planes %",
             "Max Error",
             "Std Error",
         ]
@@ -145,7 +145,9 @@ class ParallelCoordinatePlot:
         if log_diff >= MAX_LOG_DIFF and not linear_column:
             values = np.log10(values)
             tick_values = np.log10(tick_values)
-            tick_values = np.array([sigfig.round(x, sigfigs=3) for x in tick_values.tolist()])
+            tick_values = np.array(
+                [sigfig.round(x, sigfigs=3) for x in tick_values.tolist()]
+            )
             prefix = "log10 "
 
         # add noise to the data for enhanced visibility
@@ -206,10 +208,10 @@ def main(grav_type):
     df = hparams_to_columns(df)
 
     custom_formats = {
-        "Trajectory": {
+        "dX Sum [m]": {
             # "max_val": 1000000.0,
         },
-        "Percent mean": {
+        "Planes %": {
             # "max_val": 15.0,
         },
         "Std Error": {
@@ -218,10 +220,10 @@ def main(grav_type):
         "Max Error": {
             "max_val": 1000.0,
         },
-        "Interpolation": {
+        "Interior %": {
             # "max_val": 0.5,
         },
-        "Extrapolation": {
+        "Exterior %": {
             # "max_val": 0.2,
         },
     }
@@ -232,29 +234,29 @@ def main(grav_type):
         metric_max = 30 * 2
 
     if grav_type == "poly":
-        query = "hparams_measurement_noise == 'noiseless' and hparams_pinn_file == 'poly'"
+        query = "hparams_measurement_noise == 'noiseless' and hparams_pinn_file == 'poly' and hparams_meas_batch_size < 8000"
         file_name = "hparams_poly"
         metric_max = 5.7 * 2
 
     df = df.query(query)
 
     name_dict = {
+        "hparams_train_fcn": "Training Fcn",
         "hparams_q_value": "Proc. Noise (q)",
-        "hparams_r_value": "Meas. Noise (r)",
         # "hparams_measurement_noise": "Meas. Type",
         "hparams_epochs": "Epochs",
         "hparams_learning_rate": "Learning Rate",
-        "hparams_batch_size": "Batch Size",
-        "hparams_train_fcn": "Training Fcn",
+        "hparams_batch_size": "Mini-Batch Size",
+        "hparams_meas_batch_size": "Measurement Batch",
         # "hparams_data_fraction": "Traj Fraction",
         # "hparams_pinn_file": "Gravity Model",
-        "Planes_percent_error_avg": "Percent mean",
+        "Planes_percent_error_avg": "Planes %",
         # "Planes_percent_error_std": "Std Error",
         # "Planes_percent_error_max": "Max Error",
         # "Planes_high_error_pixel": "Frac High Pixel",
-        "Extrapolation_inter_avg": "Interpolation",
-        "Extrapolation_extra_avg": "Extrapolation",
-        "Trajectory_avg_dX": "Trajectory",
+        "Extrapolation_inter_avg": "Interior %",
+        "Extrapolation_extra_avg": "Exterior %",
+        "Trajectory_avg_dX": "dX Sum [m]",
     }
     df = df.rename(columns=name_dict)
     hparams_df = df[list(name_dict.values())]
@@ -264,15 +266,14 @@ def main(grav_type):
     fig = plot.run()
 
     fig.update_traces(labelangle=30)
-    fig.update_traces(labelside='bottom')
+    fig.update_traces(labelside="bottom")
 
     fig.update_layout(margin=dict(b=100))
     # Get the DPI values of the connected monitors
 
-
     DPI_factor = 1
-    width_in = 23.54 #27 inch with 16:9 ratio
-    width_in = 11.3 #27 inch with 16:9 ratio
+    width_in = 23.54  # 27 inch with 16:9 ratio
+    width_in = 11.3  # 27 inch with 16:9 ratio
 
     DPI = get_dpi(width_in)
     fig.update_layout(
@@ -280,7 +281,7 @@ def main(grav_type):
         template="none",
         font={
             "family": "serif",
-            "size": 20,  
+            "size": 20,
         },
         width=6.5 * DPI * DPI_factor,
         height=3.0 * DPI * DPI_factor,
