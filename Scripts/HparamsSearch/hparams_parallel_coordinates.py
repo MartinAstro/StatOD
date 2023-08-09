@@ -196,7 +196,8 @@ def main(grav_type):
     df = pd.read_pickle(
         # directory + "/../Data/Dataframes/hparam_search_noiseless_test.data",
         # directory + "/../Data/Dataframes/hparam_search_060623_v3.data",
-        directory + "/../Data/Dataframes/hparam_071123.data",
+        directory + "/../Data/Dataframes/hparam_080823.data",
+        # directory + "/../Data/Dataframes/hparam_071123.data",
         # directory + "/../Data/Dataframes/hparam_061423.data",
         # directory + "/../Data/Dataframes/hparam_060523.data",
         # + "/../Data/Dataframes/output_filter_060523.data",
@@ -214,12 +215,6 @@ def main(grav_type):
         "Planes %": {
             # "max_val": 15.0,
         },
-        "Std Error": {
-            "max_val": 100.0,
-        },
-        "Max Error": {
-            "max_val": 1000.0,
-        },
         "Interior %": {
             # "max_val": 0.5,
         },
@@ -236,7 +231,7 @@ def main(grav_type):
     if grav_type == "poly":
         query = "hparams_measurement_noise == 'noiseless' and hparams_pinn_file == 'poly' and hparams_meas_batch_size < 8000"
         file_name = "hparams_poly"
-        metric_max = 5.7 * 2
+        metric_max = 2.7 * 2
 
     df = df.query(query)
 
@@ -248,12 +243,7 @@ def main(grav_type):
         "hparams_learning_rate": "Learning Rate",
         "hparams_batch_size": "Mini-Batch Size",
         "hparams_meas_batch_size": "Measurement Batch",
-        # "hparams_data_fraction": "Traj Fraction",
-        # "hparams_pinn_file": "Gravity Model",
         "Planes_percent_error_avg": "Planes %",
-        # "Planes_percent_error_std": "Std Error",
-        # "Planes_percent_error_max": "Max Error",
-        # "Planes_high_error_pixel": "Frac High Pixel",
         "Extrapolation_inter_avg": "Interior %",
         "Extrapolation_extra_avg": "Exterior %",
         "Trajectory_avg_dX": "dX Sum [m]",
