@@ -12,16 +12,16 @@ from StatOD.utils import *
 def get_model_params():
     hparams = {
         "r_value": [1e-12],
-        "epochs": [500],
+        "q_value": [1e-7],
+        "epochs": [1000],
         "learning_rate": [1e-4],
-        "batch_size": [2**19],
+        "batch_size": [1024],
+        "meas_batch_size": [32864],
         "train_fcn": ["pinn_a"],
         "boundary_condition_data": [False],
         "measurement_noise": ["noiseless"],
         "eager": [False],
-        "data_fraction": [0.1],
-        # "COM_samples": 1,
-        # "X_COM": np.array([[0.0, 0.0, 0.0]]),
+        "data_fraction": [0.33],
     }
     return hparams
 
@@ -73,7 +73,7 @@ def main(pinn_file, idx, show=False, df_file=None):
 def local_main():
     idx = 6
     statOD_dir = os.path.dirname(StatOD.__file__) + "/../"
-    pinn_file = f"{statOD_dir}Data/Dataframes/eros_pm_061023.data"
+    pinn_file = f"{statOD_dir}Data/Dataframes/eros_statOD_pm_071123.data"
     # pinn_file = f"{statOD_dir}Data/Dataframes/eros_poly_061023.data"
     # model = "eros_poly_061323"
 
@@ -89,5 +89,5 @@ def HPC_main():
 
 
 if __name__ == "__main__":
-    # HPC_main()
-    local_main()
+    HPC_main()
+    # local_main()
