@@ -44,7 +44,9 @@ class PlanesCallback(CallbackBase):
         planet = model.config["planet"][0]
         multiplier = self.radius_multiplier
         bounds = [-multiplier * planet.radius, multiplier * planet.radius]
-        exp = PlanesExperiment(model, model.config, bounds, samples_1d=100, omit_train_data=True)
+        exp = PlanesExperiment(
+            model, model.config, bounds, samples_1d=100, omit_train_data=True
+        )
         exp.run()
 
         # Compute metrics
@@ -67,18 +69,30 @@ class ExtrapolationCallback(CallbackBase):
 
     def run(self, model):
         print("running Extrap")
-        exp = ExtrapolationExperiment(model, model.config, points=1000, omit_train_data=True)
+        extrap_config = model.config.copy()
+
+        # want interpolation error to only span 0 - 3R
+        extrap_config["radius_max"] = [3 * model.config["planet"][0].radius]
+        exp = ExtrapolationExperiment(
+            model,
+            model.config,
+            points=1000,
+            omit_train_data=True,
+        )
         exp.run()
 
         vis = ExtrapolationVisualizer(exp)
         metrics = {}
 
-        metrics["inter_avg"] = np.nanmean(
-            vis.experiment.losses["percent"][vis.idx_test][: vis.max_idx] * 100,
-        )
-        metrics["extra_avg"] = np.nanmean(
-            vis.experiment.losses["percent"][vis.idx_test][vis.max_idx :] * 100,
-        )
+        percent_error_all = vis.experiment.losses["percent"][vis.idx_test] * 100
+        percent_error_interp = percent_error_all[: vis.max_idx]
+        x = vis.x_test[: vis.max_idx]
+        interior_mask = x < 1
+        interior_error = percent_error_interp[interior_mask]
+        exterior_error = percent_error_interp[~interior_mask]
+
+        metrics["inter_avg"] = np.nanmean(interior_error)
+        metrics["extra_avg"] = np.nanmean(exterior_error)
 
         return metrics
 
